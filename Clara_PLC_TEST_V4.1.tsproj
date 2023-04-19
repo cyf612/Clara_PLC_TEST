@@ -2982,6 +2982,26 @@ External Setpoint Generation:
 							<Type>UINT</Type>
 						</Var>
 						<Var>
+							<Name>P_RollToRoll.FB_RoolToRool[1].REF.NcToPlc</Name>
+							<Type GUID="{10036166-C9D3-404B-BDD3-323034AAA7F4}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>P_RollToRoll.FB_RoolToRool[2].REF.NcToPlc</Name>
+							<Type GUID="{10036166-C9D3-404B-BDD3-323034AAA7F4}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>P_RollToRoll.FB_RoolToRool[3].REF.NcToPlc</Name>
+							<Type GUID="{10036166-C9D3-404B-BDD3-323034AAA7F4}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>P_RollToRoll.FB_RoolToRool[4].REF.NcToPlc</Name>
+							<Type GUID="{10036166-C9D3-404B-BDD3-323034AAA7F4}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>P_SpitUnit.FB_Move.ref.NcToPlc</Name>
+							<Type GUID="{10036166-C9D3-404B-BDD3-323034AAA7F4}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
 							<Name>P_TwinSAFE.Com_err</Name>
 							<Comment><![CDATA[用来显示通讯报错]]></Comment>
 							<Type>BOOL</Type>
@@ -3002,8 +3022,12 @@ External Setpoint Generation:
 							<Type>USINT</Type>
 						</Var>
 						<Var>
-							<Name>P_SpitUnit.FB_Move.ref.NcToPlc</Name>
-							<Type GUID="{10036166-C9D3-404B-BDD3-323034AAA7F4}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+							<Name>P_Modbus_RTU.master[1].InData</Name>
+							<Type GUID="{F852D9F7-9DB9-AE77-EE6D-D9BA52CDE308}" Namespace="Tc2_ModbusRTU">MB_KL6inData22B</Type>
+						</Var>
+						<Var>
+							<Name>P_Modbus_RTU.master[2].InData</Name>
+							<Type GUID="{F852D9F7-9DB9-AE77-EE6D-D9BA52CDE308}" Namespace="Tc2_ModbusRTU">MB_KL6inData22B</Type>
 						</Var>
 						<Var>
 							<Name>P_FastScan.FB_move.ref.NcToPlc</Name>
@@ -3016,14 +3040,6 @@ External Setpoint Generation:
 						<Var>
 							<Name>P_SlowScan.FB_move.ref.NcToPlc</Name>
 							<Type GUID="{10036166-C9D3-404B-BDD3-323034AAA7F4}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
-						</Var>
-						<Var>
-							<Name>P_Modbus_RTU.master[1].InData</Name>
-							<Type GUID="{F852D9F7-9DB9-AE77-EE6D-D9BA52CDE308}" Namespace="Tc2_ModbusRTU">MB_KL6inData22B</Type>
-						</Var>
-						<Var>
-							<Name>P_Modbus_RTU.master[2].InData</Name>
-							<Type GUID="{F852D9F7-9DB9-AE77-EE6D-D9BA52CDE308}" Namespace="Tc2_ModbusRTU">MB_KL6inData22B</Type>
 						</Var>
 						<Var>
 							<Name>.Axis[1].Ref.NcToPlc</Name>
@@ -3054,50 +3070,38 @@ External Setpoint Generation:
 							<Name>.EL1809_S</Name>
 							<Type GUID="{897B1D40-4F6D-F848-BD55-32E59106B5B6}">ARRAY [1..2,1..16] OF BOOL</Type>
 						</Var>
-						<Var>
-							<Name>P_RollToRoll.FB_RoolToRool[1].REF.NcToPlc</Name>
-							<Type GUID="{10036166-C9D3-404B-BDD3-323034AAA7F4}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
-						</Var>
-						<Var>
-							<Name>P_RollToRoll.FB_RoolToRool[2].REF.NcToPlc</Name>
-							<Type GUID="{10036166-C9D3-404B-BDD3-323034AAA7F4}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
-						</Var>
-						<Var>
-							<Name>P_RollToRoll.FB_RoolToRool[3].REF.NcToPlc</Name>
-							<Type GUID="{10036166-C9D3-404B-BDD3-323034AAA7F4}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
-						</Var>
-						<Var>
-							<Name>P_RollToRoll.FB_RoolToRool[4].REF.NcToPlc</Name>
-							<Type GUID="{10036166-C9D3-404B-BDD3-323034AAA7F4}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
-						</Var>
 					</Vars>
 					<Vars VarGrpType="2" ContextId="1" AreaNo="17">
 						<Name>PlcTask Outputs</Name>
 						<Var>
-							<Name>P_TwinSAFE.Err_Ack</Name>
-							<Comment><![CDATA[当出现了通讯报错时，用来做安全应答]]></Comment>
-							<Type>BOOL</Type>
-						</Var>
-						<Var>
-							<Name>P_SpitUnit.FB_Move.ref.PlcToNc</Name>
+							<Name>P_RollToRoll.FB_RoolToRool[1].REF.PlcToNc</Name>
 							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
 						</Var>
 						<Var>
-							<Name>P_FastScan.FB_move.ref.PlcToNc</Name>
+							<Name>P_RollToRoll.FB_RoolToRool[2].REF.PlcToNc</Name>
 							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
 						</Var>
 						<Var>
-							<Name>P_Z_Axis.FB_move.ref.PlcToNc</Name>
+							<Name>P_RollToRoll.FB_RoolToRool[3].REF.PlcToNc</Name>
 							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
 						</Var>
 						<Var>
-							<Name>P_SlowScan.FB_move.ref.PlcToNc</Name>
+							<Name>P_RollToRoll.FB_RoolToRool[4].REF.PlcToNc</Name>
 							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
 						</Var>
 						<Var>
 							<Name>P_RollToRoll.Max_profile_velocity</Name>
 							<Comment><![CDATA[转矩模式下速度限制 单位0.1r/min]]></Comment>
 							<Type GUID="{7EBDD008-A9A8-B259-6DF4-ACAC21313C21}">ARRAY [1..4] OF UDINT</Type>
+						</Var>
+						<Var>
+							<Name>P_SpitUnit.FB_Move.ref.PlcToNc</Name>
+							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>P_TwinSAFE.Err_Ack</Name>
+							<Comment><![CDATA[当出现了通讯报错时，用来做安全应答]]></Comment>
+							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>P_Modbus_RTU.master[1].OutData</Name>
@@ -3110,6 +3114,18 @@ External Setpoint Generation:
 						<Var>
 							<Name>P_Modbus_RTU.station_error</Name>
 							<Type GUID="{22728B82-A99E-1178-70C3-33731C966BD6}">ARRAY [1..10] OF BOOL</Type>
+						</Var>
+						<Var>
+							<Name>P_FastScan.FB_move.ref.PlcToNc</Name>
+							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>P_Z_Axis.FB_move.ref.PlcToNc</Name>
+							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>P_SlowScan.FB_move.ref.PlcToNc</Name>
+							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
 						</Var>
 						<Var>
 							<Name>.Axis[1].Ref.PlcToNc</Name>
@@ -3138,22 +3154,6 @@ External Setpoint Generation:
 						<Var>
 							<Name>.EL4002_S</Name>
 							<Type GUID="{8B10461D-4958-8550-CE4F-EE8137045945}">ARRAY [1..2] OF INT</Type>
-						</Var>
-						<Var>
-							<Name>P_RollToRoll.FB_RoolToRool[1].REF.PlcToNc</Name>
-							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
-						</Var>
-						<Var>
-							<Name>P_RollToRoll.FB_RoolToRool[2].REF.PlcToNc</Name>
-							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
-						</Var>
-						<Var>
-							<Name>P_RollToRoll.FB_RoolToRool[3].REF.PlcToNc</Name>
-							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
-						</Var>
-						<Var>
-							<Name>P_RollToRoll.FB_RoolToRool[4].REF.PlcToNc</Name>
-							<Type GUID="{63A84524-72E3-41C8-BEAB-4CCE44690A13}" Namespace="MC">PLCTONC_AXIS_REF</Type>
 						</Var>
 					</Vars>
 					<UnrestoredVarLinks ImportTime="2022-06-09T16:43:47">
