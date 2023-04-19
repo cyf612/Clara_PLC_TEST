@@ -1,0 +1,313 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_UVLed" Id="{ea00cb74-65ec-41d6-bba3-55d003c466be}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_UVLed
+VAR
+	//FB_UVLed		:FB_UVLed;
+	FB_UVLed_L		:FB_UVLed_L;
+	FB_UVLed_R		:FB_UVLed_R;
+
+	log_ErrorEnum:UVLedErrorEnum;
+	log_ID:INT;
+	i:INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_LOG();
+FB_UVLed_L(
+	single_double:=GVL_API.stUVLed[1].unidirection , 
+	initial_print_position:= GVL_API.stUVLed[1].initial_print_position, 
+	uv_power_leading:= GVL_API.stUVLed[1].uv_power_leading, 
+	uv_power_trailing:= GVL_API.stUVLed[1].uv_power_trailing, 
+	uvStart:= GVL_API.stUVLed[1].uvStart, 
+	uvEnd:= GVL_API.stUVLed[1].uvEnd,
+	ahead_pos:=GVL_API.stUVLed[1].ahead_pos,
+	delay_pos:=GVL_API.stUVLed[1].delay_pos, 
+	parts:=GVL_API.stUVLed[1].prats,
+	Encoder:= Axis[FastScan].Ref.NcToPlc.ActPos, 
+	Moving:= Axis[FastScan].Ref.Status.Moving, 
+	FS_Direction_N:= Axis[FastScan].Ref.Status.NegativeDirection, 
+	FS_Direction_P:=Axis[FastScan].Ref.Status.PositiveDirection , 	
+	UVError:=GVL.UV_error_L , 
+	//IO_Error:=GVL.UV_timeout,
+	UVisRemote:=GVL.UVisRemote,
+	state=> GVL_API.stUVLed[1].state, 
+	error_code=> GVL_API.stUVLed[1].error_code, 
+	uv_power=>GVL.set_uv_power_left, 
+	set_prats=>GVL.set_uv_parts_left,
+	initialized=> GVL_API.stUVLed[1].initialized, 
+	settings_applide=>GVL_API.stUVLed[1].settings_applied , 
+	curing_started=> GVL_API.stUVLed[1].curing_started, 
+	curing_stopped=> GVL_API.stUVLed[1].curing_stopped, 
+	error=> GVL_API.stUVLed[1].error, 
+	off=> GVL_API.stUVLed[1].off,
+	Initialize:= GVL_API.stUVLed[1].Initialize, 
+	ConfigurePowerSettings:= GVL_API.stUVLed[1].ConfigurePowerSettings, 
+	ConfigurePositions:= GVL_API.stUVLed[1].ConfigurePositions, 
+	StopCuring:= GVL_API.stUVLed[1].StopCuring, 
+	SetOff:=GVL_API.stUVLed[1].SetOff  );
+FB_UVLed_R(
+	single_double:=GVL_API.stUVLed[2].unidirection , 
+	initial_print_position:= GVL_API.stUVLed[2].initial_print_position, 
+	uv_power_leading:= GVL_API.stUVLed[2].uv_power_leading, 
+	uv_power_trailing:= GVL_API.stUVLed[2].uv_power_trailing, 
+	uvStart:= GVL_API.stUVLed[2].uvStart, 
+	uvEnd:= GVL_API.stUVLed[2].uvEnd, 
+	ahead_pos:=GVL_API.stUVLed[2].ahead_pos,
+	delay_pos:=GVL_API.stUVLed[2].delay_pos,
+	parts:=GVL_API.stUVLed[2].prats,
+	Encoder:= Axis[FastScan].Ref.NcToPlc.ActPos, 
+	Moving:= Axis[FastScan].Ref.Status.Moving, 
+	FS_Direction_N:= Axis[FastScan].Ref.Status.NegativeDirection, 
+	FS_Direction_P:=Axis[FastScan].Ref.Status.PositiveDirection , 
+	UVError:=GVL.UV_error_R ,
+	//IO_Error:=GVL.UV_timeout, 
+	UVisRemote:=GVL.UVisRemote,
+	state=> GVL_API.stUVLed[2].state, 
+	error_code=> GVL_API.stUVLed[2].error_code, 
+	uv_power=>GVL. set_uv_power_right, 
+	set_prats=>GVL.set_uv_parts_right,
+	initialized=> GVL_API.stUVLed[2].initialized, 
+	settings_applide=>GVL_API.stUVLed[2].settings_applied , 
+	curing_started=> GVL_API.stUVLed[2].curing_started, 
+	curing_stopped=> GVL_API.stUVLed[2].curing_stopped, 
+	error=> GVL_API.stUVLed[2].error, 
+	off=> GVL_API.stUVLed[2].off,
+	Initialize:= GVL_API.stUVLed[2].Initialize, 
+	ConfigurePowerSettings:= GVL_API.stUVLed[2].ConfigurePowerSettings, 
+	ConfigurePositions:= GVL_API.stUVLed[2].ConfigurePositions, 
+	StopCuring:= GVL_API.stUVLed[2].StopCuring, 
+	SetOff:=GVL_API.stUVLed[2].SetOff  );]]></ST>
+    </Implementation>
+    <Action Name="ACT_LOG" Id="{acc045b5-8cbe-43fb-b9cf-50220099ef03}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+log_ID:=600;
+
+FOR i:=1 TO 2 DO 
+(*uv1:500-549    uv2:550-   *)
+//initialize
+AlarmActionArray[log_ID+50*i-50+1].AlarmMsg.EN	:=	CONCAT('UVLed',INT_TO_STRING(i));
+AlarmActionArray[log_ID+50*i-50+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+1].AlarmMsg.EN,
+																				' Initialize');
+
+fbSetAlarm[log_ID+50*i-50+1](
+	InUse:=TRUE , 
+	EventId:=log_ID+50*i-50+1 , 
+	EventActive:=GVL_API.stUVLed[i].Initialize , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+
+ //ConfigurePowerSettings
+AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN	:=	CONCAT('UVLed',INT_TO_STRING(i));
+AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN,
+																				' ConfigurePowerSettings: ');
+	IF GVL_API.stUVLed[i].initial_print_position=0 THEN 
+	AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN,
+																					'from_home;');
+	ELSE 
+	AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN,
+																					'to_home;');																			
+	END_IF
+ 	IF GVL_API.stUVLed[i].unidirection THEN 
+	AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN,
+																					'bi-directional;');	
+	ELSE
+	AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN,
+																					'unidirectional;');	
+	END_IF
+	AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN,
+																					DINT_TO_STRING(GVL_API.stUVLed[i].uv_power_leading));	
+	AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN,';');
+	AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+2].AlarmMsg.EN,
+																					DINT_TO_STRING(GVL_API.stUVLed[i].uv_power_trailing));	
+fbSetAlarm[log_ID+50*i-50+2](
+	InUse:=TRUE , 
+	EventId:=log_ID+50*i-50+2 , 
+	EventActive:=GVL_API.stUVLed[i].ConfigurePowerSettings , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );	
+//ConfigurePositions
+AlarmActionArray[log_ID+50*i-50+3].AlarmMsg.EN	:=	CONCAT('UVLed',INT_TO_STRING(i));
+AlarmActionArray[log_ID+50*i-50+3].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+3].AlarmMsg.EN,
+																				' ConfigurePositions: ');
+AlarmActionArray[log_ID+50*i-50+3].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+3].AlarmMsg.EN,
+																					LREAL_TO_STRING(GVL_API.stUVLed[i].uvStart));	
+AlarmActionArray[log_ID+50*i-50+3].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+3].AlarmMsg.EN,',');	
+AlarmActionArray[log_ID+50*i-50+3].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+3].AlarmMsg.EN,
+																					LREAL_TO_STRING(GVL_API.stUVLed[i].uvEnd));
+																					
+fbSetAlarm[log_ID+50*i-50+3](
+	InUse:=TRUE , 
+	EventId:=log_ID+50*i-50+3 , 
+	EventActive:=GVL_API.stUVLed[i].ConfigurePositions , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+);	
+//StopCuring
+AlarmActionArray[log_ID+50*i-50+4].AlarmMsg.EN	:=	CONCAT('UVLed',INT_TO_STRING(i));
+AlarmActionArray[log_ID+50*i-50+4].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+4].AlarmMsg.EN,
+																				' StopCuring');
+																				
+fbSetAlarm[log_ID+50*i-50+4](
+	InUse:=TRUE , 
+	EventId:=log_ID+50*i-50+4 , 
+	EventActive:=GVL_API.stUVLed[i].StopCuring , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+);	
+//ERROR,log_ErrorEnum只能等于一个常数
+CASE GVL_API.stUVLed[i].error_code OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+3	:	log_ErrorEnum	:=	3	;
+4	:	log_ErrorEnum	:=	4	;
+666	:	log_ErrorEnum	:=	666	;
+END_CASE
+
+AlarmActionArray[log_ID+50*i-50+5].AlarmMsg.EN	:=	CONCAT('UVLed',INT_TO_STRING(i));
+AlarmActionArray[log_ID+50*i-50+5].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+5].AlarmMsg.EN,
+																				' Error: ');
+AlarmActionArray[log_ID+50*i-50+5].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+5].AlarmMsg.EN,
+																				TO_STRING(log_ErrorEnum));
+
+fbSetAlarm[log_ID+50*i-50+5](
+	InUse:=TRUE , 
+	EventId:=log_ID+50*i-50+5 , 
+	EventActive:=GVL_API.stUVLed[i].error_code<>0 AND GVL_API.stUVLed[i].error_code<>666 , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );		
+
+//SetOff
+AlarmActionArray[log_ID+50*i-50+6].AlarmMsg.EN	:=	CONCAT('UVLed',INT_TO_STRING(i));
+AlarmActionArray[log_ID+50*i-50+6].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+50*i-50+6].AlarmMsg.EN,
+																				' SetOff: ');
+																				
+fbSetAlarm[log_ID+50*i-50+6](
+	InUse:=TRUE , 
+	EventId:=log_ID+50*i-50+6 , 
+	EventActive:=GVL_API.stUVLed[i].SetOff , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );		
+															
+END_FOR
+ (*************em-stop*     680*************
+AlarmActionArray[680].AlarmMsg.EN	:=	'UVLed Error: emergency_error';
+fbSetAlarm[680](
+	InUse:=TRUE , 
+	EventId:=680 , 
+	EventActive:=GVL_API.stUVLed[1].error_code=666 OR  GVL_API.stUVLed[2].error_code=666, 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );		
+*)]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_UVLed">
+      <LineId Id="96" Count="0" />
+      <LineId Id="75" Count="6" />
+      <LineId Id="162" Count="1" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="82" Count="3" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="233" Count="0" />
+      <LineId Id="88" Count="2" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="207" Count="4" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="92" Count="3" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="98" Count="6" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="105" Count="3" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="111" Count="2" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="218" Count="4" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="115" Count="3" />
+      <LineId Id="97" Count="0" />
+    </LineIds>
+    <LineIds Name="P_UVLed.ACT_LOG">
+      <LineId Id="2" Count="1" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="24" Count="7" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="41" Count="1" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="50" Count="3" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="54" Count="2" />
+      <LineId Id="58" Count="1" />
+      <LineId Id="78" Count="6" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="62" Count="1" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="86" Count="5" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="93" Count="6" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="100" Count="5" />
+      <LineId Id="111" Count="2" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="115" Count="7" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="129" Count="1" />
+      <LineId Id="132" Count="1" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="134" Count="8" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="150" Count="6" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="14" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

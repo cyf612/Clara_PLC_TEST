@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <TextList Name="EL2904_M_1" Id="{c095b3ec-6631-40f6-89fb-185dd6ce50cf}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="TextListObject">
+          <v n="UniqueIdGenerator">"0"</v>
+          <l n="TextList" t="ArrayList" cet="TextListRow">
+            <o>
+              <v n="TextID">"1"</v>
+              <v n="TextDefault">"Safety output 1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>继电器输出</v>
+                <v></v>
+                <v>继电器输出</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"2"</v>
+              <v n="TextDefault">"Safety output 2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>继电器输出</v>
+                <v></v>
+                <v>继电器输出</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"3"</v>
+              <v n="TextDefault">"Safety output 3"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>继电器输出</v>
+                <v></v>
+                <v>继电器输出</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"4"</v>
+              <v n="TextDefault">"Safety output 4"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>继电器输出</v>
+                <v></v>
+                <v>继电器输出</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">""</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+          </l>
+          <l n="Languages" t="ArrayList" cet="String">
+            <v>chinese</v>
+            <v>english</v>
+            <v>Chinese</v>
+            <v>English</v>
+          </l>
+          <v n="GuidInit">{8d6fc03e-a813-431f-84f0-6309d6a54ac6}</v>
+          <v n="GuidReInit">{5c66c190-6bd1-4787-853f-0b43f6be1d53}</v>
+          <v n="GuidExitX">{dbf5d0cc-40f7-4c4a-a2b0-d88787487b49}</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="String">System.String</Type>
+        <Type n="TextListObject">{2bef0454-1bd3-412a-ac2c-af0f31dbc40f}</Type>
+        <Type n="TextListRow">{53da1be7-ad25-47c3-b0e8-e26286dad2e0}</Type>
+      </TypeList>
+    </XmlArchive>
+  </TextList>
+</TcPlcObject>

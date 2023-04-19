@@ -1,0 +1,558 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_RollToRoll_Torque" Id="{6c1211dc-b2af-4870-89b9-f10b08670657}" SpecialFunc="None">
+    <Declaration><![CDATA[(********************************)
+FUNCTION_BLOCK FB_RollToRoll_Torque
+VAR_INPUT
+	biClamp_hold				:BOOL;
+	Un_Rewinder					:BOOL;//false:unwinder;true:rewinder
+	Max_velo					:LREAL;//r/min
+	REF							:AXIS_REF;
+	usable				        :BOOL;//
+	acceleration				:LREAL;//
+	deceleration				:LREAL;//
+	rate						:DINT;// % 0-100 Motor speed or torque.
+	untension_rate				:DINT:=10;//% Duty cycle for the motor speed during untensioning
+	tension_mode				:BOOL;// Indicates the printside: ‘inside’ or ‘outside’ false:outside
+	tension_timeout				:LREAL:=10;//ms
+	untension_timeout			:LREAL:=5;//ms
+	brake_timeout				:LREAL:=120;//MS
+	
+END_VAR
+VAR_OUTPUT
+	error_code					:UDINT;	//	
+	state					:INT;	//
+	Axis_ErrorId			:UDINT;
+	Break_Power				:BOOL:=FALSE;
+	Clutch_Out				:BOOL;
+	out_rTorqueVelocityLimit        :LREAL;
+	Initialized					:BOOL;
+	error							:BOOL;
+	tensioned					:BOOL;
+	untensioned				:BOOL;
+END_VAR
+VAR
+	step:INT;
+	MC_POWER:MC_Power;
+	MC_Read:MC_ReadStatus;
+	MC_ABS:MC_MoveAbsolute;
+	MC_REL:MC_MoveRelative;
+	MC_Jog:MC_Jog;
+	MC_Stop:MC_Stop;
+	MC_Reset:Tc2_MC2.MC_Reset;
+	MC_SetPos:Tc2_MC2.MC_SetPosition;
+	mc_Torque:Tc2_MC2.MC_TorqueControl;
+	
+	power_do: BOOL;
+	stop_do:BOOL;
+	reset_do:BOOL;
+	set_torque:LREAL;
+	direction:MC_Direction;
+	set_acceleration				:LREAL;//
+	set_deceleration				:LREAL;//
+	tension_ton:Tc2_Standard.TON;
+	untension_ton:Tc2_Standard.TON;
+	enbreak_ton:Tc2_Standard.TON;
+	
+	
+	var_rTorque: LREAL;
+	var_bTorqueCtrlExecute: BOOL;
+	var_rTorqueRamp: LREAL := 100;
+	
+	ton1:Tc2_Standard.TON;
+	F_trig_biClamp_hold:Tc2_Standard.F_TRIG;
+END_VAR
+VAR_IN_OUT
+	Initialize					:BOOL;//
+	SetActivate					:BOOL;//
+	SetReady					:BOOL;//
+	EnableBrake					:BOOL;//
+	DisableBrake				:BOOL;
+	StartTension				:BOOL;
+	StopTension					:BOOL;
+	Unlock						:BOOL;
+	Lock						:BOOL;
+	SetOff						:BOOL;
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_AXIS();
+CASE step OF 
+0://waiting	
+	reset_do:=FALSE;
+	
+		IF Initialize THEN
+			stop_do:=TRUE;
+			step :=10;
+		ELSIF SetActivate AND usable THEN 
+			step :=20;
+		ELSIF SetReady AND usable THEN 
+			step :=30;
+		ELSIF EnableBrake THEN 
+			step :=30;
+		ELSIF DisableBrake THEN 
+			step :=40;
+		ELSIF StartTension THEN 
+			step :=30;
+		ELSIF state=RTRStateEnum.tensioning AND  StopTension THEN 
+			step :=50;
+		ELSIF state=RTRStateEnum.tensioned AND  StopTension THEN 
+			step :=60;
+		END_IF
+	
+	IF  SetOff OR GVL.Reset THEN 
+		step :=90;
+	END_IF
+	
+	(***************状态自复位**************************)
+	ton1(IN:=Initialized OR  tensioned OR untensioned , PT:=State_reset_time , Q=> , ET=> );
+	IF ton1.Q THEN 
+		Initialized:=FALSE;
+		tensioned:=FALSE;
+		untensioned:=FALSE;
+	END_IF
+10://Initializing
+	Initialize:=FALSE;
+	state:=RTRStateEnum.initializing;
+	power_do :=TRUE;
+	Break_Power:=FALSE;
+	stop_do:=FALSE;
+	IF rate>=0 AND  rate<=100  
+	AND acceleration>0 AND deceleration>0 AND REF.Status.ControlLoopClosed THEN 
+		 Initialized:=TRUE;
+		 state:=RTRStateEnum.ready;
+		step:=0;	
+	END_IF
+20://ready
+	state:=RTRStateEnum.ready;
+	SetReady:=FALSE;
+	
+	IF SetActivate THEN 
+		SetActivate:=FALSE;
+		Break_Power:=FALSE;
+		state:=RTRStateEnum.active;
+		step:=0;
+	END_IF
+30://active
+	Break_Power:=FALSE;	
+	untension_ton(IN:= FALSE);
+	
+	enbreak_ton(IN:=FALSE);
+	IF SetReady THEN 
+		SetReady:=FALSE;
+		stop_do:=TRUE;
+		state:=RTRStateEnum.ready;
+		step:=0;
+	END_IF
+	
+	IF NOT Un_Rewinder AND EnableBrake THEN //只有放卷有刹车				
+		step:=40;
+	END_IF
+	
+	IF StartTension AND tension_timeout>0 THEN 
+		StartTension:=FALSE;
+		state:=RTRStateEnum.tensioning;
+		
+		IF NOT  Un_Rewinder THEN 						//放卷
+			IF tension_mode THEN 						//inside
+				direction:=MC_Positive_Direction;
+				var_rTorque:=rate;
+			ELSE 										//outside
+				direction:=MC_Negative_Direction;
+				var_rTorque:=0-rate;
+			END_IF
+		ELSE											//收卷
+			IF tension_mode THEN 						//inside
+				direction:=MC_Negative_Direction;
+				var_rTorque:=0-rate;
+			ELSE 										//outside
+				direction:=MC_Positive_Direction;
+				var_rTorque:=rate;
+			END_IF
+		END_IF
+		step:=50;
+	END_IF
+40://break_enable	
+	IF EnableBrake THEN 
+		EnableBrake:=FALSE;
+		state:=RTRStateEnum.brake_enabled;
+		Break_Power:=TRUE;	
+		step:=0;			
+	ELSIF DisableBrake THEN 
+		DisableBrake:=FALSE;
+		state:=RTRStateEnum.active;
+		Break_Power:=FALSE;	
+		enbreak_ton(IN:=FALSE);
+		step:=0;
+	END_IF	
+50://tensioning
+	var_bTorqueCtrlExecute:=TRUE;
+	Clutch_Out:=TRUE;
+	tension_ton(IN:=TRUE , PT:=LREAL_TO_TIME(tension_timeout) , Q=> , ET=> );
+	IF tension_ton.Q   THEN 
+		tensioned:=TRUE;
+		state:=RTRStateEnum.tensioned;
+		step:=0;
+	END_IF
+	IF StopTension THEN 
+		StopTension:=FALSE;
+		Clutch_Out:=FALSE;
+		stop_do:=TRUE;
+		state:=RTRStateEnum.untensioning;
+		step:=70;
+	END_IF
+	
+60://tensionde	
+	tension_ton(IN:=FALSE);
+	IF StopTension THEN 
+		state:=RTRStateEnum.untensioning;
+		StopTension:=FALSE;
+		Clutch_Out:=FALSE;
+		stop_do:=TRUE;
+		step:=70;
+	END_IF
+70://untensionde
+	untension_ton(IN:=TRUE , PT:= LREAL_TO_TIME(untension_timeout), Q=> , ET=> );
+	IF untension_ton.Q THEN 
+		untension_ton(IN:=FALSE);
+		state:=RTRStateEnum.active;
+		untensioned:=TRUE;
+		step:=0;
+	END_IF
+90://setoff
+	state:=RTRStateEnum.setting_off;
+	
+		SetOff:=FALSE;
+		stop_do:=TRUE;
+		reset_do:=TRUE;
+		power_do:=FALSE;
+		var_bTorqueCtrlExecute:=FALSE;
+		Initialize:=FALSE;
+		SetActivate:=FALSE;
+		SetReady:=FALSE;
+		EnableBrake:=FALSE;
+		DisableBrake:=FALSE;
+		StartTension:=FALSE;
+		StopTension:=FALSE;
+		error:=FALSE;
+		
+		Clutch_Out:=FALSE;
+		enbreak_ton(IN:=FALSE);
+		state:=RTRStateEnum.off;
+		error_code:=RTRErrorEnum.no_error;
+		step:=0;	
+	
+100://error
+	state:=RTRStateEnum.error;
+	error:=TRUE;
+	stop_do:=FALSE;
+	enbreak_ton(IN:=FALSE);
+	step:=0;
+	IF SetOff OR GVL.Reset THEN 
+		step:=90;
+	END_IF
+END_CASE
+IF SetOff OR GVL.Reset THEN 
+		step:=90;
+END_IF
+
+(**************************ERROR**************************************************)
+F_trig_biClamp_hold(CLK:=biClamp_hold , Q=> );
+IF state<>RTRStateEnum.off  AND state<>RTRStateEnum.setting_off AND state<>RTRStateEnum.error THEN 
+	IF GVL.Emstop_Button  THEN 	
+		error_code:=RTRErrorEnum.emergency_error;
+		stop_do:=TRUE;
+		step:=100;
+	ELSIF   REF.Status.Moving  AND  F_trig_biClamp_hold.Q THEN 	(*双卷动时，未检测到加紧,停止*)
+		error_code:=RTRErrorEnum.roll_unclamped;			
+		stop_do:=TRUE;
+		step:=100;
+	ELSIF Break_Power THEN 
+		enbreak_ton(IN:=TRUE , PT:=LREAL_TO_TIME(brake_timeout) , Q=> , ET=> );
+		IF enbreak_ton.Q THEN 
+			error_code:=RTRErrorEnum.break_exceeded_timeout;
+			step:=100;
+		END_IF
+	ELSIF MC_Read.ErrorID =18000 THEN 
+		error_code:=RTRErrorEnum.Drive_not_ready_for_operation;
+		stop_do:=TRUE;
+		step:=100;
+	ELSIF  MC_Read.ErrorID=17510 THEN 
+		error_code:=RTRErrorEnum.Invalid_IO_data_for_more_than_n_subsequent_NC_cycles_encoder;
+		stop_do:=TRUE;
+		step:=100;	
+	ELSIF  MC_Read.ErrorID <>0 THEN 
+		error_code:=MC_Read.ErrorID;	
+		stop_do:=TRUE;
+		step:=100;
+	END_IF
+END_IF
+
+
+]]></ST>
+    </Implementation>
+    <Action Name="ACT_AXIS" Id="{9007cd34-7363-4c20-b09f-d436c011e726}">
+      <Implementation>
+        <ST><![CDATA[MC_POWER(
+	Axis:=REF , 
+	Enable:=power_do , 
+	Enable_Positive:=TRUE , 
+	Enable_Negative:=TRUE , 
+	Override:= , 
+	BufferMode:= , 
+	Options:= , 
+	Status=> , 
+	Busy=> , 
+	Active=> , 
+	Error=> , 
+	ErrorID=> );
+MC_Read(
+	Axis:=REF , 
+	Enable:=TRUE , 
+	Valid=> , 
+	Busy=> , 
+	Error=> , 
+	ErrorID=> Axis_ErrorId, 
+	ErrorStop=> , 
+	Disabled=> , 
+	Stopping=> , 
+	StandStill=> , 
+	DiscreteMotion=> , 
+	ContinuousMotion=> , 
+	SynchronizedMotion=> , 
+	Homing=> , 
+	ConstantVelocity=> , 
+	Accelerating=> , 
+	Decelerating=> , 
+	Status=> );
+
+MC_Stop(
+	Axis:=REF , 
+	Execute:=stop_do , 
+	Deceleration:= , 
+	Jerk:= , 
+	Options:= , 
+	Done=> , 
+	Busy=> , 
+	Active=> , 
+	CommandAborted=> , 
+	Error=> , 
+	ErrorID=> );
+	IF MC_Stop.Busy THEN 
+		stop_do:=FALSE;
+	END_IF
+MC_Reset(
+	Axis:=REF , 
+	Execute:=reset_do , 
+	Done=> , 
+	Busy=> , 
+	Error=> , 
+	ErrorID=> );
+	IF MC_Reset.Busy THEN 
+		reset_do:=FALSE;
+	END_IF
+MC_SetPos(
+	Axis:=REF , 
+	Execute:=Initialize , 
+	Position:=0 , 
+	Mode:= , 
+	Options:= , 
+	Done=> , 
+	Busy=> , 
+	Error=> , 
+	ErrorID=> );
+mc_Torque(
+	Axis:= REF, 
+	Execute:=var_bTorqueCtrlExecute , 
+	Relative:= , 
+	Torque:=var_rTorque , 
+	TorqueRamp:=var_rTorqueRamp , 
+	VelocityLimitHigh:= , 
+	VelocityLimitLow:= , 
+	BufferMode:= , 
+	Options:= , 
+	InTorque=> , 
+	Busy=> , 
+	Active=> , 
+	CommandAborted=> , 
+	Error=> , 
+	ErrorId=> );
+    IF mc_Torque.Busy THEN 
+		var_bTorqueCtrlExecute:=FALSE;
+	END_IF]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_RollToRoll_Torque">
+      <LineId Id="265" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="1740" Count="0" />
+      <LineId Id="1840" Count="0" />
+      <LineId Id="1820" Count="16" />
+      <LineId Id="1839" Count="0" />
+      <LineId Id="1841" Count="0" />
+      <LineId Id="1837" Count="1" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="1520" Count="0" />
+      <LineId Id="1528" Count="0" />
+      <LineId Id="1523" Count="4" />
+      <LineId Id="1522" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="1532" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="573" Count="0" />
+      <LineId Id="1742" Count="0" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="262" Count="0" />
+      <LineId Id="1514" Count="0" />
+      <LineId Id="1519" Count="0" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="257" Count="0" />
+      <LineId Id="1529" Count="0" />
+      <LineId Id="1533" Count="1" />
+      <LineId Id="268" Count="1" />
+      <LineId Id="452" Count="0" />
+      <LineId Id="1535" Count="0" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="266" Count="0" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="531" Count="0" />
+      <LineId Id="448" Count="0" />
+      <LineId Id="542" Count="0" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="453" Count="0" />
+      <LineId Id="1544" Count="0" />
+      <LineId Id="455" Count="0" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="456" Count="0" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="279" Count="1" />
+      <LineId Id="1545" Count="0" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="1547" Count="0" />
+      <LineId Id="377" Count="3" />
+      <LineId Id="1045" Count="0" />
+      <LineId Id="381" Count="1" />
+      <LineId Id="1046" Count="0" />
+      <LineId Id="383" Count="3" />
+      <LineId Id="1047" Count="0" />
+      <LineId Id="387" Count="1" />
+      <LineId Id="1048" Count="0" />
+      <LineId Id="389" Count="0" />
+      <LineId Id="376" Count="0" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="1653" Count="0" />
+      <LineId Id="1658" Count="0" />
+      <LineId Id="1657" Count="0" />
+      <LineId Id="1654" Count="0" />
+      <LineId Id="1656" Count="0" />
+      <LineId Id="286" Count="1" />
+      <LineId Id="1543" Count="0" />
+      <LineId Id="1659" Count="1" />
+      <LineId Id="288" Count="0" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="391" Count="1" />
+      <LineId Id="513" Count="0" />
+      <LineId Id="516" Count="0" />
+      <LineId Id="1548" Count="1" />
+      <LineId Id="517" Count="1" />
+      <LineId Id="828" Count="3" />
+      <LineId Id="1550" Count="0" />
+      <LineId Id="832" Count="0" />
+      <LineId Id="316" Count="0" />
+      <LineId Id="321" Count="0" />
+      <LineId Id="317" Count="0" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="519" Count="0" />
+      <LineId Id="1557" Count="0" />
+      <LineId Id="520" Count="0" />
+      <LineId Id="522" Count="2" />
+      <LineId Id="521" Count="0" />
+      <LineId Id="375" Count="0" />
+      <LineId Id="526" Count="1" />
+      <LineId Id="1554" Count="0" />
+      <LineId Id="1553" Count="0" />
+      <LineId Id="1556" Count="0" />
+      <LineId Id="528" Count="1" />
+      <LineId Id="546" Count="0" />
+      <LineId Id="1573" Count="1" />
+      <LineId Id="1561" Count="3" />
+      <LineId Id="1559" Count="1" />
+      <LineId Id="1566" Count="5" />
+      <LineId Id="1565" Count="0" />
+      <LineId Id="547" Count="0" />
+      <LineId Id="557" Count="0" />
+      <LineId Id="568" Count="0" />
+      <LineId Id="1650" Count="0" />
+      <LineId Id="1652" Count="0" />
+      <LineId Id="564" Count="0" />
+      <LineId Id="1651" Count="0" />
+      <LineId Id="537" Count="1" />
+      <LineId Id="1572" Count="0" />
+      <LineId Id="700" Count="0" />
+      <LineId Id="1542" Count="0" />
+      <LineId Id="1558" Count="0" />
+      <LineId Id="543" Count="2" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="1738" Count="1" />
+      <LineId Id="1737" Count="0" />
+      <LineId Id="1340" Count="0" />
+      <LineId Id="1339" Count="0" />
+      <LineId Id="1818" Count="0" />
+      <LineId Id="695" Count="0" />
+      <LineId Id="764" Count="0" />
+      <LineId Id="702" Count="0" />
+      <LineId Id="1346" Count="1" />
+      <LineId Id="1343" Count="0" />
+      <LineId Id="1345" Count="0" />
+      <LineId Id="1348" Count="1" />
+      <LineId Id="1541" Count="0" />
+      <LineId Id="1537" Count="3" />
+      <LineId Id="1536" Count="0" />
+      <LineId Id="1263" Count="0" />
+      <LineId Id="1265" Count="0" />
+      <LineId Id="1350" Count="1" />
+      <LineId Id="1425" Count="0" />
+      <LineId Id="1427" Count="1" />
+      <LineId Id="1426" Count="0" />
+      <LineId Id="1266" Count="0" />
+      <LineId Id="1264" Count="0" />
+      <LineId Id="1352" Count="1" />
+      <LineId Id="766" Count="0" />
+      <LineId Id="697" Count="0" />
+      <LineId Id="837" Count="0" />
+      <LineId Id="1116" Count="0" />
+      <LineId Id="1115" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RollToRoll_Torque.ACT_AXIS">
+      <LineId Id="2" Count="11" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="15" Count="17" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="53" Count="10" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="69" Count="5" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="75" Count="2" />
+      <LineId Id="79" Count="8" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="111" Count="14" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="129" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

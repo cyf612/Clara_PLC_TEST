@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="UVLedStateEnum" Id="{2f765a95-d154-4c45-ad88-a740741030a8}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE UVLedStateEnum :
+(
+	off					:=	0	,//	The UVLed is in off-state.
+	initializing		:=	1	,//	The UVLed is busy initializing.
+	ready				:=	2	,//	The UVLed is in ready.
+	applying_settings	:=	3	,//	"The UVLed is configuring with the curing setting at the start of the print.The UVLed has stopped curing (LEDs are off), as the FS encoder value is leaving the curing window. Settings are re-applied during the end of the swath, preparing the next swath."
+	settings_applied	:=	4	,//	The UVLed has finished configuring the power settings.
+	ready_for_curing	:=	10	,//	The UVLed is configured with the positions where to cure.The UVLed is ready for curing.
+	curing				:=	5	,//	The UVLed is started with curing (LEDs are on), as the FS encoder value is entering the curing window.
+	setting_off			:=	6	,//	The UVLed is going to off. If needed LEDs are first cooling down before set in off.
+	error				:=	100	//	The UVLed is in error.
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

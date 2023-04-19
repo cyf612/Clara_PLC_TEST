@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_count" Id="{7b951bcc-d3ad-48a1-aea4-f34a926b184d}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_count
+VAR_INPUT
+	Add_Time:TIME;
+END_VAR
+VAR_OUTPUT
+	count:INT;
+END_VAR
+VAR
+	ton1:TON;
+	a:INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ton1(IN:=NOT ton1.Q  , PT:=Add_Time , Q=> , ET=> );
+IF ton1.Q THEN 
+	count:=count+1;
+END_IF
+IF count>=1000 THEN 
+	count:=0;
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_count">
+      <LineId Id="13" Count="5" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="SafetyGuardErrorEnum" Id="{d8ca327e-b4f4-4b1e-9a1e-512a9c2b3add}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE SafetyGuardErrorEnum :
+(
+no_error	:=	0	,//	No error detected
+not_connected	:=	1	,//	A command was requested prior to opening the driver
+invalid_state	:=	2	,//	An invalid command was requested
+emergency_error	:=	4	,//	Emergency error
+interlock_error	:=	8	,//	Interlock error
+shuttle_crash_error	:=	16	,//	Shuttle crash error
+limit_switch_error	:=	32	,//	Limit switch error
+io_error	:=	64	,//	IO error HW board
+unknown_error	:=	128	//	Unknown / Network error
+
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="Axis_IO" Id="{3240026b-8b06-452c-9f91-6d335959a7ae}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK Axis_IO
+VAR_INPUT
+	snHome:			BOOL;(*原点*)
+	snLimitP:		BOOL;(*正限*)
+	snLimitN:		BOOL;(*负限*)
+	snSpindle		:BOOL;	//z轴测高
+	btManualJogF:	BOOL;(*点动按钮正*)
+	btManualJogB:	BOOL;(*点动按钮负*)
+	btManualABS:    BOOL;(*点动绝对*)
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[;]]></ST>
+    </Implementation>
+    <LineIds Name="Axis_IO">
+      <LineId Id="10" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

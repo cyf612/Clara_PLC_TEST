@@ -1,0 +1,288 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_TableVacuum" Id="{86869c7f-8e8d-44f2-8aae-98562e0f5fc2}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_TableVacuum
+VAR_INPUT
+	vacuum_measured			:LREAL;//	Pa
+	vacuum_min				:LREAL:=3.5;	//	Pa 3.5
+	vacuum_max				:LREAL:=10;	//	Pa	10
+	setpoint				:LREAL:=6;	//	Pa	6[0-8]
+	vacuum_offset_collector	:LREAL;	//	Pa	Offset used to calibrate the vacuum sensor of the vacuum collector
+	setpoint_range_pct		:LREAL:=70;	//	%  Threshold used to indicate the table vacuum is ready
+	vacuum_timeout			:LREAL:=6000;	//ms	TIME needed TO reach the vacuum setpoint.
+	vacuum_off_timeout		:LREAL:=3000;	//	ms 	Time to turn off the vacuum
+	IO_Error				:BOOL;
+END_VAR
+VAR_OUTPUT
+	state					:INT;
+	error_code					:INT;
+	Run						:BOOL;
+	error					:BOOL;
+END_VAR
+VAR
+	step					:INT;
+	setpoint_act			:LREAL;
+	reach_setpoint_ton		:ton;
+	turn_off_ton			:TON;
+	turn_on_delay           :Tc2_Standard.TON;
+	temp_setpoint			:LREAL;
+END_VAR
+VAR_IN_OUT
+	Initialize				:BOOL;
+	SetVacuumOn				:BOOL;
+	SetVacuumOff			:BOOL;
+	Setoff					:BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+CASE step OF 
+0://waiting
+	IF Initialize THEN 
+		step:=5;
+	ELSIF SetVacuumOn THEN 
+		step:=10;
+	ELSIF SetVacuumOff THEN 
+		step:=30;
+	ELSIF Setoff OR GVL.Reset THEN 
+		step:=50;
+	END_IF	
+5://off
+	Run:=FALSE;
+	setpoint_act:=0;
+	SetVacuumOn:=FALSE;
+	SetVacuumOff:=FALSE;
+	Setoff:=FALSE;
+	
+	
+	state:=TabVacStateEnum.off;
+	error_code:=TabVacErrorEnum.no_error;
+	
+	IF Initialize AND 
+		setpoint_range_pct<>0 AND vacuum_min>=0 AND vacuum_max>0 THEN 
+		Initialize:=FALSE;
+		state:=TabVacStateEnum.idle;	
+		step:=0;
+	END_IF
+	
+10://INI
+	SetVacuumOff:=FALSE;			
+	IF setpoint>=vacuum_min AND setpoint<=vacuum_max AND vacuum_timeout>0  THEN 
+		setpoint_act:=setpoint;
+	ELSIF  setpoint>=vacuum_max THEN 
+			setpoint_act:=vacuum_max;
+	ELSIF setpoint<=vacuum_min THEN 
+		setpoint_act:=vacuum_min;
+	END_IF
+
+	IF SetVacuumOn THEN 
+			step:=20;
+	ELSIF Setoff THEN 
+			step:=50;
+	END_IF
+
+20://waiting_vacuum_on
+	SetVacuumOn:=FALSE;
+	Initialize:=FALSE;
+	SetVacuumOff:=FALSE;
+	
+	state:=TabVacStateEnum.waiting_vacuum_on;
+	Run:=TRUE;
+	reach_setpoint_ton(IN:=TRUE , PT:=LREAL_TO_TIME(vacuum_timeout) , Q=> , ET=> );
+	IF reach_setpoint_ton.Q (*AND vacuum_measured/setpoint_act*100<setpoint_range_pct *)THEN		
+		error_code:=TabVacErrorEnum.vacuum_on_timeout;
+		step:=100;
+	END_IF
+	(*************转on 用时间******************************)
+	(*IF NOT reach_setpoint_ton.Q AND  vacuum_measured/setpoint_act*100>=setpoint_range_pct THEN 	
+		reach_setpoint_ton(IN:=FALSE); 		
+		state:=TabVacStateEnum.on;	
+		step:=0;
+	END_IF*)
+	
+	turn_on_delay(IN:=TRUE , PT:=INT_TO_TIME(HMI_Vac_dely_on), Q=> , ET=> );
+	IF NOT reach_setpoint_ton.Q AND  turn_on_delay.Q THEN 	
+		reach_setpoint_ton(IN:=FALSE); 	
+		turn_on_delay(IN:=FALSE);	
+		state:=TabVacStateEnum.on;	
+		step:=0;
+	END_IF
+	
+	IF Setoff THEN 
+		step:=50;
+	END_IF
+	
+30://on		
+	IF SetVacuumOff AND vacuum_off_timeout>0 THEN 
+		step:=40;
+	ELSIF Setoff THEN 
+		step:=50;	
+	END_IF
+40://waiting_vacuum_off
+	Initialize:=FALSE;
+	SetVacuumOn:=FALSE;
+	Setoff:=FALSE;
+	
+	SetVacuumOff:=FALSE;
+	state:=TabVacStateEnum.waiting_vacuum_off;
+	Run:=FALSE;
+	turn_off_ton(IN:=TRUE , PT:=LREAL_TO_TIME(vacuum_off_timeout) , Q=> , ET=> );	 
+	IF vacuum_measured<setpoint*0.5 AND NOT turn_off_ton.Q  THEN 
+		turn_off_ton(IN:=FALSE);
+		state:=TabVacStateEnum.idle;
+		step:=0;
+	ELSIF vacuum_measured>=0 AND turn_off_ton.Q THEN 
+		error_code:=TabVacErrorEnum.vacuum_off_timeout;
+		step:=100;
+	END_IF
+50://waiting_off
+	Initialize:=FALSE;
+	SetVacuumOn:=FALSE;
+	SetVacuumOff:=FALSE;
+
+	Setoff:=FALSE;
+	state:=TabVacStateEnum.waiting_off;
+	error_code:=TabVacErrorEnum.no_error;
+	Run:=FALSE;
+	error:=FALSE;
+	
+	IF vacuum_measured<=0.5 THEN 
+		state:=TabVacStateEnum.off;
+		step:=0;
+	END_IF
+100://error
+	Initialize:=FALSE;
+	SetVacuumOn:=FALSE;
+	SetVacuumOff:=FALSE;
+	
+	error:=TRUE;
+	state:=TabVacStateEnum.error;
+	Run:=FALSE;
+	reach_setpoint_ton(IN:=FALSE);
+	turn_off_ton(IN:=FALSE);
+	step:=0;	
+END_CASE
+
+IF Setoff OR GVL.Reset THEN 
+	step:=50;
+END_IF	
+	
+IF state<>TabVacStateEnum.off AND state<>TabVacStateEnum.waiting_off AND state<>TabVacStateEnum.error THEN 
+	IF IO_Error THEN 
+		error_code:=TabVacErrorEnum.unknown_error;
+		step:=100;
+	END_IF
+	IF GVL.Emstop_Button THEN 
+		error_code:=TabVacErrorEnum.emergency_error;	
+		step:=100;
+	END_IF
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_TableVacuum">
+      <LineId Id="147" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="292" Count="2" />
+      <LineId Id="296" Count="4" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="162" Count="3" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="427" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="50" Count="1" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="303" Count="1" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="107" Count="3" />
+      <LineId Id="429" Count="1" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="76" Count="1" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="89" Count="1" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="385" Count="1" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="348" Count="0" />
+      <LineId Id="393" Count="0" />
+      <LineId Id="388" Count="1" />
+      <LineId Id="395" Count="0" />
+      <LineId Id="390" Count="1" />
+      <LineId Id="387" Count="0" />
+      <LineId Id="392" Count="0" />
+      <LineId Id="350" Count="2" />
+      <LineId Id="349" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="66" Count="1" />
+      <LineId Id="78" Count="1" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="173" Count="2" />
+      <LineId Id="172" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="69" Count="1" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="312" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="97" Count="2" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="178" Count="1" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="316" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="313" Count="1" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="315" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="181" Count="1" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="307" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="308" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="465" Count="0" />
+      <LineId Id="463" Count="1" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="466" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="218" Count="1" />
+      <LineId Id="251" Count="1" />
+      <LineId Id="254" Count="0" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="217" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

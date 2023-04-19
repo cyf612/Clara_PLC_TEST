@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <GVL Name="COMM" Id="{f2e6f036-1591-4c69-a497-d39f234cfa26}">
+    <Declaration><![CDATA[{attribute 'Tc2GvlVarNames'}
+VAR_GLOBAL
+	COMCONTROL1,COMCONTROL2   :SerialLineControl;  //串行通讯的功能块 
+    COMIN1,COMIN2 	 AT%I*	  :KL6inData22B;      //22字节的IO端子模式
+    COMOUT1,COMOUT2  AT%Q*	  :KL6outData22B;     
+    TXBUFFER1		  :COMBUFFER;
+    TXBUFFER2		  :COMBUFFER;    //串口通讯的缓存
+    RXBUFFER1		  :COMBUFFER;
+    RXBUFFER2		  :COMBUFFER;//说明：不论什么类型的硬件接口,Buffer变量类型都为ComBufferfer
+                                     //其中包括了 300字节的缓存区和一些状态参数标志位。
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

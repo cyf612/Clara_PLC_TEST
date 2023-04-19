@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_SafetyGuard" Id="{79ee3705-253c-4b69-a96a-b6ceb5159aef}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SafetyGuard
+VAR_INPUT
+	shuttle_crash_detector						:BOOL;
+	emergency_stop									:BOOL;
+	limit_switch										:BOOL;
+	interlock_triggered								:BOOL;//安全门被触发
+	LightCurtainTriggered							:BOOL;
+END_VAR
+VAR_OUTPUT
+	error_code			:INT;
+	state						:INT;
+	Init_Done				:BOOL;
+	Error						:BOOL;
+END_VAR
+VAR
+	step    				:INT;
+	ton1					:Tc2_Standard.TON;
+END_VAR
+VAR_IN_OUT
+	Initialize			:BOOL;
+	SetOff			:BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE  step OF
+0://waiting
+	IF Initialize THEN 
+		step:=5;
+	ELSIF SetOff OR GVL.Reset THEN 
+		step:=99;
+	END_IF
+	
+	(******************状态自复位***************************)
+	ton1(IN:=Init_Done  , PT:=T#1S , Q=> , ET=> );
+	IF ton1.Q THEN 
+		Init_Done:=FALSE;
+	END_IF
+5://OFF
+	state:=SafetyGuardStateEnum.off;
+	error_code:=SafetyGuardErrorEnum.no_error;
+	
+	IF Initialize THEN 
+		Initialize:=FALSE;
+		step:=10;
+	END_IF
+10://Initializing
+	state:=SafetyGuardStateEnum.initializing;
+	
+	step:=20;
+20://ready
+	Init_Done:=TRUE;
+	state:=SafetyGuardStateEnum.ready;
+	step:=0;
+
+99://SetOff
+	SetOff:=FALSE;
+	Error:=FALSE;
+	state:=SafetyGuardStateEnum.off;
+	error_code:=SafetyGuardErrorEnum.no_error;
+	step:=0;
+100://error
+		state:=SafetyGuardStateEnum.error;
+		Error:=TRUE;
+		step:=0;
+END_CASE
+
+IF SetOff OR GVL.Reset THEN 
+		step:=99;
+END_IF
+
+IF state <>SafetyGuardStateEnum.off AND state <>SafetyGuardStateEnum.error THEN 
+		IF emergency_stop THEN 
+		error_code:=SafetyGuardErrorEnum.emergency_error;
+		step:=100;
+	ELSIF 	interlock_triggered THEN 
+		error_code:=SafetyGuardErrorEnum.interlock_error;
+		step:=100;
+	ELSIF	shuttle_crash_detector THEN 
+		error_code:=SafetyGuardErrorEnum.shuttle_crash_error;
+		step:=100;
+	ELSIF	limit_switch THEN 
+		error_code:=SafetyGuardErrorEnum.limit_switch_error;
+		step:=100;
+	END_IF
+END_IF
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_SafetyGuard">
+      <LineId Id="9" Count="0" />
+      <LineId Id="93" Count="6" />
+      <LineId Id="102" Count="1" />
+      <LineId Id="105" Count="1" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="33" Count="4" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="43" Count="2" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="142" Count="1" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="168" Count="2" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="119" Count="11" />
+      <LineId Id="117" Count="1" />
+      <LineId Id="112" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

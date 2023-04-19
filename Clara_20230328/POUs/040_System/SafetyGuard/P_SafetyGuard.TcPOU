@@ -1,0 +1,159 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_SafetyGuard" Id="{2cf7a74b-7f8d-437f-ad5f-282f7269178f}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_SafetyGuard
+VAR
+	i,j:INT;
+	FB_SafetyGuard:FB_SafetyGuard;
+	log_ErrorEnum:SafetyGuardErrorEnum;
+	log_ID:INT;
+	trig1,trig2:Tc2_Standard.R_TRIG;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_LOG();
+(************************PLC使用****************************************)
+		(************Emstop******************)
+	//GVL.Emstop:=gvl.HMI_btEmstop;				//	测试用	
+	GVL.Emstop_SAFE:=P_TwinSAFE.Emergency_stop_2904 ;
+	GVL.Emstop_Button:=P_TwinSAFE.btEmergency_stop;
+	GVL.Reset	 :=stInput.btReset;
+	
+		(************interlock******************)
+	FOR i:=1 TO 8 DO 
+		IF NOT P_TwinSAFE.biinterlock[i] THEN 
+			GVL.interlock_triggered:=TRUE;
+			EXIT;
+		ELSE 
+			GVL.interlock_triggered:=FALSE;			
+		END_IF
+	END_FOR
+	
+		(************shuttle_crash******************)
+	gvl.shuttle_crash:=NOT P_TwinSAFE.bishuttle_crash_detector_left OR NOT P_TwinSAFE.bishuttle_crash_detector_right;
+
+(************************C#使用****************************************)
+	(********左右防撞触发保存******************)
+	trig1(CLK:=NOT P_TwinSAFE.bishuttle_crash_detector_left , Q=> );
+	IF trig1.Q THEN 
+		GVL_API.stSafetyGuard.shuttle_crash_detector_left:=TRUE;
+	END_IF
+	
+	trig1(CLK:=NOT P_TwinSAFE.bishuttle_crash_detector_right , Q=> );
+	IF trig1.Q THEN 
+		GVL_API.stSafetyGuard.shuttle_crash_detector_right:=TRUE;
+	END_IF
+	
+	IF GVL_API.stSafetyGuard.SetOff THEN 
+		GVL_API.stSafetyGuard.shuttle_crash_detector_left:=FALSE;
+		GVL_API.stSafetyGuard.shuttle_crash_detector_right:=FALSE;
+	END_IF
+	
+	GVL_API.stSafetyGuard.emergency_stop						:=GVL.Emstop_SAFE;
+	GVL_API.stSafetyGuard.shuttle_crash_detector_left			:=NOT P_TwinSAFE.bishuttle_crash_detector_left;
+	GVL_API.stSafetyGuard.shuttle_crash_detector_right			:=NOT P_TwinSAFE.bishuttle_crash_detector_right;
+	GVL_API.stSafetyGuard.limit_switch_left						:=Axis[FastScan].IO.snLimitN;
+	GVL_API.stSafetyGuard.limit_switch_right					:=Axis[FastScan].IO.snLimitP;
+	GVL_API.stSafetyGuard.limit_switch_bottom					:=Axis[Z_Axis].IO.snLimitP;
+	GVL_API.stSafetyGuard.interlock_front_left					:=NOT P_TwinSAFE.biinterlock[1];
+	GVL_API.stSafetyGuard.interlock_front_right					:=NOT P_TwinSAFE.biinterlock[2];
+	GVL_API.stSafetyGuard.interlock_rear_left					:=NOT P_TwinSAFE.biinterlock[3];
+	GVL_API.stSafetyGuard.interlock_rear_right					:=NOT P_TwinSAFE.biinterlock[4];
+	GVL_API.stSafetyGuard.interlock_shuttle_door				:=NOT P_TwinSAFE.biinterlock[5];
+	GVL_API.stSafetyGuard.Interlock_maintenace_door				:=NOT P_TwinSAFE.biinterlock[6];
+	GVL_API.stSafetyGuard.Interlock_spit_door					:=NOT P_TwinSAFE.biinterlock[7] AND NOT P_TwinSAFE.biinterlock[8];
+
+(**************************FB调用***************************************************)
+FB_SafetyGuard(
+	shuttle_crash_detector:=gvl.shuttle_crash, 
+	emergency_stop:=GVL_API.stSafetyGuard.emergency_stop, 
+	limit_switch:= GVL_API.stSafetyGuard.limit_switch_left OR GVL_API.stSafetyGuard.limit_switch_right OR  GVL_API.stSafetyGuard.limit_switch_bottom, 
+	interlock_triggered:= gvl.interlock_triggered , 
+	LightCurtainTriggered:= , 
+	error_code=> GVL_API.stSafetyGuard.error_code, 
+	state=> GVL_API.stSafetyGuard.state, 
+	Init_Done=>GVL_API.stSafetyGuard.Init_Done , 
+	Error=> GVL_API.stSafetyGuard.Error, 
+	Initialize:=GVL_API.stSafetyGuard.Initialize , 
+	SetOff:=GVL_API.stSafetyGuard.SetOff );]]></ST>
+    </Implementation>
+    <Action Name="ACT_LOG" Id="{c327214b-1f0a-47d2-85fd-2f3110a0ee75}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+//只记录错误
+log_ID:=430;
+
+//ERROR,log_ErrorEnum只能等于一个常数,   
+CASE GVL_API.stSafetyGuard.error_code  OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+4	:	log_ErrorEnum	:=	4	;
+8	:	log_ErrorEnum	:=	8	;
+16	:	log_ErrorEnum	:=	16	;
+32	:	log_ErrorEnum	:=	32	;
+64	:	log_ErrorEnum	:=	64	;
+128	:	log_ErrorEnum	:=	128	;
+
+END_CASE
+
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT('SafetyGuard Error: ',TO_STRING(log_ErrorEnum));
+fbSetAlarm[log_ID+1](
+	InUse:=TRUE , 
+	EventId:=log_ID+1 , 
+	EventActive:=GVL_API.stSafetyGuard.error_code<>0 , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//reset
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=	'SafetyGuard Reset ';
+fbSetAlarm[log_ID+2](
+	InUse:=TRUE , 
+	EventId:=log_ID+2 , 
+	EventActive:=GVL_API.stSafetyGuard.SetOff  , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_SafetyGuard">
+      <LineId Id="102" Count="2" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="106" Count="10" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="117" Count="3" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="195" Count="2" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="201" Count="1" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="209" Count="2" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="121" Count="22" />
+      <LineId Id="183" Count="1" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="59" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SafetyGuard.ACT_LOG">
+      <LineId Id="2" Count="0" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="123" Count="1" />
+      <LineId Id="192" Count="8" />
+      <LineId Id="132" Count="1" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="201" Count="18" />
+      <LineId Id="84" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

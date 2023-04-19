@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="SubTankStateEnum" Id="{d330ccbf-362f-44a3-a090-0a10fa66c59c}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE SubTankStateEnum :
+(
+
+ready	:=	0	,//	
+error	:=	100	//	
+
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

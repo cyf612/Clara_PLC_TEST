@@ -1,0 +1,434 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="Axis_PTP_CoE" Id="{cfb7503e-88f9-4499-aa86-0ab830fc6329}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK Axis_PTP_CoE
+VAR_INPUT	
+	Ref:					AXIS_REF;
+	IO:						Axis_IO;
+	mcJog:					MC_Jog;
+	mcHome:					MC_Home;
+	mcMoveAbsolute:			MC_MoveAbsolute;
+	mcMoveRelative:			MC_MoveRelative;
+	mcMoveVelocity:			MC_MoveVelocity;	
+	mcPower:				MC_Power;
+	mcReset:				MC_Reset;
+	mcStop:					MC_Stop;
+	mcReadStatus			:MC_ReadStatus;
+	mcSetPostion			:MC_SetPosition;
+
+	Target					:LREAL;
+	Velo					:LREAL;
+	Jerk					:LREAL ;
+	Acc						:LREAL ;
+	Dec						:LREAL ;
+	
+	Execute					:BOOL;
+	power_do				:BOOL;
+	stop_do					:BOOL;
+	Reset_do				:BOOL;
+	JogF,JogB				:BOOL;
+	MoveRel_do				:BOOL;
+	MoveAbs_do				:BOOL;
+
+END_VAR
+VAR_OUTPUT
+	Done:					BOOL;(*功能块执行完成状态*)
+	Busy: 					BOOL;(*功能块正在执行状态*)
+	Active:					BOOL;
+	CommandAborted:			BOOL;
+	Error:					BOOL;
+	ErrorID:				UDINT;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Action Name="aHome" Id="{fd635164-8f6f-4e73-a306-37941ca8e1f3}">
+      <Implementation>
+        <ST><![CDATA[(*
+TYPE MC_HomingMode :
+(
+	MC_DefaultHoming,		(* default homing as defined in the SystemManager encoder parameters *)
+	MC_AbsSwitch, 		(* not implemented - Absolute Switch homing plus Limit switches *)
+	MC_LimitSwitch, 		(* not implemented - Homing against Limit switches *)
+	MC_RefPulse, 		(* not implemented - Homing using encoder Reference Pulse "Zero Mark" *)
+	MC_Direct, 		(* Static Homing forcing position from user reference *)
+	MC_Absolute, 		(* not implemented - Static Homing forcing position from absolute encoder *)
+	MC_Block, 		(* not implemented - Homing against hardware parts blocking movement *)
+	MC_ForceCalibration, 	(* set the calibration flag without performing any motion or changing the position *)
+	MC_ResetCalibration  	(* resets the calibration flag without performing any motion or changing the position *)
+);
+END_TYPE
+
+*)
+
+
+mcHome(
+	Axis:=Ref , 
+	Execute:=Execute , 
+	Position:= , 
+	HomingMode:= , 
+	BufferMode:= , 
+	Options:= , 
+	bCalibrationCam:= , 
+	Done=> , 
+	Busy=> , 
+	Active=> , 
+	CommandAborted=> , 
+	Error=> , 
+	ErrorID=> );]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aJogB" Id="{9ccc55bf-e866-4bf0-911f-1abd2060de57}">
+      <Implementation>
+        <ST><![CDATA[mcJog(
+	JogForward:= 	FALSE,
+	JogBackwards:= 	Execute,
+	Mode:= 			MC_JOGMODE_CONTINOUS,
+	Position:= 		,
+	Velocity:= 		Velo,
+	Acceleration:= 	Acc,
+	Deceleration:= 	Dec,
+	Jerk:= 			Jerk,
+	Axis:= 			Ref,
+	Busy=> 			Busy,
+	Active=> 		Active,
+	CommandAborted=> CommandAborted,
+	Error=> 		Error,
+	ErrorID=> 		ErrorID
+	);]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aJogF" Id="{9b7366fa-189d-42ed-adfd-d39a8a320a20}">
+      <Implementation>
+        <ST><![CDATA[mcJog(
+	JogForward:= 	Execute,
+	JogBackwards:= 	FALSE,
+	Mode:= 			MC_JOGMODE_CONTINOUS,
+	Position:= 		,
+	Velocity:= 		Velo,
+	Acceleration:= 	Acc,
+	Deceleration:= 	Dec,
+	Jerk:= 			Jerk,
+	Axis:= 			Ref,
+	Busy=> 			Busy,
+	Active=> 		Active,
+	CommandAborted=> CommandAborted,
+	Error=> 		Error,
+	ErrorID=> 		ErrorID
+	);]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aManualJOG" Id="{10272fe0-d337-49b8-9201-5c48337df689}">
+      <Implementation>
+        <ST><![CDATA[(*
+TYPE E_JogMode :
+(
+	MC_JOGMODE_STANDARD_SLOW, (* motion with standard jog parameters for slow motion *)
+	MC_JOGMODE_STANDARD_FAST, (* motion with standard jog parameters for fast motion *)
+	MC_JOGMODE_CONTINOUS,     (* axis moves as long as the jog button is pressed using parameterized dynamics *)
+	MC_JOGMODE_INCHING,       (* axis moves for a certain relative distance *)
+	MC_JOGMODE_INCHING_MODULO (* axis moves for a certain relative distance - stop position is rounded to the distance value *)
+);
+END_TYPE
+
+*)
+
+mcJog(
+	JogForward:= 	JogF,
+	JogBackwards:= 	JogB,
+	Mode:= 			MC_JOGMODE_CONTINOUS,
+	Position:= 		,
+	Velocity:= 		Velo,
+	Acceleration:= 	Acc,
+	Deceleration:= 	Dec,
+	Jerk:= 			Jerk,
+	Axis:= 			Ref,
+	Busy=> 			,
+	Active=> 		,
+	CommandAborted=> ,
+	Error=> 		,
+	ErrorID=> 		
+	);]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aManualMoveAbs" Id="{c6a3634a-c051-4515-8bc3-4927ac78d2a2}">
+      <Implementation>
+        <ST><![CDATA[mcMoveAbsolute(
+	Execute:= 		IO.btManualABS,
+	Position:= 		Target,
+	Velocity:= 		Velo,
+	Acceleration:= 	Acc,
+	Deceleration:= 	Dec,
+	Jerk:= 			Jerk,
+	Axis:= 			Ref,
+	Done=> 			,
+	Busy=> 			,
+	Active=> 		,
+	CommandAborted=> ,
+	Error=> 		Error,
+	ErrorID=> 		ErrorID
+	);]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aMoveAbs" Id="{43a9cb85-cf74-4da3-ad94-44a8c7b9be61}">
+      <Implementation>
+        <ST><![CDATA[mcMoveAbsolute(
+	Execute:= 		MoveAbs_do,
+	Position:= 		Target,
+	Velocity:= 		Velo,
+	Acceleration:= 	Acc,
+	Deceleration:= 	Dec,
+	Jerk:= 			Jerk,
+	Axis:= 			Ref,
+	Done=> 			,
+	Busy=> 			,
+	Active=> 		Active,
+	CommandAborted=> CommandAborted,
+	Error=> 		Error,
+	ErrorID=> 		ErrorID
+	);]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aMoveOff" Id="{db7546bd-8a80-4fc1-83c7-68f9f0a2f58c}">
+      <Implementation>
+        <ST><![CDATA[(*关轴*)
+mcHome(
+	Execute:= 		FALSE,
+	Axis:= 			Ref,
+	);
+
+mcJog(
+	JogForward:= 	FALSE,
+	JogBackwards:= 	FALSE,
+	Axis:= 			Ref,
+	);
+
+mcMoveAbsolute(
+	Execute:= 		FALSE,
+	Axis:= 			Ref,
+	);
+
+mcMoveRelative(
+	Execute:= 		FALSE,
+	Axis:= 			Ref,
+	);
+
+mcMoveVelocity(
+	Execute:= 		FALSE,
+	Axis:= 			Ref,
+	);
+
+Done:=FALSE;
+Busy:=FALSE;
+Active:=FALSE;
+CommandAborted:=FALSE;
+Error:=FALSE;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aMoveRel" Id="{8602f53d-2d00-4357-9986-cf87753f186b}">
+      <Implementation>
+        <ST><![CDATA[mcMoveRelative(
+	Execute:= 		MoveRel_do,
+	Distance:= 		Target,
+	Velocity:= 		Velo,
+	Acceleration:= 	Acc,
+	Deceleration:= 	Dec,
+	Jerk:= 			Jerk,
+	Axis:= 			Ref,
+	Done=> 			Done,
+	Busy=> 			Busy,
+	Active=> 		Active,
+	CommandAborted=> CommandAborted,
+	Error=> 		Error,
+	ErrorID=> 		ErrorID
+	);]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aMoveVel" Id="{a41dee98-36e2-4e92-b7b1-6f4926a7f1a5}">
+      <Implementation>
+        <ST><![CDATA[mcMoveVelocity(
+	Execute:= 		Execute,
+	Direction:= 	,
+	Velocity:= 		Velo,
+	Acceleration:= 	Acc,
+	Deceleration:= 	Dec,
+	Jerk:= 			Jerk,
+	Axis:= 			Ref,
+	InVelocity=> 	Done,
+	Busy=> 			Busy,
+	Active=> 		Active,
+	CommandAborted=> CommandAborted,
+	Error=> 		Error,
+	ErrorID=> 		ErrorID );]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aPower" Id="{ca4e242c-be67-44f7-a2e1-f3f21dfd9471}">
+      <Implementation>
+        <ST><![CDATA[mcPower(
+	Enable:= power_do		,
+	Enable_Positive:=TRUE 	,
+	Enable_Negative:=TRUE	,
+	Override:= 		,
+	BufferMode:= 	,
+	Axis:= 			Ref,
+	Status=> 		,
+	Busy=> 			,
+	Active=> 		,
+	Error=> 		Error,
+	ErrorID=> 		ErrorID
+	);]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aReadStatus" Id="{98213bbe-f602-4dc4-b4b3-e2c84eb7de43}">
+      <Implementation>
+        <ST><![CDATA[mcReadStatus(
+	Axis:=Ref , 
+	Enable:=TRUE , 
+	Valid=> , 
+	Busy=> , 
+	Error=> , 
+	ErrorID=> , 
+	ErrorStop=> , 
+	Disabled=> , 
+	Stopping=> , 
+	StandStill=> , 
+	DiscreteMotion=> , 
+	ContinuousMotion=> , 
+	SynchronizedMotion=> , 
+	Homing=> , 
+	ConstantVelocity=> , 
+	Accelerating=> , 
+	Decelerating=> , 
+	Status=> );]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aReset" Id="{f77413c4-dcac-446e-9409-868fc1f88333}">
+      <Implementation>
+        <ST><![CDATA[Ref.ReadStatus();(*读取轴状态*);
+
+(*复位*)
+mcReset(
+	Execute:= 	Reset_do
+				(*AND Ref.Status.Error*),
+	Axis:= 		Ref,
+	);
+mcSetPostion(
+	Axis:=Ref , 
+	Execute:=Reset_do , 
+	Position:= , 
+	Mode:= , 
+	Options:= , 
+	Done=> , 
+	Busy=> , 
+	Error=> , 
+	ErrorID=> );
+IF (mcReset.Busy OR mcReset.Done) AND mcSetPostion.Done THEN 
+	Reset_do:=FALSE;
+END_IF
+
+(**)
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aSetPostion" Id="{04001495-d479-4141-9041-2f7f016b0825}">
+      <Implementation>
+        <ST><![CDATA[mcSetPostion(
+	Axis:=Ref , 
+	Execute:=Reset_do , 
+	Position:=0 , 
+	Mode:= , 
+	Options:= , 
+	Done=> , 
+	Busy=> , 
+	Error=> , 
+	ErrorID=> );]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aStop" Id="{5a46791d-a828-4366-8c09-65c10350f08a}">
+      <Implementation>
+        <ST><![CDATA[IF Execute THEN 
+	aMoveOff();
+END_IF
+
+
+mcStop(
+	Execute:= 		stop_do,
+	Deceleration:= 	Dec,
+	Jerk:= 			Jerk,
+	Options:= 		,
+	Axis:= 			Ref,
+	Done=> 			Done,
+	Busy=> 			Busy,
+	Active=> 		Active,
+	CommandAborted=> CommandAborted,
+	Error=> 		Error,
+	ErrorID=> 		ErrorID
+	);
+IF mcStop.Done OR mcStop.Busy  THEN 
+	stop_do:=FALSE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="Axis_PTP_CoE">
+      <LineId Id="31" Count="0" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aHome">
+      <LineId Id="0" Count="15" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="69" Count="12" />
+      <LineId Id="51" Count="0" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aJogB">
+      <LineId Id="0" Count="15" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aJogF">
+      <LineId Id="0" Count="15" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aManualJOG">
+      <LineId Id="0" Count="28" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aManualMoveAbs">
+      <LineId Id="0" Count="14" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aMoveAbs">
+      <LineId Id="0" Count="14" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aMoveOff">
+      <LineId Id="0" Count="31" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aMoveRel">
+      <LineId Id="0" Count="14" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aMoveVel">
+      <LineId Id="0" Count="13" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aPower">
+      <LineId Id="0" Count="12" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aReadStatus">
+      <LineId Id="2" Count="17" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aReset">
+      <LineId Id="1" Count="0" />
+      <LineId Id="4" Count="6" />
+      <LineId Id="35" Count="8" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="18" Count="1" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aSetPostion">
+      <LineId Id="2" Count="8" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="Axis_PTP_CoE.aStop">
+      <LineId Id="16" Count="2" />
+      <LineId Id="0" Count="14" />
+      <LineId Id="19" Count="3" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

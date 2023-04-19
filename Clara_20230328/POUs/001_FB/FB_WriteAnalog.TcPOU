@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_WriteAnalog" Id="{8f2ce349-7afd-4e15-8821-7d26e4bc1fa2}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_WriteAnalog
+
+(* 12-Bit DA-Converter for 0V~ 10V *)
+(*
+Measured value Decimal output Hexadecimal output
+		0 V 			0 			0x0000
+		5 V 			16383 		0x3FFF
+		10 V 		32767 		0x7FFF
+*)
+VAR_INPUT
+	Enable:BOOL;
+	In:REAL;
+	AnalogOffset:INT;
+	Set_MaxValue:LREAL;
+	MaxValue:REAL;
+END_VAR
+VAR_OUTPUT
+	out:INT;
+END_VAR
+
+VAR
+	m_Out:INT;
+	m_in: LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF Enable THEN
+	IF ABS(MaxValue) > 0.0 THEN
+		m_in:=LIMIT(0, In, Set_MaxValue);
+		m_Out:=REAL_TO_INT(m_In /MaxValue*32767) + AnalogOffset;
+		out:=LIMIT(0, m_out, 32767);
+	ELSE
+		out:=AnalogOffset;
+	END_IF
+ELSE
+	out:=AnalogOffset;
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_WriteAnalog">
+      <LineId Id="24" Count="10" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

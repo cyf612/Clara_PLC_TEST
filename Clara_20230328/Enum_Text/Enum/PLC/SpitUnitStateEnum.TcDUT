@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="SpitUnitStateEnum" Id="{398b1070-947c-4c17-9480-70e9bf1e4604}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE SpitUnitStateEnum :
+(
+off	:=	0	,//	The SpitUnit is in off-state.
+initializing	:=	1	,//	The SpitUnit is busy initializing.
+homing	:=	2	,//	The Home command started successful. The SpitUnit is moving
+ready	:=	3	,//	The Home command finished successful and the SpitUnit is idle again. Or The Move command finished successful and the SpitUnit is idle again
+moving	:=	4	,//	The Move command started successful. The SpitUnit is moving
+error	:=	100	//	The SpitUnit is in error.
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

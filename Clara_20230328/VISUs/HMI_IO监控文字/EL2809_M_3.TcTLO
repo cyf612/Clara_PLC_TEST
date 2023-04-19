@@ -1,0 +1,200 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <TextList Name="EL2809_M_3" Id="{15e7d1ac-6127-4b1c-8184-53ae704069ad}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="TextListObject">
+          <v n="UniqueIdGenerator">"0"</v>
+          <l n="TextList" t="ArrayList" cet="TextListRow">
+            <o>
+              <v n="TextID">"1"</v>
+              <v n="TextDefault">"Vac Pump Run/Stop"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>真空吸附启停</v>
+                <v></v>
+                <v>真空吸附启停</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"2"</v>
+              <v n="TextDefault">"Cylinder S2 rises"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊气缸S2上升</v>
+                <v></v>
+                <v>压辊气缸S2上升</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"3"</v>
+              <v n="TextDefault">"Cylinder S3 rises"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊气缸S3上升</v>
+                <v></v>
+                <v>压辊气缸S3上升</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"4"</v>
+              <v n="TextDefault">"Cylinder S4 rises"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊气缸S4上升</v>
+                <v></v>
+                <v>压辊气缸S4上升</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"5"</v>
+              <v n="TextDefault">"Cylinder S5 rises"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊气缸S5上升</v>
+                <v></v>
+                <v>压辊气缸S5上升</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"6"</v>
+              <v n="TextDefault">"Cylinder S6 rises"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊气缸S6上升</v>
+                <v></v>
+                <v>压辊气缸S6上升</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"7"</v>
+              <v n="TextDefault">"Cylinder S2 drops"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊气缸S2下降</v>
+                <v></v>
+                <v>压辊气缸S2下降</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"8"</v>
+              <v n="TextDefault">"Cylinder S3 drops"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊气缸S3下降</v>
+                <v></v>
+                <v>压辊气缸S3下降</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"9"</v>
+              <v n="TextDefault">"Cylinder S4 drops"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊气缸S4下降</v>
+                <v></v>
+                <v>压辊气缸S4下降</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"10"</v>
+              <v n="TextDefault">"Cylinder S5 drops"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊气缸S5下降</v>
+                <v></v>
+                <v>压辊气缸S5下降</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"11"</v>
+              <v n="TextDefault">"Cylinder S6 drops"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊气缸S6下降</v>
+                <v></v>
+                <v>压辊气缸S6下降</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"12"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"13"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"14"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"15"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"16"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">""</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+          </l>
+          <l n="Languages" t="ArrayList" cet="String">
+            <v>chinese</v>
+            <v>english</v>
+            <v>Chinese</v>
+            <v>English</v>
+          </l>
+          <v n="GuidInit">{75bc7467-f6b7-4d82-b8f7-f075a6193b5f}</v>
+          <v n="GuidReInit">{ac9cb188-2764-4ba7-81eb-56e60b36fbcb}</v>
+          <v n="GuidExitX">{ed49b77a-89a7-424a-8b01-f9adc5108399}</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="String">System.String</Type>
+        <Type n="TextListObject">{2bef0454-1bd3-412a-ac2c-af0f31dbc40f}</Type>
+        <Type n="TextListRow">{53da1be7-ad25-47c3-b0e8-e26286dad2e0}</Type>
+      </TypeList>
+    </XmlArchive>
+  </TextList>
+</TcPlcObject>

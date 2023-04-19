@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="TabVacStateEnum" Id="{60b4240d-0fcd-494e-9f0b-3b1b66fbdbf6}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE TabVacStateEnum :
+(
+	off					:=	0	,//	The TableVacuum is in off-state.
+	idle				:=	1	,//	The TableVacuum is in idle-state.
+	waiting_vacuum_on	:=	2	,//	The TableVacuum object is waiting until the vacuum pressure is reached.
+	waiting_vacuum_off	:=	3	,//	The TableVacuum object is waiting until the vacuum pressure is dropped.
+	on					:=	4	,//	The TableVacuum is on.
+	waiting_off			:=	5	,//	The TableVacuum  is waiting to switched off.
+	error				:=	100	//	The TableVacuum is in error.
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

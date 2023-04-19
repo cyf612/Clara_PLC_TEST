@@ -1,0 +1,200 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <TextList Name="EL1809_M_2" Id="{96a655e3-2e1c-4a20-9058-28d27a9236c2}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="TextListObject">
+          <v n="UniqueIdGenerator">"0"</v>
+          <l n="TextList" t="ArrayList" cet="TextListRow">
+            <o>
+              <v n="TextID">"1"</v>
+              <v n="TextDefault">"Lower limit S1_8 "</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊S1下限位8</v>
+                <v></v>
+                <v>压辊S1下限位8</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"2"</v>
+              <v n="TextDefault">"Lower limit S1_9 "</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊S1下限位9</v>
+                <v></v>
+                <v>压辊S1下限位9</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"3"</v>
+              <v n="TextDefault">"Lower limit S1_10 "</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊S1下限位10</v>
+                <v></v>
+                <v>压辊S1下限位10</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"4"</v>
+              <v n="TextDefault">"Lower limit S1_11 "</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊S1下限位11</v>
+                <v></v>
+                <v>压辊S1下限位11</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"5"</v>
+              <v n="TextDefault">"Lower limit S1_12 "</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊S1下限位12</v>
+                <v></v>
+                <v>压辊S1下限位12</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"6"</v>
+              <v n="TextDefault">"Lower limit S1_13 "</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊S1下限位13</v>
+                <v></v>
+                <v>压辊S1下限位13</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"7"</v>
+              <v n="TextDefault">"Lower limit S1_14 "</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊S1下限位14</v>
+                <v></v>
+                <v>压辊S1下限位14</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"8"</v>
+              <v n="TextDefault">"Lower limit S1_15 "</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊S1下限位15</v>
+                <v></v>
+                <v>压辊S1下限位15</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"9"</v>
+              <v n="TextDefault">"Lower limit S1_16 "</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>压辊S1下限位16</v>
+                <v></v>
+                <v>压辊S1下限位16</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"10"</v>
+              <v n="TextDefault">"L_front foot pedal1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>左前脚踏开关1</v>
+                <v></v>
+                <v>左前脚踏开关1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"11"</v>
+              <v n="TextDefault">"L_front foot pedal2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>左前脚踏开关2</v>
+                <v></v>
+                <v>左前脚踏开关2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"12"</v>
+              <v n="TextDefault">"L_front foot pedal3"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>左前脚踏开关3</v>
+                <v></v>
+                <v>左前脚踏开关3</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"13"</v>
+              <v n="TextDefault">"R_front foot pedal1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>右前脚踏开关1</v>
+                <v></v>
+                <v>右前脚踏开关1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"14"</v>
+              <v n="TextDefault">"R_front foot pedal2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>右前脚踏开关2</v>
+                <v></v>
+                <v>右前脚踏开关2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"15"</v>
+              <v n="TextDefault">"R_front foot pedal3"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>右前脚踏开关3</v>
+                <v></v>
+                <v>右前脚踏开关3</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"16"</v>
+              <v n="TextDefault">"L_rear foot pedal1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>左后脚踏开关1</v>
+                <v></v>
+                <v>左后脚踏开关1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">""</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+          </l>
+          <l n="Languages" t="ArrayList" cet="String">
+            <v>chinese</v>
+            <v>english</v>
+            <v>Chinese</v>
+            <v>English</v>
+          </l>
+          <v n="GuidInit">{38d20c05-c5ea-4334-95e9-624b55d11f0f}</v>
+          <v n="GuidReInit">{56565533-df08-4538-8cea-fe97db1fd3f4}</v>
+          <v n="GuidExitX">{f285a91e-6897-4c4f-bfa8-74c804feb355}</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="String">System.String</Type>
+        <Type n="TextListObject">{2bef0454-1bd3-412a-ac2c-af0f31dbc40f}</Type>
+        <Type n="TextListRow">{53da1be7-ad25-47c3-b0e8-e26286dad2e0}</Type>
+      </TypeList>
+    </XmlArchive>
+  </TextList>
+</TcPlcObject>

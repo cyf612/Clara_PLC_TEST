@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_System" Id="{c09b011e-c062-4ba7-b851-1efa888f388a}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_System
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[P_FootPedal();
+P_SystemEnvironment();
+P_SafetyGuard();]]></ST>
+    </Implementation>
+    <LineIds Name="P_System">
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

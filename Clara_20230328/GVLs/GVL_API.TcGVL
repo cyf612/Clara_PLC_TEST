@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <GVL Name="GVL_API" Id="{fec0eeec-01c2-472a-8eb7-d07f01950179}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+(***************************AXIS*****************************************)	
+		stAxis      	     :ARRAY[1..3] OF stAxis;           //伺服轴    
+	
+(***************************Ink System*****************************************)
+	    stISS					:ARRAY[1..9] OF stISS;//LC,LM,Y,M,C,K,W,P,F
+		stMU					:stMaintenanceUnit;
+		
+(***************************TableVacuum*****************************************)
+		stTableVacuum    :ARRAY[1..number_TableVacuum] OF stTableVacuum ;	
+
+(***************************UpDownSlot*****************************************)	
+		stUpDownSlot	  :ARRAY [1..number_UpDownSlot] OF stUpDownSlot;				//S1-S6		
+		
+(***************************SYSTEM*****************************************)		
+				(***************************FootPedal**************************)	
+					stFootPedal		  :ARRAY[1..number_FootPedal] OF stFootPedal;
+				(***************************SystemEnvironment**************************)	
+					stSystemEnvironment		:stSystemEnvironment;
+(***************************UVLed*****************************************)			
+		stUVLed			  :ARRAY[1..2] OF stUVLed;
+			
+(***************************Unw/Rew*****************************************)		
+		stRoolToRool	  :ARRAY[1..number_RoolToRool] OF stRollToRoll;//1:input1; 2:output1; 3:input2; 4:output2
+		
+(***************************InkVacuum*****************************************)
+	//R//
+		cInkVacCur	:LREAL;//彩墨负压实际值
+		wInkVacCur	:LREAL;//白墨负压实际值
+	//W//
+		cInkVacSet	:LREAL;//彩墨负压设定
+		wInkVacSet	:LREAL;//白墨负压设定
+	
+(***************************UV*****************************************)
+	//W//
+		UVpowerL		:LREAL;		//0-10V,UV功率
+		UVpowerR		:LREAL;		//0-10V,UV功率
+		UVlightL		:BOOL;		//UV快门
+		UVlightR    	:BOOL;		//UV快门
+
+(***************************SpitUnit *****************************************)		
+		stSpitUnit   :stSpitUnit;
+		
+(***************************SAFE*****************************************)
+	//R//
+		stSafetyGuard	:stSafetyGuard;
+		
+(***************************LED*****************************************)
+		LEDPower		:BOOL;		//LED灯
+(***************************count*****************************************)
+		count			:INT;
+		Docan			:BOOL;
+(***************************SubTank*****************************************)
+		stSubTank		:ARRAY[1..16] OF stSubTank;
+		
+(*****************************************************************)
+		stInput					:ST_Input;
+		stOutput				:ST_Output;
+		Axis_SpitUnit_snHome    :BOOL;
+		Axis_SpitUnit_snLimitP  :BOOL;
+
+END_VAR
+
+]]></Declaration>
+  </GVL>
+</TcPlcObject>

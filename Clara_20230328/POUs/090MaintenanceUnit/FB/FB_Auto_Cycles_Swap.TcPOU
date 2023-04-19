@@ -1,0 +1,1238 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_Auto_Cycles_Swap" Id="{6179c9e0-e6d3-4e26-93a6-fb67a88fabce}" SpecialFunc="None">
+    <Declaration><![CDATA[(**********************SISSI:Swap from Ink to Storage Flush*********************************)
+FUNCTION_BLOCK FB_Auto_Cycles_Swap
+VAR_INPUT
+	Sensor1			:BOOL;
+	Sensor4			:BOOL;
+	Circ_Pump_L	:BOOL;
+	Circ_Pump_R	:BOOL;
+	Circ_normal_error:INT;
+	btPurge			:BOOL;
+	
+END_VAR
+VAR_OUTPUT
+	state								:INT;
+	error_code					:INT;
+	
+	SwapInfo						:INT;
+	VacValve_V8					:BOOL;	//白墨负压阀
+	PurValve_V7					:BOOL;//正压阀
+	alternate_Pumping		:BOOL;//交替加墨
+	Swapping_Done			:BOOL;
+	Error					:BOOL;
+END_VAR
+VAR
+	step						:INT;
+	stepA,stepB1,	stepB2		:INT;
+	Ton,ton7,ton10				:TON;
+	
+	FB_SQUARE					:FB_SQUARE;
+	W,X,A,Z,Y:INT;
+	cycle_r_trig1,cycle_r_trig2  :R_TRIG;      //循坏
+	cycle_x1,cycle_x2				:INT;//循坏次数
+	purge_F_trig:F_TRIG;
+	dely_off_setoff:TON;
+	dely_emstop:Tc2_Standard.TON;
+	ton1:Tc2_Standard.TON;
+END_VAR
+VAR_IN_OUT
+	initialize				:BOOL;
+	swap					:BOOL;
+	CYCLE					:INT;//"0:Cycle A: Swap white ink to storage ;1:Cycle B: Swap storage to white ink"
+	setoff					:BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF setoff OR GVL.Reset THEN 
+	step:=99;
+END_IF
+CASE step OF 
+0://waiting
+	IF initialize THEN 
+		step :=5;
+	ELSIF swap THEN 
+		step :=10;
+	ELSIF setoff OR GVL.Reset THEN 
+		step :=99;
+	END_IF
+	
+(***********当状态=Idle时，错误代码等于循坏错误****************************************)
+	IF  state=MUStateEnum.idle THEN 
+		error_code:=Circ_normal_error;
+	END_IF
+(***********自复位****************************************)	
+	ton1(IN:=Swapping_Done , PT:= T#1S, Q=> , ET=> );
+	IF ton1.Q THEN 
+		Swapping_Done:=FALSE;
+	END_IF
+5://OFF
+	state:=MUStateEnum.off;
+	error_code:=MUErrorEnum.no_error;
+	stepA:=stepB1:=stepB2:=0;
+	W:=X:=A:=Z:=Y:=0;
+	SwapInfo:=SwapInfoEnum.NONE;
+	dely_emstop(IN:=FALSE);
+
+	VacValve_V8:=FALSE;
+	PurValve_V7:=FALSE;	
+	
+	GVL.fill_W_in_swap_enable:=FALSE;
+	GVL.fill_F_in_swap_enable:=FALSE;
+	
+		IF initialize THEN //idle,此状态，所有泵停止	
+			initialize:=FALSE;
+			state:=MUStateEnum.idle;					
+			GVL.fill_W_in_swap_enable:=FALSE;
+			step:=0;
+		END_IF
+10://idle,此状态，所有泵停止				
+		IF swap THEN 
+			swap:=FALSE;
+			state:=MUStateEnum.swapping;
+			error_code:=MUErrorEnum.no_error;
+			step:=20;
+		END_IF
+		
+		IF error_code<>0 THEN 			
+			step:=100;
+		END_IF
+
+20://SWAPPING		
+		IF CYCLE=0 THEN
+			ACT_Cycle_A();			
+		ELSIF CYCLE=1 THEN 
+			ACT_Cycle_B1();	
+		END_IF
+		
+		IF SwapInfo=SwapInfoEnum.AC_STORAGE_FLUSH_FINISHED OR 
+			SwapInfo=SwapInfoEnum.AC_WHITE_INK_FINISHED THEN 
+			stepA:=stepB1:=stepB2:=0;		
+			Swapping_Done:=TRUE;
+			state:=MUStateEnum.idle;
+			step:=0;
+		END_IF
+99://setoff
+	setoff :=FALSE;
+	error:=FALSE;
+	state:=MUStateEnum.off;
+	error_code:=MUErrorEnum.no_error;
+	stepA:=stepB1:=stepB2:=0;
+	W:=X:=A:=Z:=Y:=0;
+	SwapInfo:=SwapInfoEnum.NONE;
+	dely_emstop(IN:=FALSE);
+	VacValve_V8:=FALSE;
+	PurValve_V7:=FALSE;	
+	
+	GVL.fill_W_in_swap_enable:=FALSE;
+	GVL.fill_F_in_swap_enable:=FALSE;
+	step:=0;
+100://error
+		error:=TRUE;
+		state:=MUStateEnum.error;
+		stepA:=stepB1:=stepB2:=0;
+		W:=X:=A:=Z:=Y:=0;
+		dely_emstop(IN:=FALSE);
+		VacValve_V8:=FALSE;
+		PurValve_V7:=FALSE;	
+		
+		GVL.fill_W_in_swap_enable:=FALSE;
+		GVL.fill_F_in_swap_enable:=FALSE;		
+		step:=0;
+END_CASE
+
+IF setoff OR GVL.Reset THEN 
+	step:=99;
+END_IF
+
+dely_off_setoff(IN:=setoff , PT:=T#1S , Q=> , ET=> );
+IF dely_off_setoff.Q THEN
+	setoff:=FALSE;
+END_IF
+
+IF state<>MUStateEnum.off AND state<>MUStateEnum.error  THEN 
+	IF GVL.Emstop_Button THEN 
+		error:=TRUE;
+		error_code:=MUErrorEnum.emergency_error;
+		PurValve_V7:=FALSE;
+		dely_emstop(IN:=TRUE , PT:=T#1S , Q=> , ET=> );
+		IF dely_emstop.Q THEN 
+			VacValve_V8:=FALSE;
+			step:=100;
+		END_IF
+	END_IF
+END_IF]]></ST>
+    </Implementation>
+    <Action Name="ACT_Cycle_A" Id="{184a14f9-54ea-4235-99d8-0e356b46053a}">
+      <Implementation>
+        <ST><![CDATA[(***************Swap from White Ink to Storage Flush*******************************************)
+CASE StepA OF
+0:
+	SwapInfo:=SwapInfoEnum.AC_STORAGE_FLUSH_RUNS;
+	Ton(IN:=FALSE );	
+	VacValve_V8:=FALSE;
+	PurValve_V7 :=FALSE;
+	stepA:=10;
+10://SET "Vac White" OFF (valve 8 ON) 
+	//START Pressure Purge Time = T1 (valve 7 ON)
+	VacValve_V8:=TRUE;
+	PurValve_V7 :=TRUE;
+	Ton(IN:=TRUE , PT:=LREAL_TO_TIME(T[1]*1000) , Q=> , ET=> );
+	IF Ton.Q THEN 
+		Ton(IN:=FALSE );	
+		stepA:=20;
+	END_IF
+20://STOP Pressure purge (normal filling conditions) (valve 7 OFF)	
+	PurValve_V7:=FALSE;
+	stepA:=30;
+30://START Sol. filling (alternating pump time: T2=ON, T3=OFF)
+	//WAIT UNTIL sensors in both TOP Sub Ink tanks detect a full tank (sensor 1 and 4)
+	GVL.fill_F_in_swap_enable:=TRUE;
+	alternate_Pumping:=TRUE;
+
+	IF Sensor1 AND Sensor4 THEN 
+		stepA:=31;
+	END_IF
+31://Wait Time: T4 (no vacuum)
+	GVL.fill_F_in_swap_enable:=FALSE;
+	alternate_Pumping:=FALSE;
+	Ton(IN:=TRUE , PT:=LREAL_TO_TIME(T[4]*1000) , Q=> , ET=> );
+		IF Ton.Q THEN 
+			Ton(IN:=FALSE );
+			stepA:=40;
+		END_IF
+40://Set "Vac White" ON  (Valve 8 OFF)     
+	//Wait Time: T5 (filling conditions on & vac On)	
+	VacValve_V8:=FALSE;	
+	Ton(IN:=TRUE , PT:=LREAL_TO_TIME(T[5]*1000) , Q=> , ET=> );
+	//调用加墨FB
+		GVL.fill_F_in_swap_enable:=TRUE;
+	IF Ton.Q THEN 
+		stepA:=41;
+	END_IF
+41:
+		GVL.fill_F_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		stepA:=50;
+50://Set "Vac White" Off (valve 8 ON)
+	//For W=1 to 5 "Repeat 5x"
+	//Pressure purge On for Time T6 (valve 7 ON)
+	//Pressure purge Off for Time T6 (valve 7 OFF)
+	VacValve_V8:=TRUE;
+	FB_SQUARE(T_ON:=T[6] , T_OFF:=T[6] , SQUARE=>PurValve_V7 );
+	purge_F_trig(CLK:=PurValve_V7 , Q=> );
+	IF purge_F_trig.Q THEN 
+		W:=W+1;
+	END_IF
+	
+	IF W=6  THEN
+		W:=0; 
+		stepA:=60;
+	END_IF
+60://Wait  Time: T7 (while filling is ON)	
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[7]*1000), Q=> , ET=> );	
+	//调用加墨FB
+	GVL.fill_F_in_swap_enable:=TRUE;
+	IF ton.Q THEN 
+		stepA:=61;
+	END_IF
+61:
+		GVL.fill_F_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		stepA:=70;
+70://Set "Vac White" ON  (Valve 8 OFF)     
+	//Wait Time: T5 (filling conditions on & vac On)
+	VacValve_V8:=FALSE;
+	//调用加墨FB
+	GVL.fill_F_in_swap_enable:=TRUE;
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[5]*1000), Q=> , ET=> );	
+	IF ton.Q THEN 
+		stepA:=71;
+	END_IF
+71:
+		GVL.fill_F_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		stepA:=80;
+80://Set "Vac White" Off (valve 8 ON)
+	VacValve_V8:=TRUE;
+	//For X=1 to 5 "Repeat 5x"
+	//Pressure purge On for Time T6 (valve 7 ON)
+	//Pressure purge Off for Time T6 (valve 7 OFF)
+	FB_SQUARE(T_ON:=T[6] , T_OFF:=T[6] , SQUARE=>PurValve_V7 );
+	purge_F_trig(CLK:=PurValve_V7 , Q=> );
+	IF purge_F_trig.Q THEN 
+		X:=X+1;
+	END_IF
+	IF X=6  THEN 
+		X:=0;
+		stepA:=89;
+	END_IF
+89:
+	A:=A+1;	
+	stepA:=90;
+90://Wait  Time: T7 (while filling is ON),第二次是T8	
+	IF A<2 THEN 
+		Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[7]*1000), Q=> , ET=> );	
+	ELSIF A=2 THEN 
+		Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[8]*1000), Q=> , ET=> );	
+	END_IF
+		//调用加墨FB
+	GVL.fill_F_in_swap_enable:=TRUE;
+	IF ton.Q THEN 
+		stepA:=91;
+	END_IF
+91:
+		GVL.fill_F_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		stepA:=100;
+100://Set "Vac White" ON  (Valve 8 OFF)    
+	//Wait Time: T9 (filling conditions on) 
+	VacValve_V8:=FALSE;
+	//调用加墨FB
+	GVL.fill_F_in_swap_enable:=TRUE;
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[9]*1000), Q=> , ET=> );	
+	IF ton.Q THEN 
+		stepA:=101;
+	END_IF	
+101:
+		GVL.fill_F_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		stepA:=110;
+110://重复	
+	IF A<2 THEN 
+		stepA:=10;
+	ELSE stepA:=120;
+	END_IF
+120:(*FOR Z=1 to 5
+	  IF both circulation pumps (3 & 6) were activated 3x within time: T13 => JUMP TO FINISH
+	  ELSE Set Vac White Off (valve 8 ON)		
+		NEXT Z*)
+	A:=0;
+	//	//调用加墨FB
+	GVL.fill_F_in_swap_enable:=TRUE;
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[13]*1000), Q=> , ET=> );	
+	cycle_r_trig1(CLK:=Circ_Pump_L, Q=> );
+	cycle_r_trig2(CLK:=Circ_Pump_R , Q=> );
+		IF cycle_r_trig1.Q THEN 
+			cycle_x1:=cycle_x1+1;
+		END_IF
+		IF cycle_r_trig2.Q THEN 
+			cycle_x2:=cycle_x2+1;
+		END_IF
+		
+	IF NOT Ton.Q AND cycle_x1>=3 AND cycle_x2>=3 THEN 
+		Ton(IN:=FALSE);
+		cycle_x1:=cycle_x2:=0;
+		Z:=0;
+		stepA:=190;
+	ELSIF Ton.Q AND (cycle_x1<3 OR cycle_x2<3)  AND Z<5 THEN 	//循坏次数不够	
+		Ton(IN:=FALSE);
+		VacValve_V8:=TRUE;
+		PurValve_V7:=TRUE;	
+		cycle_x1:=cycle_x2:=0;
+		stepA:=130;
+	ELSIF Z=5 THEN
+		Ton(IN:=FALSE);
+		Z:=0; 
+		stepA:=160;	
+	END_IF
+130://Start Pressure Purge On (valve 7 ON) for Time: T10
+	//STOP Pressure purge (valve 7 OFF)   
+			ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[10]*1000) , Q=> , ET=> );		
+			IF ton.Q THEN
+				 ton(IN:=FALSE);
+				PurValve_V7:=FALSE;
+				stepA:=140;
+			END_IF
+140://Wait  Time: T7
+		//Set "Vac White" ON  (Valve 8 OFF) 
+			ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[7]*1000) , Q=> , ET=> );
+			IF Ton.Q THEN 
+				ton(IN:=FALSE);
+				VacValve_V8:=FALSE;		
+				stepA:=150;
+			END_IF
+150://Wait Time: T11 (filling conditions on)
+		//调用加墨FB
+		ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[11]*1000) , Q=> , ET=> );
+			IF Ton.Q THEN 
+				ton(IN:=FALSE);
+				VacValve_V8:=FALSE;		
+				Z:=Z+1;
+				stepA:=120;
+			END_IF
+160://START WAIT = Message 2 on GUI 
+	//If "PURGE BUTTON" is pushed during WAIT, THEN  
+   //Set "Vac White" Off (valve 8 ON)
+   //START Pressure purge (valve 7 ON) until button released
+		SwapInfo:=SwapInfoEnum.AC_STORAGE_FLUSH_NEEDS_HELP;
+			VacValve_V8:=TRUE;
+		IF btPurge THEN 			
+			PurValve_V7:=TRUE;
+			stepA:=170;
+		END_IF
+170:    //START Pressure purge (valve 7 ON) until button released
+		IF NOT btPurge THEN 
+			PurValve_V7:=FALSE;
+			stepA:=171;
+		END_IF
+171://Wait  Time: T7
+	//Set "Vac White" ON  (Valve 8 OFF)  
+		ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[7]*1000) , Q=> , ET=> );
+			IF Ton.Q THEN 
+				ton(IN:=FALSE);
+				VacValve_V8:=FALSE;
+				stepA:=180;
+			END_IF
+180://  IF both circulation pumps (3 & 6) were activated 3x within time: T13 => JUMP TO FINISH
+			//END IF (back TO wait)
+		//	//调用加墨FB
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[13]*1000), Q=> , ET=> );	
+	cycle_r_trig1(CLK:=Circ_Pump_L, Q=> );
+	cycle_r_trig2(CLK:=Circ_Pump_R , Q=> );
+		IF cycle_r_trig1.Q THEN 
+			cycle_x1:=cycle_x1+1;
+		END_IF
+		IF cycle_r_trig2.Q THEN 
+			cycle_x2:=cycle_x2+1;
+		END_IF
+	IF NOT Ton.Q AND cycle_x1>=3 AND cycle_x2>=3 THEN 
+		Ton(IN:=FALSE);
+		cycle_x1:=cycle_x2:=0;
+		stepA:=190;
+	ELSIF Ton.Q AND (cycle_x1<3 OR cycle_x2<3) THEN 		
+		Ton(IN:=FALSE);
+		cycle_x1:=cycle_x2:=0;
+		stepA:=160;
+	END_IF
+190:	//关闭所有供墨
+	GVL.fill_F_in_swap_enable:=FALSE;
+	stepA:=200;
+200://FINISH => Message 3 on GUI
+		SwapInfo:=SwapInfoEnum.AC_STORAGE_FLUSH_FINISHED;
+		
+END_CASE]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_Cycle_B1" Id="{59399709-08cf-4668-b4ea-c4ca4657029e}">
+      <Implementation>
+        <ST><![CDATA[(*************** Swap From Storage Flush to White Ink*******************************************)
+CASE StepB1 OF
+0:
+	SwapInfo:=SwapInfoEnum.AC_WHITE_INK_RUNS;
+	Ton(IN:=FALSE );	
+	VacValve_V8:=FALSE;
+	PurValve_V7 :=FALSE;
+	StepB1:=10;
+10://SET "Vac White" OFF (valve 8 ON) 
+	//START Pressure Purge Time = T1 (valve 7 ON)
+	VacValve_V8:=TRUE;
+	PurValve_V7 :=TRUE;
+	Ton(IN:=TRUE , PT:=LREAL_TO_TIME(T[1]*1000) , Q=> , ET=> );
+	IF Ton.Q THEN 
+		Ton(IN:=FALSE );	
+		StepB1:=20;
+	END_IF
+20://STOP Pressure purge (normal filling conditions) (valve 7 OFF)	
+	PurValve_V7:=FALSE;
+	StepB1:=30;
+30://START Ink filling  (alternating pump time: T2=ON, T3=OFF)
+	//WAIT UNTIL sensors in both TOP Sub Ink tanks detect a full tank (sensor 1 and 4)	
+	GVL.fill_W_in_swap_enable:=TRUE;
+	alternate_Pumping:=TRUE;
+	
+	IF Sensor1 AND Sensor4 THEN 
+		StepB1:=31;
+	END_IF
+31://Wait Time: T4 (no vacuum)
+	GVL.fill_W_in_swap_enable:=FALSE;
+	alternate_Pumping:=FALSE;
+	Ton(IN:=TRUE , PT:=LREAL_TO_TIME(T[4]*1000) , Q=> , ET=> );
+		IF Ton.Q THEN 
+			Ton(IN:=FALSE );
+			StepB1:=40;
+		END_IF
+40://Set "Vac White" ON  (Valve 8 OFF)     
+	//Wait Time: T5 (filling conditions on & vac On)	
+	VacValve_V8:=FALSE;	
+	Ton(IN:=TRUE , PT:=LREAL_TO_TIME(T[5]*1000) , Q=> , ET=> );
+	//调用加墨FB
+		GVL.fill_W_in_swap_enable:=TRUE;
+	IF Ton.Q THEN 
+		StepB1:=41;
+	END_IF
+41:
+		GVL.fill_W_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		StepB1:=50;
+50://Set "Vac White" Off (valve 8 ON)
+	//For Z=1 to 5 "Repeat 5x"
+	//Pressure purge On for Time T6 (valve 7 ON)
+	//Pressure purge Off for Time T6 (valve 7 OFF)
+	VacValve_V8:=TRUE;
+	FB_SQUARE(T_ON:=T[6] , T_OFF:=T[6] , SQUARE=>PurValve_V7 );
+	purge_F_trig(CLK:=PurValve_V7 , Q=> );
+	IF purge_F_trig.Q THEN 
+		Z:=Z+1;
+	END_IF
+	
+	IF Z=6  THEN
+		Z:=0; 
+		StepB1:=60;
+	END_IF
+60://Wait  Time: T7
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[7]*1000), Q=> , ET=> );	
+	//调用加墨FB
+	GVL.fill_W_in_swap_enable:=TRUE;
+	IF ton.Q THEN 
+		StepB1:=61;
+	END_IF
+61:
+		GVL.fill_W_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		StepB1:=70;
+70://Set "Vac White" ON  (Valve 8 OFF)     
+	//Wait Time: T5 (filling conditions on & vac On)
+	VacValve_V8:=FALSE;
+	//调用加墨FB
+	GVL.fill_W_in_swap_enable:=TRUE;
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[5]*1000), Q=> , ET=> );	
+	IF ton.Q THEN 
+		StepB1:=71;
+	END_IF
+71:
+		GVL.fill_W_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		StepB1:=80;
+80://Set "Vac White" Off (valve 8 ON)
+	VacValve_V8:=TRUE;
+	//For Z=1 to 5 "Repeat 5x"
+	//Pressure purge On for Time T6 (valve 7 ON)
+	//Pressure purge Off for Time T6 (valve 7 OFF)
+	FB_SQUARE(T_ON:=T[6] , T_OFF:=T[6] , SQUARE=>PurValve_V7 );
+	purge_F_trig(CLK:=PurValve_V7 , Q=> );
+	IF purge_F_trig.Q THEN 
+		Z:=Z+1;
+	END_IF
+	IF Z=6  THEN 
+		Z:=0;
+		StepB1:=90;
+	END_IF
+90://Wait Time: T8 (filling conditions on, vac off))
+		Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[8]*1000), Q=> , ET=> );	
+		//调用加墨FB
+	GVL.fill_W_in_swap_enable:=TRUE;
+	IF ton.Q THEN 
+		StepB1:=91;
+	END_IF
+91:
+		GVL.fill_W_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		StepB1:=100;
+100://Set "Vac White" ON  (Valve 8 OFF)    
+	//Wait Time: T9 (filling conditions on) 
+	VacValve_V8:=FALSE;
+	//调用加墨FB
+	GVL.fill_W_in_swap_enable:=TRUE;
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[9]*1000), Q=> , ET=> );	
+	IF ton.Q THEN 
+		StepB1:=101;
+	END_IF	
+101:
+		GVL.fill_W_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		StepB1:=110;
+110://无重复
+		StepB1:=120;
+120:(*FOR Y=1 to 5
+	  IF both circulation pumps (3 & 6) were activated 3x within time: T13 => JUMP TO PAUSE
+	  ELSE Set Vac White Off (valve 8 ON)		
+		NEXT Y*)
+	//	//调用加墨FB
+	GVL.fill_W_in_swap_enable:=TRUE;
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[13]*1000), Q=> , ET=> );	
+	cycle_r_trig1(CLK:=Circ_Pump_L, Q=> );
+	cycle_r_trig2(CLK:=Circ_Pump_R , Q=> );
+		IF cycle_r_trig1.Q THEN 
+			cycle_x1:=cycle_x1+1;
+		END_IF
+		IF cycle_r_trig2.Q THEN 
+			cycle_x2:=cycle_x2+1;
+		END_IF
+		
+	IF NOT Ton.Q AND cycle_x1>=3 AND cycle_x2>=3 THEN 
+		Ton(IN:=FALSE);
+		cycle_x1:=cycle_x2:=0;
+		Y:=0;
+		StepB1:=200;
+	ELSIF Ton.Q AND (cycle_x1<3 OR cycle_x2<3)  AND Z<5 THEN 	//循坏次数不够,ELSE Set Vac White Off (valve 8 ON	
+		Ton(IN:=FALSE);
+		VacValve_V8:=TRUE;
+		PurValve_V7:=TRUE;	
+		cycle_x1:=cycle_x2:=0;
+		StepB1:=130;
+	ELSIF Y=5 THEN
+		Ton(IN:=FALSE);
+		Y:=0; 
+		StepB1:=160;	
+	END_IF
+130://Start Pressure Purge On (valve 7 ON) for Time: T10
+	//STOP Pressure purge (valve 7 OFF)   
+			ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[10]*1000) , Q=> , ET=> );		
+			IF ton.Q THEN
+				 ton(IN:=FALSE);
+				PurValve_V7:=FALSE;
+				StepB1:=140;
+			END_IF
+140://Wait  Time: T7
+		//Set "Vac White" ON  (Valve 8 OFF) 
+			ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[7]*1000) , Q=> , ET=> );
+			IF Ton.Q THEN 
+				ton(IN:=FALSE);
+				VacValve_V8:=FALSE;		
+				StepB1:=150;
+			END_IF
+150://Wait Time: T11 (filling conditions on)
+		//调用加墨FB
+		ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[11]*1000) , Q=> , ET=> );
+			IF Ton.Q THEN 
+				ton(IN:=FALSE);
+				VacValve_V8:=FALSE;		
+				Y:=Y+1;
+				StepB1:=120;
+			END_IF
+160://START WAIT = Message 5 on GUI 
+	//If "PURGE BUTTON" is pushed during WAIT, THEN  
+   //Set "Vac White" Off (valve 8 ON)
+   //START Pressure purge (valve 7 ON) until button released
+		SwapInfo:=SwapInfoEnum.AC_WHITE_INK1_NEEDS_HELP;
+			VacValve_V8:=TRUE;
+		IF btPurge THEN 		
+			PurValve_V7:=TRUE;
+			StepB1:=170;
+		END_IF
+170:    //START Pressure purge (valve 7 ON) until button released
+		IF NOT btPurge THEN 
+			PurValve_V7:=FALSE;
+			StepB1:=171;
+		END_IF
+171://Wait  Time: T7
+	//Set "Vac White" ON  (Valve 8 OFF)  
+		ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[7]*1000) , Q=> , ET=> );
+			IF Ton.Q THEN 
+				ton(IN:=FALSE);
+				VacValve_V8:=FALSE;
+				StepB1:=180;
+			END_IF
+180://  IF both circulation pumps (3 & 6) were activated 3x within time T13 than:
+		//           => remove Message 5
+		//           => Show Message 4
+		//           => JUMP TO PAUSE
+		//END IF (back to wait)
+				
+		//	//调用加墨FB
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[13]*1000), Q=> , ET=> );	
+	cycle_r_trig1(CLK:=Circ_Pump_L, Q=> );
+	cycle_r_trig2(CLK:=Circ_Pump_R , Q=> );
+		IF cycle_r_trig1.Q THEN 
+			cycle_x1:=cycle_x1+1;
+		END_IF
+		IF cycle_r_trig2.Q THEN 
+			cycle_x2:=cycle_x2+1;
+		END_IF
+	IF NOT Ton.Q AND cycle_x1>=3 AND cycle_x2>=3 THEN 
+		Ton(IN:=FALSE);
+		cycle_x1:=cycle_x2:=0;
+		StepB1:=190;
+	ELSIF Ton.Q AND (cycle_x1<3 OR cycle_x2<3) THEN 		
+		Ton(IN:=FALSE);
+		cycle_x1:=cycle_x2:=0;
+		StepB1:=160;
+	END_IF
+190:	//           => remove Message 5
+		//           => Show Message 4
+		//           => JUMP TO PAUSE
+	SwapInfo:=SwapInfoEnum.AC_WHITE_INK_RUNS;	
+	GVL.fill_W_in_swap_enable:=FALSE;
+	StepB1:=200;
+200://PAUSE:  wait time time: T12,Filter cleaning time
+	//调用加墨FB
+	GVL.fill_W_in_swap_enable:=TRUE;
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[12]*1000), Q=> , ET=> );	
+	IF Ton.Q THEN 
+		StepB1:=210;		
+	END_IF
+210://关闭加墨
+		Ton(IN:=FALSE);
+		GVL.fill_W_in_swap_enable:=FALSE;
+		StepB1:=220;
+220://
+	ACT_Cycle_B2();
+		
+END_CASE]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_Cycle_B2" Id="{de859a24-cb09-4428-a859-6ce7c323b729}">
+      <Implementation>
+        <ST><![CDATA[(*************** Swap From Storage Flush to White Ink*******************************************)
+
+CASE StepB2 OF
+0:
+	Ton(IN:=FALSE );	
+	StepB2:=10;
+10://SET "Vac White" OFF (valve 8 ON) 
+	//START Pressure Purge Time = T1 (valve 7 ON)
+	VacValve_V8:=TRUE;
+	PurValve_V7 :=TRUE;
+	Ton(IN:=TRUE , PT:=LREAL_TO_TIME(T[1]*1000) , Q=> , ET=> );
+	IF Ton.Q THEN 
+		Ton(IN:=FALSE );	
+		StepB2:=20;
+	END_IF
+20://STOP Pressure purge (normal filling conditions) (valve 7 OFF)	
+	PurValve_V7:=FALSE;
+	StepB2:=30;
+30://START Ink filling  (alternating pump time: T2=ON, T3=OFF)
+	//WAIT UNTIL sensors in both TOP Sub Ink tanks detect a full tank (sensor 1 and 4)
+	GVL.fill_W_in_swap_enable:=TRUE;
+	alternate_Pumping:=TRUE;
+	
+	IF Sensor1 AND Sensor4 THEN 
+		StepB2:=31;
+	END_IF
+31://Wait Time: T4 (no vacuum)
+	GVL.fill_W_in_swap_enable:=FALSE;
+	alternate_Pumping:=FALSE;
+	Ton(IN:=TRUE , PT:=LREAL_TO_TIME(T[4]*1000) , Q=> , ET=> );
+		IF Ton.Q THEN 
+			Ton(IN:=FALSE );
+			StepB2:=40;
+		END_IF
+40://Set "Vac White" ON  (Valve 8 OFF)     
+	//Wait Time: T5 (filling conditions on & vac On)	
+	VacValve_V8:=FALSE;	
+	Ton(IN:=TRUE , PT:=LREAL_TO_TIME(T[5]*1000) , Q=> , ET=> );
+	//调用加墨FB
+		GVL.fill_W_in_swap_enable:=TRUE;
+	IF Ton.Q THEN 
+		StepB2:=41;
+	END_IF
+41:
+		GVL.fill_W_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		StepB2:=50;
+50://Set "Vac White" Off (valve 8 ON)
+	//For Z=1 to 5 "Repeat 5x"
+	//Pressure purge On for Time T6 (valve 7 ON)
+	//Pressure purge Off for Time T6 (valve 7 OFF)
+	VacValve_V8:=TRUE;
+	FB_SQUARE(T_ON:=T[6] , T_OFF:=T[6] , SQUARE=>PurValve_V7 );
+	purge_F_trig(CLK:=PurValve_V7 , Q=> );
+	IF purge_F_trig.Q THEN 
+		Z:=Z+1;
+	END_IF
+	
+	IF Z=6  THEN
+		Z:=0; 
+		StepB2:=60;
+	END_IF
+60://Wait  Time: T7
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[7]*1000), Q=> , ET=> );	
+	//调用加墨FB
+	GVL.fill_W_in_swap_enable:=TRUE;
+	IF ton.Q THEN 
+		StepB2:=61;
+	END_IF
+61:
+		GVL.fill_W_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		StepB2:=70;
+70://Set "Vac White" ON  (Valve 8 OFF)     
+	//Wait Time: T5 (filling conditions on & vac On)
+	VacValve_V8:=FALSE;
+	//调用加墨FB
+	GVL.fill_W_in_swap_enable:=TRUE;
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[5]*1000), Q=> , ET=> );	
+	IF ton.Q THEN 
+		StepB2:=71;
+	END_IF
+71:
+		GVL.fill_W_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		StepB2:=80;
+80://Set "Vac White" Off (valve 8 ON)
+	VacValve_V8:=TRUE;
+	//For Z=1 to 5 "Repeat 5x"
+	//Pressure purge On for Time T6 (valve 7 ON)
+	//Pressure purge Off for Time T6 (valve 7 OFF)
+	FB_SQUARE(T_ON:=T[6] , T_OFF:=T[6] , SQUARE=>PurValve_V7 );
+	purge_F_trig(CLK:=PurValve_V7 , Q=> );
+	IF purge_F_trig.Q THEN 
+		Z:=Z+1;
+	END_IF
+	IF Z=6  THEN 
+		Z:=0;
+		StepB2:=90;
+	END_IF
+90://Wait Time: T8 (filling conditions on, vac off))
+		Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[8]*1000), Q=> , ET=> );	
+		//调用加墨FB
+	GVL.fill_W_in_swap_enable:=TRUE;
+	IF ton.Q THEN 
+		StepB2:=91;
+	END_IF
+91:
+		GVL.fill_W_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		StepB2:=100;
+100://Set "Vac White" ON  (Valve 8 OFF)    
+	//Wait Time: T9 (filling conditions on) 
+	VacValve_V8:=FALSE;
+	//调用加墨FB
+	GVL.fill_W_in_swap_enable:=TRUE;
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[9]*1000), Q=> , ET=> );	
+	IF ton.Q THEN 
+		StepB2:=101;
+	END_IF	
+101:
+		GVL.fill_W_in_swap_enable:=FALSE;
+		Ton(IN:=FALSE);
+		StepB2:=110;
+110://无重复
+		StepB2:=120;
+120:(*FOR Z=1 to 5
+	  IF both circulation pumps (3 & 6) were activated 3x within time: T13 => JUMP TO FINISH
+	  ELSE Set Vac White Off (valve 8 ON)		
+		NEXT Z*)
+	//	//调用加墨FB
+	GVL.fill_W_in_swap_enable:=TRUE;
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[13]*1000), Q=> , ET=> );	
+	cycle_r_trig1(CLK:=Circ_Pump_L, Q=> );
+	cycle_r_trig2(CLK:=Circ_Pump_R , Q=> );
+		IF cycle_r_trig1.Q THEN 
+			cycle_x1:=cycle_x1+1;
+		END_IF
+		IF cycle_r_trig2.Q THEN 
+			cycle_x2:=cycle_x2+1;
+		END_IF
+		
+	IF NOT Ton.Q AND cycle_x1>=3 AND cycle_x2>=3 THEN 
+		Ton(IN:=FALSE);
+		cycle_x1:=cycle_x2:=0;
+		Z:=0;
+		StepB2:=200;
+	ELSIF Ton.Q AND (cycle_x1<3 OR cycle_x2<3)  AND Z<5 THEN 	//循坏次数不够,ELSE Set Vac White Off (valve 8 ON	
+		Ton(IN:=FALSE);
+		VacValve_V8:=TRUE;
+		PurValve_V7:=TRUE;	
+		cycle_x1:=cycle_x2:=0;
+		StepB2:=130;
+	ELSIF Z=5 THEN
+		Ton(IN:=FALSE);
+		Z:=0; 
+		StepB2:=160;	
+	END_IF
+130://Start Pressure Purge On (valve 7 ON) for Time: T10
+	//STOP Pressure purge (valve 7 OFF)   
+			ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[10]*1000) , Q=> , ET=> );		
+			IF ton.Q THEN
+				 ton(IN:=FALSE);
+				PurValve_V7:=FALSE;
+				StepB2:=140;
+			END_IF
+140://Wait  Time: T7
+		//Set "Vac White" ON  (Valve 8 OFF) 
+			ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[7]*1000) , Q=> , ET=> );
+			IF Ton.Q THEN 
+				ton(IN:=FALSE);
+				VacValve_V8:=FALSE;		
+				StepB2:=150;
+			END_IF
+150://Wait Time: T11 (filling conditions on)
+		//调用加墨FB
+		ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[11]*1000) , Q=> , ET=> );
+			IF Ton.Q THEN 
+				ton(IN:=FALSE);
+				VacValve_V8:=FALSE;		
+				Z:=Z+1;
+				StepB2:=120;
+			END_IF
+160://START WAIT = Message 6 on GUI 
+	//If "PURGE BUTTON" is pushed during WAIT, THEN  
+   //Set "Vac White" Off (valve 8 ON)
+   //START Pressure purge (valve 7 ON) until button released
+		SwapInfo:=SwapInfoEnum.AC_WHITE_INK2_NEEDS_HELP;
+			VacValve_V8:=TRUE;
+		IF btPurge THEN 			
+			PurValve_V7:=TRUE;
+			StepB2:=170;
+		END_IF
+170:    //START Pressure purge (valve 7 ON) until button released
+		IF NOT btPurge THEN 
+			PurValve_V7:=FALSE;
+			StepB2:=171;
+		END_IF
+171://Wait  Time: T7
+	//Set "Vac White" ON  (Valve 8 OFF)  
+		ton(IN:=TRUE , PT:= LREAL_TO_TIME(T[7]*1000) , Q=> , ET=> );
+			IF Ton.Q THEN 
+				ton(IN:=FALSE);
+				VacValve_V8:=FALSE;
+				StepB2:=180;
+			END_IF
+180://    IF both circulation pumps (3 & 6) were activated 3x within time: T13 => JUMP TO FINISH
+		//END IF (back to wait)
+				
+		//	//调用加墨FB
+	Ton(IN:=TRUE  , PT:= LREAL_TO_TIME(T[13]*1000), Q=> , ET=> );	
+	cycle_r_trig1(CLK:=Circ_Pump_L, Q=> );
+	cycle_r_trig2(CLK:=Circ_Pump_R , Q=> );
+		IF cycle_r_trig1.Q THEN 
+			cycle_x1:=cycle_x1+1;
+		END_IF
+		IF cycle_r_trig2.Q THEN 
+			cycle_x2:=cycle_x2+1;
+		END_IF
+	IF NOT Ton.Q AND cycle_x1>=3 AND cycle_x2>=3 THEN 
+		Ton(IN:=FALSE);
+		cycle_x1:=cycle_x2:=0;
+		StepB2:=190;
+	ELSIF Ton.Q AND (cycle_x1<3 OR cycle_x2<3) THEN 		
+		Ton(IN:=FALSE);
+		cycle_x1:=cycle_x2:=0;
+		StepB2:=160;
+	END_IF
+190:	//  
+	StepB2:=200;
+200://
+	StepB2:=210;
+210://关闭加墨
+	Ton(IN:=FALSE);
+	GVL.fill_W_in_swap_enable:=FALSE;
+	StepB2:=220;
+220://FINISH => Message 7 on GUI
+	SwapInfo:=SwapInfoEnum.AC_WHITE_INK_FINISHED;
+
+		
+END_CASE]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_Auto_Cycles_Swap">
+      <LineId Id="699" Count="2" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="576" Count="2" />
+      <LineId Id="580" Count="3" />
+      <LineId Id="579" Count="0" />
+      <LineId Id="620" Count="1" />
+      <LineId Id="590" Count="0" />
+      <LineId Id="617" Count="1" />
+      <LineId Id="616" Count="0" />
+      <LineId Id="586" Count="3" />
+      <LineId Id="193" Count="2" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="534" Count="0" />
+      <LineId Id="475" Count="0" />
+      <LineId Id="533" Count="0" />
+      <LineId Id="246" Count="0" />
+      <LineId Id="201" Count="1" />
+      <LineId Id="344" Count="1" />
+      <LineId Id="476" Count="0" />
+      <LineId Id="591" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="613" Count="0" />
+      <LineId Id="592" Count="0" />
+      <LineId Id="595" Count="0" />
+      <LineId Id="205" Count="2" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="604" Count="1" />
+      <LineId Id="343" Count="0" />
+      <LineId Id="216" Count="1" />
+      <LineId Id="658" Count="0" />
+      <LineId Id="432" Count="0" />
+      <LineId Id="434" Count="1" />
+      <LineId Id="342" Count="0" />
+      <LineId Id="218" Count="0" />
+      <LineId Id="221" Count="1" />
+      <LineId Id="224" Count="1" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="656" Count="0" />
+      <LineId Id="228" Count="2" />
+      <LineId Id="606" Count="1" />
+      <LineId Id="232" Count="1" />
+      <LineId Id="584" Count="1" />
+      <LineId Id="609" Count="1" />
+      <LineId Id="622" Count="0" />
+      <LineId Id="628" Count="3" />
+      <LineId Id="637" Count="3" />
+      <LineId Id="623" Count="0" />
+      <LineId Id="611" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="608" Count="0" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="644" Count="1" />
+      <LineId Id="647" Count="0" />
+      <LineId Id="652" Count="3" />
+      <LineId Id="641" Count="0" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="744" Count="0" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="745" Count="1" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="298" Count="2" />
+      <LineId Id="515" Count="0" />
+      <LineId Id="514" Count="0" />
+      <LineId Id="625" Count="0" />
+      <LineId Id="747" Count="0" />
+      <LineId Id="516" Count="0" />
+      <LineId Id="521" Count="1" />
+      <LineId Id="527" Count="2" />
+      <LineId Id="526" Count="0" />
+      <LineId Id="518" Count="0" />
+      <LineId Id="517" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Auto_Cycles_Swap.ACT_Cycle_A">
+      <LineId Id="371" Count="0" />
+      <LineId Id="1" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="329" Count="0" />
+      <LineId Id="332" Count="1" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="330" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="376" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="351" Count="0" />
+      <LineId Id="375" Count="0" />
+      <LineId Id="377" Count="0" />
+      <LineId Id="354" Count="3" />
+      <LineId Id="353" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="366" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="367" Count="0" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="277" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="79" Count="1" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="75" Count="1" />
+      <LineId Id="336" Count="2" />
+      <LineId Id="335" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="343" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="84" Count="1" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="86" Count="2" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="369" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="91" Count="3" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="287" Count="0" />
+      <LineId Id="293" Count="1" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="102" Count="1" />
+      <LineId Id="105" Count="1" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="340" Count="2" />
+      <LineId Id="339" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="344" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="380" Count="2" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="307" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="308" Count="2" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="298" Count="1" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="300" Count="0" />
+      <LineId Id="127" Count="1" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="301" Count="0" />
+      <LineId Id="303" Count="1" />
+      <LineId Id="302" Count="0" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="134" Count="1" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="142" Count="3" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="155" Count="1" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="157" Count="1" />
+      <LineId Id="160" Count="1" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="350" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="165" Count="1" />
+      <LineId Id="349" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="182" Count="1" />
+      <LineId Id="348" Count="0" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="373" Count="0" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="190" Count="3" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="195" Count="2" />
+      <LineId Id="199" Count="3" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="216" Count="1" />
+      <LineId Id="219" Count="0" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="372" Count="0" />
+      <LineId Id="212" Count="1" />
+      <LineId Id="221" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="222" Count="2" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="358" Count="0" />
+      <LineId Id="360" Count="5" />
+      <LineId Id="359" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="237" Count="15" />
+      <LineId Id="306" Count="0" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="345" Count="2" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="261" Count="1" />
+      <LineId Id="3" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Auto_Cycles_Swap.ACT_Cycle_B1">
+      <LineId Id="1" Count="0" />
+      <LineId Id="19" Count="5" />
+      <LineId Id="26" Count="14" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="546" Count="0" />
+      <LineId Id="52" Count="4" />
+      <LineId Id="548" Count="0" />
+      <LineId Id="547" Count="0" />
+      <LineId Id="57" Count="9" />
+      <LineId Id="542" Count="0" />
+      <LineId Id="68" Count="60" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="134" Count="22" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="162" Count="3" />
+      <LineId Id="167" Count="23" />
+      <LineId Id="545" Count="0" />
+      <LineId Id="191" Count="32" />
+      <LineId Id="543" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="226" Count="16" />
+      <LineId Id="273" Count="4" />
+      <LineId Id="244" Count="18" />
+      <LineId Id="278" Count="1" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="264" Count="1" />
+      <LineId Id="281" Count="4" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="287" Count="2" />
+      <LineId Id="291" Count="2" />
+      <LineId Id="541" Count="0" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Auto_Cycles_Swap.ACT_Cycle_B2">
+      <LineId Id="1" Count="0" />
+      <LineId Id="18" Count="2" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="26" Count="14" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="550" Count="0" />
+      <LineId Id="52" Count="4" />
+      <LineId Id="552" Count="0" />
+      <LineId Id="551" Count="0" />
+      <LineId Id="57" Count="71" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="134" Count="22" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="162" Count="3" />
+      <LineId Id="167" Count="23" />
+      <LineId Id="549" Count="0" />
+      <LineId Id="191" Count="32" />
+      <LineId Id="548" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="226" Count="16" />
+      <LineId Id="276" Count="1" />
+      <LineId Id="244" Count="19" />
+      <LineId Id="543" Count="4" />
+      <LineId Id="264" Count="1" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="287" Count="0" />
+      <LineId Id="541" Count="0" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

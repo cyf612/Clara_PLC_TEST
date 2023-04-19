@@ -1,0 +1,217 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_ISS" Id="{f1d11760-1e05-4d5d-9737-f247b062f725}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_ISS
+VAR
+
+	i:INT;
+
+	log_ErrorEnum:ISSErrorEnum;
+	log_ID:INT;
+	LC,LM,Y,M,C,K,W,F,P:INT;
+	setoff_trig:ARRAY[1..9] OF Tc2_Standard.R_TRIG;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_LED_Level();
+ACT_LOG();
+LC:=1; LM:=2;Y:=3;M:=4;C:=5;K:=6;W:=7;F:=8;P:=9;
+
+FOR i:=1 TO 9 DO
+	IF GVL_API.stISS[i].Initialize THEN 
+		GVL_API.stISS[i].Initialize:=FALSE;
+	END_IF
+	IF GVL_API.stISS[i].Setoff OR GVL.Reset THEN 
+		GVL_API.stISS[i].Setoff:=FALSE;
+	END_IF
+END_FOR
+
+
+	
+
+]]></ST>
+    </Implementation>
+    <Action Name="ACT_LED_Level" Id="{b3367807-77da-46c6-93b5-0e3c2f2d2581}">
+      <Implementation>
+        <ST><![CDATA[(*******************led***************************)	
+FOR i:=1 TO 9 DO 
+	stOutput .bqsensor_blink[i]:=GVL_API.stISS[i].sensor_blink;			//LC,LM,Y,M,C,K,W,F,P
+																		
+END_FOR
+
+FOR i:=1 TO 9 DO 
+	setoff_trig[i](CLK:=GVL_API.stISS[i].Setoff , Q=> );
+	IF setoff_trig[i].Q THEN 
+		stOutput .bqsensor_blink[i]:=GVL_API.stISS[i].sensor_blink:=FALSE;	
+	END_IF
+END_FOR
+
+
+(**********废液LED**************)
+IF GVL.MainTankLevel[10]>=3 THEN 
+	stOutput .bqsensor_blink[10]:=TRUE;
+ELSE
+	stOutput .bqsensor_blink[10]:=FALSE;
+END_IF
+
+(*******************mainlevel***************************)	
+FOR i:=1 TO 9 DO 
+	GVL_API.stISS[i].mainTankLevel:=GVL.MainTankLevel[i];
+END_FOR
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_LOG" Id="{013ed2d3-0141-4b5a-8fdb-58cb0676ed79}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+log_ID:=500;
+//ISS1  501-505
+//ISS2  506-510
+//ISS3  511-515
+//ISS4  516-520
+//ISS5  521-525
+//ISS6  526-530
+//ISS7  531-535
+//ISS8  536-540
+//ISS9  540-545
+FOR i:=1 TO 9 DO 
+//Initialize 
+AlarmActionArray[log_ID+5*(i-1)+1].AlarmMsg.EN	:=	CONCAT('ISS',INT_TO_STRING(i));
+AlarmActionArray[log_ID+5*(i-1)+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5*(i-1)+1].AlarmMsg.EN,
+																				' Initialize');																			
+fbSetAlarm[log_ID+5*(i-1)+1](
+	InUse:=TRUE , 
+	EventId:=log_ID+5*(i-1)+1 , 
+	EventActive:=GVL_API.stISS[i].Initialize , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ //ERROR,log_ErrorEnum只能等于一个常数,   
+CASE GVL_API.stISS[i].error_code  OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+4	:	log_ErrorEnum	:=	4	;
+6	:	log_ErrorEnum	:=	6	;
+//7	:	log_ErrorEnum	:=	7	;
+8	:	log_ErrorEnum	:=	8	;
+9	:	log_ErrorEnum	:=	9	;
+10	:	log_ErrorEnum	:=	10	;
+666	:	log_ErrorEnum	:=	666	;
+
+END_CASE
+AlarmActionArray[log_ID+5*(i-1)+2].AlarmMsg.EN	:=	CONCAT('ISS',INT_TO_STRING(i));
+AlarmActionArray[log_ID+5*(i-1)+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5*(i-1)+2].AlarmMsg.EN,' Error: ');	
+AlarmActionArray[log_ID+5*(i-1)+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5*(i-1)+2].AlarmMsg.EN,
+																				TO_STRING(log_ErrorEnum));	
+
+fbSetAlarm[log_ID+5*(i-1)+2](
+	InUse:=TRUE , 
+	EventId:=log_ID+5*(i-1)+2 , 
+	EventActive:=GVL_API.stISS[i].error_code<>0 AND GVL_API.stISS[i].error_code<>666 , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+
+//Setoff
+AlarmActionArray[log_ID+5*(i-1)+3].AlarmMsg.EN	:=	CONCAT('ISS',INT_TO_STRING(i));
+AlarmActionArray[log_ID+5*(i-1)+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5*(i-1)+3].AlarmMsg.EN,
+																				' Setoff');		
+fbSetAlarm[log_ID+5*(i-1)+3](
+	InUse:=TRUE , 
+	EventId:=log_ID+5*(i-1)+3 , 
+	EventActive:=GVL_API.stISS[i].Setoff   , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+END_FOR
+
+ (*************em-stop*     549**************
+AlarmActionArray[549].AlarmMsg.EN	:='ISS Error:emergency_error';	
+fbSetAlarm[549](
+	InUse:=TRUE , 
+	EventId:=549 , 
+	EventActive:=GVL_API.stISS[1].error_code=666 , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+*)
+
+ 
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_ISS">
+      <LineId Id="534" Count="0" />
+      <LineId Id="610" Count="0" />
+      <LineId Id="730" Count="0" />
+      <LineId Id="743" Count="0" />
+      <LineId Id="484" Count="0" />
+      <LineId Id="744" Count="0" />
+      <LineId Id="746" Count="1" />
+      <LineId Id="750" Count="1" />
+      <LineId Id="749" Count="0" />
+      <LineId Id="745" Count="0" />
+      <LineId Id="748" Count="0" />
+      <LineId Id="742" Count="0" />
+      <LineId Id="315" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="249" Count="0" />
+    </LineIds>
+    <LineIds Name="P_ISS.ACT_LED_Level">
+      <LineId Id="2" Count="2" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="23" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="6" Count="5" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="12" Count="3" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="P_ISS.ACT_LOG">
+      <LineId Id="2" Count="1" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="250" Count="7" />
+      <LineId Id="238" Count="1" />
+      <LineId Id="242" Count="0" />
+      <LineId Id="261" Count="1" />
+      <LineId Id="243" Count="6" />
+      <LineId Id="241" Count="0" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="264" Count="1" />
+      <LineId Id="309" Count="9" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="305" Count="3" />
+      <LineId Id="275" Count="7" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="283" Count="1" />
+      <LineId Id="302" Count="1" />
+      <LineId Id="285" Count="7" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="374" Count="0" />
+      <LineId Id="321" Count="0" />
+      <LineId Id="365" Count="0" />
+      <LineId Id="367" Count="6" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="209" Count="1" />
+      <LineId Id="84" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

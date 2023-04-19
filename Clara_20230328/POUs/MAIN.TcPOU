@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="MAIN" Id="{d31199b4-3317-4917-a130-e2ee9bbfcd4b}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	FB_count:FB_count;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[P_UPS();
+systime();
+
+IO_Link();
+P_API_IO();
+P_Modbus();
+MAIN_ALarm();
+
+P_Motion();
+P_MediaTransport();
+P_System();
+P_InkSystem();
+P_UVLed();
+P_RollToRoll();
+P_SpitUnit();
+P_MaintenanceUnit();
+P_SubTank();
+P_TwinSAFE();
+
+
+ACT_heart();
+
+
+
+//IF VisuElems.CURRENTVISU='VIS_AXIS' THEN 
+	//VisuElems.CURRENTVISU:='VIS_ISS';
+//END_IF
+]]></ST>
+    </Implementation>
+    <Action Name="ACT_heart" Id="{75ce6ba0-dae6-47b6-b9f5-85a3af4a56a2}">
+      <Implementation>
+        <ST><![CDATA[FB_count(Add_Time:=T#0.1S , count=> GVL_API.count );]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="MAIN">
+      <LineId Id="736" Count="1" />
+      <LineId Id="823" Count="0" />
+      <LineId Id="822" Count="0" />
+      <LineId Id="825" Count="1" />
+      <LineId Id="824" Count="0" />
+      <LineId Id="814" Count="0" />
+      <LineId Id="738" Count="0" />
+      <LineId Id="815" Count="0" />
+      <LineId Id="817" Count="0" />
+      <LineId Id="739" Count="1" />
+      <LineId Id="742" Count="2" />
+      <LineId Id="819" Count="0" />
+      <LineId Id="821" Count="0" />
+      <LineId Id="800" Count="0" />
+      <LineId Id="789" Count="0" />
+      <LineId Id="753" Count="0" />
+      <LineId Id="755" Count="0" />
+      <LineId Id="771" Count="0" />
+      <LineId Id="785" Count="3" />
+      <LineId Id="588" Count="0" />
+    </LineIds>
+    <LineIds Name="MAIN.ACT_heart">
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

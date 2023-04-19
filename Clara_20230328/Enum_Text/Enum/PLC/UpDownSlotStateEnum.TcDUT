@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="UpDownSlotStateEnum" Id="{c96118a5-14ce-4ecf-ba78-3b912310c830}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE UpDownSlotStateEnum :
+(
+	
+	off				:=	0	,//	The UpDownSlot is in off-state.
+	up				:=	1	,//	The UpDownSlot is in the upper-position.
+	down			:=	2	,//	The UpDownSlot is in the lower-position.
+	waiting_up		:=	4	,//	The UpDownSlot object is waiting until the upper position is reached.
+	waiting_down	:=	5	,//	The UpDownSlot object is waiting until the lower position is reached
+	error			:=	100	//	The UpDownSlot is in error.
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

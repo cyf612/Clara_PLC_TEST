@@ -1,0 +1,251 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_TwinSAFE" Id="{1a364134-276c-4236-987a-22cdf0c0fbaf}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_TwinSAFE
+VAR
+	Err_Ack		AT%Q* 	:BOOL;//当出现了通讯报错时，用来做安全应答
+	//Run_Stop	AT%Q* 	:BOOL;//启动或停止安全程序运行
+	//Restart		AT%Q* 	:BOOL;//重启安全程序
+	//Relyback	AT%Q* 	:ARRAY [1..4] OF BOOL;
+	
+	Com_err		AT%I* 	:BOOL;//用来显示通讯报错
+	FB_err		AT%I* 	:BOOL;//用来显示功能块报错
+	//FB_run		AT%I* 	:BOOL;
+	
+(**************FB监控**********************)	
+	TwinSAFE_Group_State     					AT%I*    :USINT;
+	TwinSAFE_FBstop1_State	 					AT%I*    :USINT;	
+	TwinSAFE_Group_State_Enum				:TwinSAFE_Group_State_Enum;
+	TwinSAFE_FB_ESTOP_State_Enum			:TwinSAFE_FB_ESTOP_State_Enum;	
+	FB_COE_READ									:ARRAY[1..4] OF Tc2_EtherCAT.FB_EcCoESdoRead;
+	bCoe_read											:BOOL;
+	
+(*************接入EL1094***********************)	
+	bishuttle_crash_detector_left					:BOOL;
+	bishuttle_crash_detector_right					:BOOL;
+	btEmergency_stop									:BOOL;
+	Emergency_stop_2904									:BOOL;
+	biinterlock 			  								:ARRAY[1..8] OF BOOL;
+	rely_back  												:ARRAY[1..4] OF BOOL;
+	btReset													:BOOL;
+	
+(*******************LOG*****************)
+	i:INT;
+	Coe_Read_ton:ton;	
+	log_ID:INT;
+	last_group_state_ton:Tc2_Standard.TON;
+	last_group_state:USINT;
+	last_FBstop1_state_ton:Tc2_Standard.TON;
+	last_FBstop1_state:USINT;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+EDM 接收反馈，假如多个的话，反馈用1904 ，可以用FB_ADD，此模块只可以用安全模块输入
+不用1904，反馈需在PLC内，就做好合并，以一个值直接传输到TianSAFE 内的变量
+*)
+
+ACT_LOG();
+ACT_Match();
+stInput.btReset:=btReset;
+Err_Ack:=stInput.btReset;
+
+
+Coe_Read_ton(IN:=NOT Coe_Read_ton.Q  , PT:= , Q=> , ET=> );
+IF Coe_Read_ton.Q THEN 
+	bCoe_read:=NOT bCoe_read;
+END_IF
+FOR i:=1 TO 4 DO
+FB_COE_READ[i](
+	sNetId:= '192.168.1.138.2.1'(*'5.88.78.180.2.1'*) , 
+	nSlaveAddr:=1014 , 
+	nSubIndex:= INT_TO_BYTE(i), 
+	nIndex:=16#7001 , 
+	pDstBuf:=ADR(EL2904[1,i]) , 
+	cbBufLen:=SIZEOF(EL2904[1,i]) , 
+	bExecute:= bCoe_read, 
+	tTimeout:= , 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> , 
+	cbRead=> );
+END_FOR
+
+]]></ST>
+    </Implementation>
+    <Action Name="ACT_LOG" Id="{c1b60e0a-3ce5-45c7-804e-6cf37e579dce}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+//只记录错误
+log_ID:=460;
+
+//Com_err
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=	'TwinSAFE Com_err ';
+fbSetAlarm[log_ID+1](
+	InUse:=TRUE , 
+	//EventId:=log_ID+2 , 
+	EventActive:=Com_err , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ //FB_err
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=	'TwinSAFE FB_err ';
+fbSetAlarm[log_ID+2](
+	InUse:=TRUE , 
+	//EventId:=log_ID+2 , 
+	EventActive:=FB_err , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+
+  //Restart
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=	'TwinSAFE Restart ';
+fbSetAlarm[log_ID+3](
+	InUse:=TRUE , 
+	//EventId:=log_ID+3 , 
+	EventActive:=gvl.Reset , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//	TwinSAFE_Group_State
+last_group_state_ton(IN:=NOT last_group_state_ton.Q  , PT:=T#200MS , Q=> , ET=> );
+IF last_group_state_ton.Q THEN 
+	last_group_state:=TwinSAFE_Group_State;
+END_IF
+CASE TwinSAFE_Group_State OF
+1	:	TwinSAFE_Group_State_Enum	:=	1	;
+2	:	TwinSAFE_Group_State_Enum	:=	2	;
+4	:	TwinSAFE_Group_State_Enum	:=	4	;
+5	:	TwinSAFE_Group_State_Enum	:=	5	;
+6	:	TwinSAFE_Group_State_Enum	:=	6	;
+7	:	TwinSAFE_Group_State_Enum	:=	7	;
+16	:	TwinSAFE_Group_State_Enum	:=	16	;
+17	:	TwinSAFE_Group_State_Enum	:=	17	;
+END_CASE
+AlarmActionArray[log_ID+4].AlarmMsg.EN	:=	CONCAT('TwinSAFE_Group_State:',
+																	TO_STRING(TwinSAFE_Group_State_Enum));
+
+fbSetAlarm[log_ID+4](
+	InUse:=TRUE , 
+	//EventId:=log_ID+2 , 
+	EventActive:=last_group_state<>TwinSAFE_Group_State , 
+	EventClass:=Alm_EventClass.Message , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+
+//TwinSAFE_FBstop1_State
+last_FBstop1_state_ton(IN:=NOT last_FBstop1_state_ton.Q  , PT:=T#200MS , Q=> , ET=> );
+IF last_FBstop1_state_ton.Q THEN 
+	last_FBstop1_state:=TwinSAFE_FBstop1_State;
+END_IF
+
+CASE TwinSAFE_FBstop1_State OF
+0	:	TwinSAFE_FB_ESTOP_State_Enum	:=	0	;
+1	:	TwinSAFE_FB_ESTOP_State_Enum	:=	1	;
+2	:	TwinSAFE_FB_ESTOP_State_Enum	:=	2	;
+3	:	TwinSAFE_FB_ESTOP_State_Enum	:=	3	;
+4	:	TwinSAFE_FB_ESTOP_State_Enum	:=	4	;
+5	:	TwinSAFE_FB_ESTOP_State_Enum	:=	5	;
+6	:	TwinSAFE_FB_ESTOP_State_Enum	:=	6	;
+8	:	TwinSAFE_FB_ESTOP_State_Enum	:=	8	;
+END_CASE
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=	CONCAT('TwinSAFE_FBstop1_State:',
+																	TO_STRING(TwinSAFE_FB_ESTOP_State_Enum));
+
+fbSetAlarm[log_ID+5](
+	InUse:=TRUE , 
+	//EventId:=log_ID+2 , 
+	EventActive:=last_FBstop1_state<>TwinSAFE_FBstop1_State , 
+	EventClass:=Alm_EventClass.Message , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_Match" Id="{f21df0ec-e301-480e-8a82-b110b33ff1e8}">
+      <Implementation>
+        <ST><![CDATA[Emergency_stop_2904						:=(NOT EL2904[1,1] OR NOT EL2904[1,2])  ;
+btEmergency_stop					:=NOT EL1904_M[1,1] OR NOT EL1904_M[1,2];
+
+Axis[FastScan].IO.snLimitN			:=EL1904_M[1,3];
+Axis[FastScan].IO.snLimitP			:=EL1904_M[1,4];
+bishuttle_crash_detector_left		:=EL1904_M[2,1];
+bishuttle_crash_detector_right		:=EL1904_M[2,2];
+biinterlock[1]								:=EL1904_M[2,3];
+biinterlock[2]								:=EL1904_M[2,4];
+biinterlock[3]								:=EL1904_M[3,1];
+biinterlock[4]								:=EL1904_M[3,2];
+biinterlock[5]								:=EL1904_M[3,3];
+biinterlock[6]								:=EL1904_M[3,4];
+biinterlock[7]								:=EL1904_M[4,1];
+biinterlock[8]								:=EL1904_M[4,2];
+btReset										:=EL1904_M[4,3];
+
+rely_back[1]								:=EL1904_M[5,1];
+rely_back[2]								:=EL1904_M[5,2];
+rely_back[3]								:=EL1904_M[5,3];
+rely_back[4]								:=EL1904_M[5,4];]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_TwinSAFE">
+      <LineId Id="326" Count="0" />
+      <LineId Id="329" Count="1" />
+      <LineId Id="328" Count="0" />
+      <LineId Id="327" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="252" Count="0" />
+      <LineId Id="153" Count="20" />
+      <LineId Id="105" Count="0" />
+    </LineIds>
+    <LineIds Name="P_TwinSAFE.ACT_LOG">
+      <LineId Id="43" Count="1" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="47" Count="9" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="59" Count="8" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="69" Count="9" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="79" Count="1" />
+      <LineId Id="103" Count="2" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="4" Count="3" />
+      <LineId Id="9" Count="3" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="123" Count="10" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="111" Count="4" />
+      <LineId Id="32" Count="8" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="135" Count="9" />
+      <LineId Id="134" Count="0" />
+    </LineIds>
+    <LineIds Name="P_TwinSAFE.ACT_Match">
+      <LineId Id="33" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="4" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="8" Count="6" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="34" Count="2" />
+      <LineId Id="24" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

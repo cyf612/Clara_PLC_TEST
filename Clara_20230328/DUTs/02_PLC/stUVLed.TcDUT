@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="stUVLed" Id="{84e965d9-7095-44d0-a317-0198d258d571}">
+    <Declaration><![CDATA[TYPE stUVLed :
+STRUCT
+//R//
+	error_code					:INT;
+	state					:INT;
+	initialized			:BOOL;
+	settings_applied		:BOOL;
+	curing_started	:BOOL;
+	curing_stopped	:BOOL;
+	error					:BOOL;
+	off					:BOOL;
+//W//	
+	unidirection			:BOOL;//"(ConfigurePowerSettings parameter)Indicates unidirectional printing.TRUE IF the print is unidirectional, otherwise FALSE FOR bi-directional printing.
+	initial_print_position	:INT;//"(ConfigurePowerSettings parameter)Indicates the initial print position: 0:from_home, 1:to_home."
+	uv_power_leading		:DINT;//% "(leadingPower ConfigurePower-Settings method)Power to apply to leading LEDs of the UVUnit"
+	uv_power_trailing		:DINT;//% "(trailingPower ConfigurePower-Settings method)Power to apply to trailing LEDs of the UVUnit"
+	uvStart					:LREAL;//mm "Position in micron where to start/stop curing depending on the direction (left/right)."
+	uvEnd					:LREAL;//mm "Position in micron where to start/stop curing depending on the direction (left/right)"
+	
+	Initialize				:BOOL;
+	ConfigurePowerSettings	:BOOL;
+	ConfigurePositions		:BOOL;
+	StopCuring				:BOOL;
+	SetOff					:BOOL;
+	prats				    :BYTE:=16#3F;//分段开灯，1-6,6为全开
+	ahead_pos				:LREAL:=100;//因YV灯有延迟，提前量
+	delay_pos				:LREAL:=100;//因YV灯有延迟，关闭延时
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

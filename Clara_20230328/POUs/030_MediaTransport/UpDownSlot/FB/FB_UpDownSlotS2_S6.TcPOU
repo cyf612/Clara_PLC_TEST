@@ -1,0 +1,222 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_UpDownSlotS2_S6" Id="{53795109-3d92-4d3b-96ae-270a872702ae}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_UpDownSlotS2_S6
+VAR_INPUT	
+	timeout_up			:LREAL:=5000;//MS
+	timeout_down		:LREAL:=5000;//MS
+	sensor_up			:BOOL;
+
+END_VAR
+VAR_OUTPUT
+	MoveDown_do			:BOOL;
+	MoveUp_do			:BOOL;
+	
+	state				:INT;
+	error_code				:INT;
+	error				:BOOL;
+END_VAR
+VAR
+	step				:INT;
+	Ton_MoveUp_do		:Tc2_Standard.TON;
+	Ton_MoveDown_do		:Tc2_Standard.TON;
+	ET_Ton_MoveUp_do	:LREAL;
+	ET_Ton_MoveDown_do	:LREAL;
+
+END_VAR
+VAR_IN_OUT
+	Initialize			:BOOL;
+	MoveDown			:BOOL;
+	MoveUp				:BOOL;
+	SetOff				:BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ET_Ton_MoveUp_do:=TIME_TO_LREAL(Ton_MoveUp_do.ET);
+ET_Ton_MoveDown_do:=TIME_TO_LREAL(Ton_MoveDown_do.ET);
+
+
+CASE step OF
+0://waiting
+	IF Initialize THEN 
+		step:=5;
+	ELSIF MoveDown THEN 
+		step:=40;
+	ELSIF MoveUp THEN 
+		step:=60;
+	ELSIF SetOff OR GVL.Reset THEN 
+		step:=99;
+	END_IF
+5://0ff
+	MoveDown:=FALSE;
+	MoveUp:=FALSE;
+	SetOff:=FALSE;
+	MoveDown_do:=FALSE;
+	MoveUp_do:=FALSE;
+	Ton_MoveDown_do(IN:=FALSE , PT:= , Q=> , ET=> );
+	Ton_MoveUp_do(IN:=FALSE , PT:= , Q=> , ET=> );
+	
+	state:=UpDownSlotStateEnum.off;
+	error_code:=UpDownSlotErrorEnum.no_error;
+
+	IF Initialize THEN 
+		Initialize:=FALSE;
+		IF timeout_up>0 AND timeout_down>0  THEN 
+			step:=10;
+		END_IF
+	END_IF
+10://
+	timeout_up:=5000;(*Initialize时，未给timeout，先赋值一下*)
+	Initialize:=FALSE;
+	step:=20;
+20://初始化，执行上升指令	
+	MoveUp_do:=TRUE;	
+	MoveUp:=FALSE;
+	step:=30;
+30://waiting up
+	state:=UpDownSlotStateEnum.waiting_up;
+	Ton_MoveUp_do(IN:=TRUE , PT:=LREAL_TO_TIME(timeout_up) , Q=> , ET=> );
+	IF 	ET_Ton_MoveUp_do>0 AND ET_Ton_MoveUp_do<timeout_up THEN
+		IF  sensor_up THEN 
+			Ton_MoveUp_do(IN:=FALSE);
+			MoveUp_do:=FALSE;
+			state:=UpDownSlotStateEnum.up;			
+			MoveUp:=FALSE;
+			step:=0;		
+		END_IF
+	ELSIF ET_Ton_MoveUp_do>=timeout_up  THEN 
+		IF NOT sensor_up  THEN 
+			error_code:=UpDownSlotErrorEnum.timeout_up;
+			step:=100;
+		END_IF
+	END_IF
+40://up
+	MoveUp:=FALSE;
+	IF MoveDown THEN 
+		MoveDown_do:=TRUE;
+		step:=50;
+	END_IF
+50://waiting down
+	MoveDown:=FALSE;
+	state:=UpDownSlotStateEnum.waiting_down;
+	
+	Ton_MoveDown_do(IN:=TRUE , PT:=LREAL_TO_TIME(timeout_down) , Q=> , ET=> );
+	IF ET_Ton_MoveDown_do>=timeout_down THEN
+		Ton_MoveDown_do(IN:=FALSE);
+		MoveDown_do:=FALSE;
+		state:=UpDownSlotStateEnum.down;
+		step:=0;	
+	END_IF
+60://down
+	MoveDown:=FALSE;
+	IF MoveUp THEN 
+		step:=20;
+	END_IF
+99://setoff
+	SetOff:=FALSE;
+	error:=FALSE;
+	MoveDown:=FALSE;
+	MoveUp:=FALSE;
+	Initialize:=FALSE;
+	MoveDown_do:=FALSE;
+	MoveUp_do:=FALSE;
+	Ton_MoveDown_do(IN:=FALSE , PT:= , Q=> , ET=> );
+	Ton_MoveUp_do(IN:=FALSE , PT:= , Q=> , ET=> );	
+	state:=UpDownSlotStateEnum.off;
+	error_code:=UpDownSlotErrorEnum.no_error;
+	step:=0;
+100://error
+	error:=TRUE;
+	state:=UpDownSlotStateEnum.error;
+	MoveUp_do:=FALSE;
+	MoveDown_do:=FALSE;
+	step:=0;
+		
+END_CASE
+(************setoff***********************)
+IF SetOff OR GVL.Reset THEN 	
+	step:=99;
+END_IF
+IF state<>UpDownSlotStateEnum.off  AND state<>UpDownSlotStateEnum.error AND GVL.Emstop_Button THEN 
+	error_code:=UpDownSlotErrorEnum.emergency_error;
+	step:=100;
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_UpDownSlotS2_S6">
+      <LineId Id="78" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="341" Count="0" />
+      <LineId Id="339" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="518" Count="8" />
+      <LineId Id="517" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="232" Count="5" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="44" Count="1" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="456" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="90" Count="1" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="539" Count="0" />
+      <LineId Id="528" Count="1" />
+      <LineId Id="531" Count="0" />
+      <LineId Id="527" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="137" Count="1" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="427" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="535" Count="0" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="155" Count="1" />
+      <LineId Id="158" Count="2" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="186" Count="1" />
+      <LineId Id="538" Count="0" />
+      <LineId Id="391" Count="0" />
+      <LineId Id="537" Count="0" />
+      <LineId Id="393" Count="0" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="277" Count="0" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="213" Count="1" />
+      <LineId Id="228" Count="0" />
+      <LineId Id="553" Count="0" />
+      <LineId Id="542" Count="0" />
+      <LineId Id="544" Count="8" />
+      <LineId Id="541" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="540" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="242" Count="1" />
+      <LineId Id="241" Count="0" />
+      <LineId Id="485" Count="2" />
+      <LineId Id="215" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

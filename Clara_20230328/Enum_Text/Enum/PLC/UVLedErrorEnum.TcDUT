@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="UVLedErrorEnum" Id="{f678813e-9287-4615-8be6-aeb4617f5fb3}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE UVLedErrorEnum :
+(
+no_error		:=	0	,//	No error detected
+not_connected	:=	1	,//	A command was requested prior to opening the driver
+invalid_state	:=	2	,//	An invalid command was requested
+unknown_error	:=	3,	//Unknown – Network error
+abnormal_temperature	:=	4	,//	indicates abnormal temperature
+
+emergency_error:=666//The object is in error due to an active emergency error.
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

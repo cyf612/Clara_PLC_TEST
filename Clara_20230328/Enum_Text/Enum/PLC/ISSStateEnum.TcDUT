@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ISSStateEnum" Id="{f668b984-cfe0-48c3-84cf-d351e90f1037}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE ISSStateEnum :
+(
+	off	:=	0	,//	The ISS is in off-state.
+initializing	:=	1	,//	The ISS is busy initializing.
+ready	:=	2	,//	The ISS is ready.
+error	:=	100	//	The ISS is in error.
+
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

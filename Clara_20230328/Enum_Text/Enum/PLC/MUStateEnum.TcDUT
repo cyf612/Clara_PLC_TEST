@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="MUStateEnum" Id="{f37d60f5-9cf4-48ad-a55e-d563b6a8464f}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE MUStateEnum :
+(
+off	:=	0	,//	The MaintenanceUnit is in off-state.
+idle	:=	1	,//	The MaintenanceUnit is in idle-state.
+swapping	:=	2	,//	The MaintenanceUnit is busy swapping fluids
+error	:=	100	//	The MaintenanceUnit is in error.
+
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

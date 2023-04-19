@@ -1,0 +1,559 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_Modbus_RTU" Id="{69b12c10-67fd-4d9c-8cfe-ca4f157ddaa0}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_Modbus_RTU
+VAR
+	(*********************RTU******************************)
+	master:ARRAY[1..2] OF    ModbusRtuMaster_KL6x22B;
+    start:ARRAY[1..2] OF  BOOL:=[TRUE];
+	step:ARRAY[1..2] OF  INT;
+	
+	com1_station:ARRAY[1..5] OF stRtu;
+	
+	tab_vac_measure	:ARRAY[1..2] OF WORD;//负压表值
+	tab_vac_set		:ARRAY[1..2] OF WORD;//负压表值
+	sub_pressure_measure	: LREAL;//sub测量正压
+	sub_pressure_set		: LREAL;//sun正压设定值
+	sub_vac_c_measure		: LREAL;//sub彩色负压值
+	sub_vac_w_measure		: LREAL;//sub白色负压值
+	sub_vac_c_set			: LREAL;//sub彩色负压设定值
+	sub_vac_w_set			: LREAL;//sub白色负压设定值
+	
+	cycle_time:INT;
+	count_time:INT:=5;
+	i,j:INT;	
+	error_trig :ARRAY[1..10] OF Tc2_Standard.R_TRIG;
+	error_count:ARRAY[1..10] OF DINT;//错误计数
+	station_error_trig:ARRAY[1..10] OF Tc2_Standard.R_TRIG;	
+	station_error AT%Q*:ARRAY[1..10] OF BOOL;
+	test_send:BOOL;
+END_VAR
+
+VAR PERSISTENT
+	break_systime:ARRAY[1..10] OF DATE_AND_TIME;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT();
+
+(******************************************台面负压****************************************************)
+	(*原本接收10代表1KPA，但修改温控表，使10代表1*)
+	(**********READ****负数=正数按位取反+1******************************)
+	IF com1_station[1]._04readarray[1].15=0 THEN 
+		GVL_API.stTableVacuum[1].vacuum_measured:=WORD_TO_LREAL(com1_station[1]._04readarray[1])/100;
+	ELSE 
+		GVL_API.stTableVacuum[1].vacuum_measured:=WORD_TO_LREAL(NOT(com1_station[1]._04readarray[1]-1))/100;
+	END_IF
+	(***************台面负压****write****)	
+	com1_station[1]._06writesinglearray[1]:=NOT (LREAL_TO_WORD(GVL_API.stTableVacuum[1].setpoint*100))+1;///负数，反吗+1
+	(***************台面负压****writPID*)
+	IF 	GVL_API.stTableVacuum[1].ctrlP >0 THEN 	//P 不能为0
+		com1_station[1]._06writesinglearray_PID[2]:=LREAL_TO_WORD(GVL_API.stTableVacuum[1].ctrlP*10);//制冷端P
+	ELSE 
+		com1_station[1]._06writesinglearray_PID[2]:=LREAL_TO_WORD(10*10);//制冷端P
+	END_IF
+		com1_station[1]._06writesinglearray_PID[4]:=LREAL_TO_WORD(GVL_API.stTableVacuum[1].ctrlI);
+		com1_station[1]._06writesinglearray_PID[6]:=LREAL_TO_WORD(GVL_API.stTableVacuum[1].ctrlD);
+	
+		
+(***************温湿度****************)
+		gvl.humidity_measured:=	WORD_TO_LREAL(com1_station[3]._03readarray[1])/10;
+		IF com1_station[3]._03readarray[1].15=0 THEN 
+			gvl.temp_measured:=WORD_TO_LREAL(com1_station[3]._03readarray[2])/10;
+		ELSIF com1_station[3]._03readarray[1].15=1 THEN
+			gvl.temp_measured:= WORD_TO_LREAL(NOT(com1_station[3]._03readarray[2]-1))/10;
+		END_IF
+		
+		
+		
+(**************二级墨盒正负压****************
+	(**********SUB VAC 正压**************)
+	sub_pressure_measure:=  WORD_TO_LREAL( com1_station[4]._03readarray[1])/1000;   //当前值
+	
+	com1_station[4]._03writearray[1]:=LREAL_TO_WORD(sub_pressure_set*1000);//正压设定
+	com1_station[4]._03writearray[4]:=1;//正压自启动
+	com1_station[4]._03writearray[4]:=12;//正压电机速度
+	
+	(**********SUB VAC 负压**************)
+	sub_vac_c_measure:=WORD_TO_LREAL(com1_station[5]._03readarray[1])/1000;
+	sub_vac_w_measure:=WORD_TO_LREAL(com1_station[5]._03readarray[2])/1000;
+	
+	com1_station[5]._03writearray[1]:=LREAL_TO_WORD(sub_vac_c_set*1000);
+	com1_station[5]._03writearray[2]:=LREAL_TO_WORD(sub_vac_w_set*1000);
+	com1_station[5]._03writearray[3]:=3;
+	com1_station[5]._03writearray[4]:=3;
+*)
+]]></ST>
+    </Implementation>
+    <Action Name="ACT" Id="{55d976e6-c45b-4e23-a100-16a0779c7add}">
+      <Implementation>
+        <ST><![CDATA[CASE step[1] OF 
+0: //初始状态
+		IF start[1] THEN
+			step[1]:=10;
+			cycle_time:=0;
+		END_IF	
+10://站1 04口读操作  真空吸附			
+			IF cycle_time>=count_time THEN 
+				cycle_time:=0;	
+				FOR j:=1 TO 10 DO 
+					error_count[j]:=0;
+				END_FOR		
+			END_IF
+						
+			master[1].ReadInputRegs(
+				UnitID:= 1, 
+				Quantity:=4, 
+				MBAddr:= 16#03E8, 
+				cbLength:= SIZEOF(com1_station[1]._04readarray), 
+				pMemoryAddr:= ADR(com1_station[1]._04readarray), 
+				Execute:= TRUE, 
+				Timeout:= T#200MS);	
+											
+				IF NOT master[1].BUSY  THEN
+					master[1].ReadRegs(Execute:= FALSE, );
+					cycle_time:=cycle_time+1;
+					step[1]:=20;									
+				END_IF
+				
+				station_error_trig[1](CLK:=master[1].error , Q=> );	
+				IF station_error_trig[1].Q THEN 
+					error_count[1]:=error_count[1]+1;
+				END_IF
+20://站1 06口写操作	,设定负压	
+			master[1].WriteSingleRegister(
+				UnitID:= 1, 
+				Quantity:=1, 
+				MBAddr:= 0, 
+				cbLength:= 2, 
+				pMemoryAddr:= ADR(com1_station[1]._06writesinglearray[1]), 
+				Execute:= TRUE, 
+				Timeout:= T#200MS, 
+				BUSY=> , 
+				Error=> , 
+				ErrorId=> , 
+				cbRead=> );			
+						
+				IF NOT master[1].BUSY  THEN
+					master[1].ReadRegs(Execute:= FALSE, );
+					step[1]:=21;									
+				END_IF
+				
+				station_error_trig[1](CLK:=master[1].error , Q=> );	
+				IF station_error_trig[1].Q THEN 
+					error_count[1]:=error_count[1]+1;
+				END_IF
+21://站1 06口写操作	,设定PID
+			master[1].WriteRegs(
+				UnitID:= 1, 
+				Quantity:=SIZEOF(com1_station[1]._06writesinglearray_PID)/2, 
+				MBAddr:= 16#0065, 
+				cbLength:= SIZEOF(com1_station[1]._06writesinglearray_PID), 
+				pMemoryAddr:= ADR(com1_station[1]._06writesinglearray_PID), 
+				Execute:= TRUE, 
+				Timeout:= T#200MS, 
+				BUSY=> , 
+				Error=> , 
+				ErrorId=> , 
+				cbRead=> );	
+				
+				
+				station_error_trig[1](CLK:=master[1].error , Q=> );	
+				IF station_error_trig[1].Q THEN 
+					error_count[1]:=error_count[1]+1;
+				END_IF	
+				IF cycle_time=count_time AND error_count[1]>=2 THEN 
+					station_error[1]:=TRUE;
+				END_IF
+
+				IF NOT master[1].BUSY  THEN
+					master[1].ReadRegs(Execute:= FALSE );
+					step[1]:=50;											              		
+				END_IF	
+(*3://站2 04口读操作
+			master[1].ReadInputRegs(
+				UnitID:= 2, 
+				Quantity:=4, 
+				MBAddr:= 16#03E8, 
+				cbLength:= SIZEOF(com1_station[2]._04readarray), 
+				pMemoryAddr:= ADR(com1_station[2]._04readarray), 
+				Execute:= TRUE, 
+				Timeout:= T#200MS, 
+				 );	
+					          
+				station_error_trig[2](CLK:=master[1].error , Q=> );	
+				IF station_error_trig[2].Q THEN 
+					error_count_test[2]:=error_count_test[2]+1;
+				END_IF	 
+				IF cycle_time=count_time AND error_count_test[2]>=2 THEN 
+					station_error[2]:=TRUE;
+				END_IF
+
+	
+				IF NOT master[1].BUSY  THEN
+					master[1].ReadRegs(Execute:= FALSE, );
+					IF NOT station_error[2] THEN 
+						step[1]:=4;									
+					ELSIF station_error[2] THEN 
+						step[1]:=5;	
+					END_IF		              		
+				END_IF					 	
+4://站2 06口写操作			
+			master[1].WriteSingleRegister(
+				UnitID:= 2, 
+				Quantity:=1, 
+				MBAddr:= 0, 
+				cbLength:= SIZEOF(com1_station[2]._06writesinglearray[1]), 
+				pMemoryAddr:= ADR(com1_station[2]._06writesinglearray[1]), 
+				Execute:= TRUE, 
+				Timeout:= T#200MS, 
+				BUSY=> , 
+				Error=> , 
+				ErrorId=> , 
+				cbRead=> );			
+				
+			
+				station_error_trig[2](CLK:=master[1].error , Q=> );	
+				IF station_error_trig[2].Q THEN 
+					error_count_test[2]:=error_count_test[2]+1;
+				END_IF	
+				IF cycle_time=count_time AND error_count_test[2]>=2 THEN 
+					station_error[2]:=TRUE;
+				END_IF
+
+				IF NOT master[1].BUSY  THEN
+					master[1].ReadRegs(Execute:= FALSE, );					
+					IF NOT station_error[2] THEN 
+						step[1]:=5;									
+					ELSIF station_error[2] THEN 
+						step[1]:=5;	
+					END_IF		              		
+				END_IF		
+*)				 	
+50://站3温湿度 03读
+			master[1].ReadRegs(
+				UnitID:= 3, 
+				Quantity:=2, 
+				MBAddr:= 0, 
+				cbLength:= SIZEOF(com1_station[3]._03readarray), 
+				pMemoryAddr:= ADR(com1_station[3]._03readarray), 
+				Execute:= TRUE, 
+				Timeout:= T#200MS, 
+				 );	
+							     
+				station_error_trig[3](CLK:=master[1].error , Q=> );	
+				IF station_error_trig[3].Q THEN 
+					error_count[3]:=error_count[3]+1;
+				END_IF
+				IF cycle_time=count_time AND error_count[3]>=2 THEN 
+					station_error[3]:=TRUE;
+				END_IF
+								
+				IF NOT master[1].BUSY  THEN
+					master[1].ReadRegs(Execute:= FALSE, );										
+					step[1]:=10;															              		
+				END_IF
+				
+(*							
+6://站4，正压板 03口读操作  当前压墨板正压传感器值，单位0.1kPa	
+	     master[1].ReadRegs(
+				UnitID:= 16#48, 
+				Quantity:=7, 
+				MBAddr:= 0, 
+				cbLength:= SIZEOF(com1_station[4]._03readarray), 
+				pMemoryAddr:= ADR(com1_station[4]._03readarray), 
+				Execute:= TRUE, 
+				Timeout:= T#200MS, 
+				 );	
+							
+				station_error_trig[4](CLK:=master[1].error , Q=> );	
+				IF station_error_trig[4].Q THEN 
+					error_count_test[4]:=error_count_test[4]+1;
+				END_IF		
+			
+				IF cycle_time=count_time AND error_count_test[4]>=2 THEN 
+					station_error[4]:=TRUE;
+				END_IF
+				
+				IF NOT master[1].BUSY  THEN
+					master[1].ReadRegs(Execute:= FALSE, );					
+					IF NOT station_error[4] THEN 
+						step[1]:=7;									
+					ELSIF station_error[4] THEN 
+						step[1]:=8;	
+					END_IF		              		
+				END_IF						     					
+7://站4，正压板 03口写操作 设定的压墨值，单位0.1kPa，绝对值。
+		master[1].WriteRegs(
+				UnitID:= 16#48, 
+				Quantity:=6, 
+				MBAddr:= 1, 
+				cbLength:= SIZEOF(com1_station[4]._03writearray), 
+				pMemoryAddr:= ADR(com1_station[4]._03writearray), 
+				Execute:= TRUE, 
+				Timeout:= T#200MS, 
+				BUSY=> , 
+				Error=> , 
+				ErrorId=> , 
+				cbRead=> );			
+						
+				station_error_trig[4](CLK:=master[1].error , Q=> );	
+				IF station_error_trig[4].Q THEN 
+					error_count_test[4]:=error_count_test[4]+1;
+				END_IF	
+				IF cycle_time=count_time AND error_count_test[4]>=2 THEN 
+					station_error[4]:=TRUE;
+				END_IF
+				
+				IF NOT master[1].BUSY  AND NOT station_error[4]THEN
+					master[1].ReadRegs(Execute:= FALSE, );	
+					step[1]:=8;
+				ELSIF station_error[4] THEN 
+					step[1]:=8;
+				END_IF
+				IF NOT master[1].BUSY  THEN
+					master[1].ReadRegs(Execute:= FALSE, );					
+					IF NOT station_error[4] THEN 
+						step[1]:=8;									
+					ELSIF station_error[4] THEN 
+						step[1]:=8;	
+					END_IF		              		
+				END_IF					     				
+8://zhan 5负压板 03口读操作
+		master[1].ReadRegs(
+				UnitID:= 16#1D, 
+				Quantity:=8, 
+				MBAddr:= 0, 
+				cbLength:= SIZEOF(com1_station[5]._03readarray), 
+				pMemoryAddr:= ADR(com1_station[5]._03readarray), 
+				Execute:= TRUE, 
+				Timeout:= T#200MS, 
+				 );	
+				
+				station_error_trig[5](CLK:=master[1].error , Q=> );	
+				IF station_error_trig[5].Q THEN 
+					error_count_test[5]:=error_count_test[5]+1;
+				END_IF	
+
+				IF cycle_time=count_time AND error_count_test[5]>=2 THEN 
+					station_error[5]:=TRUE;
+				END_IF
+				
+				IF NOT master[1].BUSY  THEN
+					master[1].ReadRegs(Execute:= FALSE, );					
+					IF NOT station_error[5] THEN 
+						step[1]:=9;									
+					ELSIF station_error[5] THEN 
+						step[1]:=1;	
+					END_IF		              		
+				END_IF							     
+9://zhan 5,负压板 03口写	
+		master[1].WriteRegs(
+				UnitID:= 16#1D, 
+				Quantity:=4, 
+				MBAddr:= 2, 
+				cbLength:= SIZEOF(com1_station[5]._03writearray), 
+				pMemoryAddr:= ADR(com1_station[5]._03writearray), 
+				Execute:= TRUE, 
+				Timeout:= T#200MS, 
+				BUSY=> , 
+				Error=> , 
+				ErrorId=> , 
+				cbRead=> );			
+				
+		
+				station_error_trig[5](CLK:=master[1].error , Q=> );	
+				IF station_error_trig[5].Q THEN 
+					error_count_test[5]:=error_count_test[5]+1;
+				END_IF	
+				
+				IF cycle_time=count_time AND error_count_test[5]>=2 THEN 
+					station_error[5]:=TRUE;
+				END_IF
+					
+				IF NOT master[1].BUSY  THEN
+					master[1].ReadRegs(Execute:= FALSE, );					
+					IF NOT station_error[5] THEN 
+						step[1]:=1;									
+					ELSIF station_error[5] THEN 
+						step[1]:=1;	
+					END_IF		              		
+				END_IF	
+*)
+END_CASE
+
+IF GVL_API.stTableVacuum[1].Setoff (*OR GVL_API.stTableVacuum[2].Setoff*) THEN 
+	station_error[1]:=FALSE;
+	//station_error[2]:=FALSE;
+END_IF
+IF   GVL_API.stSystemEnvironment.Reset THEN 
+	station_error[3]:=FALSE;
+END_IF
+
+
+FOR i:=1 TO 5 DO
+ error_trig[i](CLK:=station_error[i] , Q=> );
+	IF  error_trig[i].Q THEN 
+		break_systime[i]:=systime.dttime;		
+	END_IF
+END_FOR]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_Modbus_RTU">
+      <LineId Id="376" Count="1" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="505" Count="0" />
+      <LineId Id="572" Count="0" />
+      <LineId Id="440" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="441" Count="0" />
+      <LineId Id="571" Count="0" />
+      <LineId Id="443" Count="0" />
+      <LineId Id="182" Count="1" />
+      <LineId Id="537" Count="0" />
+      <LineId Id="603" Count="0" />
+      <LineId Id="353" Count="0" />
+      <LineId Id="604" Count="2" />
+      <LineId Id="538" Count="2" />
+      <LineId Id="637" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="354" Count="0" />
+      <LineId Id="369" Count="1" />
+      <LineId Id="372" Count="1" />
+      <LineId Id="371" Count="0" />
+      <LineId Id="408" Count="1" />
+      <LineId Id="375" Count="0" />
+      <LineId Id="186" Count="16" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="P_Modbus_RTU.ACT">
+      <LineId Id="668" Count="0" />
+      <LineId Id="3" Count="2" />
+      <LineId Id="242" Count="0" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="248" Count="1" />
+      <LineId Id="494" Count="2" />
+      <LineId Id="247" Count="0" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="8" Count="7" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="405" Count="1" />
+      <LineId Id="499" Count="0" />
+      <LineId Id="407" Count="0" />
+      <LineId Id="404" Count="0" />
+      <LineId Id="644" Count="0" />
+      <LineId Id="641" Count="2" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="22" Count="12" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="623" Count="1" />
+      <LineId Id="626" Count="0" />
+      <LineId Id="501" Count="0" />
+      <LineId Id="649" Count="0" />
+      <LineId Id="646" Count="2" />
+      <LineId Id="645" Count="0" />
+      <LineId Id="571" Count="0" />
+      <LineId Id="595" Count="10" />
+      <LineId Id="572" Count="0" />
+      <LineId Id="606" Count="0" />
+      <LineId Id="639" Count="0" />
+      <LineId Id="608" Count="9" />
+      <LineId Id="619" Count="0" />
+      <LineId Id="607" Count="0" />
+      <LineId Id="39" Count="9" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="281" Count="2" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="476" Count="1" />
+      <LineId Id="335" Count="0" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="423" Count="0" />
+      <LineId Id="511" Count="1" />
+      <LineId Id="514" Count="4" />
+      <LineId Id="510" Count="0" />
+      <LineId Id="54" Count="12" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="286" Count="2" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="478" Count="2" />
+      <LineId Id="424" Count="0" />
+      <LineId Id="520" Count="1" />
+      <LineId Id="523" Count="4" />
+      <LineId Id="519" Count="0" />
+      <LineId Id="568" Count="0" />
+      <LineId Id="71" Count="9" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="290" Count="2" />
+      <LineId Id="289" Count="0" />
+      <LineId Id="481" Count="1" />
+      <LineId Id="430" Count="0" />
+      <LineId Id="483" Count="0" />
+      <LineId Id="529" Count="1" />
+      <LineId Id="532" Count="0" />
+      <LineId Id="528" Count="0" />
+      <LineId Id="631" Count="0" />
+      <LineId Id="569" Count="0" />
+      <LineId Id="85" Count="9" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="294" Count="2" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="363" Count="0" />
+      <LineId Id="484" Count="1" />
+      <LineId Id="437" Count="0" />
+      <LineId Id="486" Count="0" />
+      <LineId Id="537" Count="6" />
+      <LineId Id="536" Count="0" />
+      <LineId Id="465" Count="0" />
+      <LineId Id="100" Count="11" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="298" Count="2" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="487" Count="1" />
+      <LineId Id="374" Count="0" />
+      <LineId Id="444" Count="0" />
+      <LineId Id="446" Count="4" />
+      <LineId Id="445" Count="0" />
+      <LineId Id="545" Count="6" />
+      <LineId Id="544" Count="0" />
+      <LineId Id="116" Count="9" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="302" Count="2" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="384" Count="0" />
+      <LineId Id="489" Count="1" />
+      <LineId Id="383" Count="0" />
+      <LineId Id="451" Count="0" />
+      <LineId Id="553" Count="6" />
+      <LineId Id="552" Count="0" />
+      <LineId Id="130" Count="12" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="307" Count="2" />
+      <LineId Id="306" Count="0" />
+      <LineId Id="393" Count="0" />
+      <LineId Id="491" Count="1" />
+      <LineId Id="394" Count="0" />
+      <LineId Id="458" Count="0" />
+      <LineId Id="561" Count="6" />
+      <LineId Id="560" Count="0" />
+      <LineId Id="570" Count="0" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="222" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="628" Count="0" />
+      <LineId Id="630" Count="0" />
+      <LineId Id="627" Count="0" />
+      <LineId Id="241" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="233" Count="0" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="236" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

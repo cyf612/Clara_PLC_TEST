@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="SubTankInkEnum" Id="{48d8ae49-e4e7-4f80-a128-363d28afe1d6}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE SubTankInkEnum :
+(
+circuit_not_filled			:=	0	,//	0” circuit not filled (default setting)
+white_ink					:=	1	,//	“1” circuit filled with “white ink”
+storage_flush				:=	2	//	“2” circuit filled with “storage fluid”
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

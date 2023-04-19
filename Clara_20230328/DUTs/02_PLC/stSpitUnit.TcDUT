@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="stSpitUnit" Id="{e70468b8-c65f-444c-977d-9c19ec0307c4}">
+    <Declaration><![CDATA[TYPE stSpitUnit  :
+STRUCT
+//R//
+	error_code					:UDINT;
+	state						:INT;
+	home_sensor_covered			:BOOL;
+	current_position			:LREAL;
+	AxisErrorId					:UDINT;
+	Home_Done					:BOOL;
+	Move_Done					:BOOL;
+	Error								:BOOL;
+	Homing							:BOOL;
+	ControlLoopClosed				 :BOOL;//使能
+//W//	
+	acceleration				:LREAL;
+	moving_speed_up				:LREAL:=5;
+	moving_speed_down				:LREAL:=5;	
+	target_position				:LREAL;	
+	spindle_length				:LREAL:=50;
+	FanState					:BOOL;
+	Initialize					:BOOL;
+	HomeExe						:BOOL;
+	MoveAbsoluteExe				:BOOL;
+	SetOff						:BOOL;
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

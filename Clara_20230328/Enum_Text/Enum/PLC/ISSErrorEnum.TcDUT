@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ISSErrorEnum" Id="{1b5883e5-9e72-461f-91da-9bdfa5900b8d}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE ISSErrorEnum :
+(
+no_error	:=	0	,//	No error detected
+not_connected	:=	1	,//	A command was requested prior to opening the driver
+invalid_state	:=	2	,//	An invalid command was requested
+pump1_failure	:=	4	,//	Pump1 is in error
+pump2_failure	:=	6	,//	Pump2 is in error
+back_to_air_tank	:=	8	,//	
+io_error	:=	9	,//	
+unknown_error	:=	10	,//	
+emergency_error	:=	666	//	
+
+
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

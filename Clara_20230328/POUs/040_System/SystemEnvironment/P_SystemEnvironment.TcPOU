@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_SystemEnvironment" Id="{39432c9c-d333-4b8b-b227-a3e5b0682a15}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_SystemEnvironment
+VAR
+	FB_SystemEnvironment:FB_SystemEnvironment;
+	i:INT;
+	log_ErrorEnum:EnvironmentErrorEnum;
+	log_ID:INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_LOG();
+FB_SystemEnvironment(
+	IO_Error:=P_Modbus_RTU.station_error[3] , 
+	duration:= GVL_API.stSystemEnvironment.duration, 
+	period:=GVL_API.stSystemEnvironment.period , 
+	temp_measured=>GVL_API.stSystemEnvironment.temp_measured, 
+	humidity_measured=> GVL_API.stSystemEnvironment.humidity_measured, 
+	bqbuzzer=>stOutput.bqBuzzer , 
+	Error=> GVL_API.stSystemEnvironment.Error, 
+	error_code:= GVL_API.stSystemEnvironment.error_code, 
+	state:= GVL_API.stSystemEnvironment.state, 
+	Reset:=GVL_API.stSystemEnvironment.Reset  ,
+	BuzzerOn:=GVL_API.stSystemEnvironment.BuzzerOn,
+	BuzzerOff:=GVL_API.stSystemEnvironment.BuzzerOff );
+]]></ST>
+    </Implementation>
+    <Action Name="ACT_LOG" Id="{abd48aa2-9642-46e2-9ea8-f678eccc133e}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+log_ID:=450;
+
+//ERROR,log_ErrorEnum只能等于一个常数,   
+CASE GVL_API.stSystemEnvironment.error_code  OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+3	:	log_ErrorEnum	:=	3	;
+4	:	log_ErrorEnum	:=	4	;
+666	:	log_ErrorEnum	:=	666	;
+
+END_CASE
+
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT('SystemEnvironment Error: ',TO_STRING(log_ErrorEnum));
+fbSetAlarm[log_ID+1](
+	InUse:=TRUE , 
+	EventId:=log_ID+1 , 
+	EventActive:=GVL_API.stSystemEnvironment.error_code<>0  AND GVL_API.stSystemEnvironment.error_code<>666, 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//reset
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=	'SystemEnvironment Reset ';
+fbSetAlarm[log_ID+2](
+	InUse:=TRUE , 
+	EventId:=log_ID+2 , 
+	EventActive:=GVL_API.stSystemEnvironment.Reset  , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ //buzz on
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT(('SystemEnvironment BuzzerOn duration: '),
+																	LREAL_TO_STRING(GVL_API.stSystemEnvironment.duration));																	
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+3].AlarmMsg.EN,', period: ');
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+3].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stSystemEnvironment.period));																															
+fbSetAlarm[log_ID+3](
+	InUse:=TRUE , 
+	EventId:=log_ID+3 , 
+	EventActive:=GVL_API.stSystemEnvironment.BuzzerOn  , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+  //buzz off
+AlarmActionArray[log_ID+4].AlarmMsg.EN	:='SystemEnvironment BuzzerOff ';
+																													
+fbSetAlarm[log_ID+4](
+	InUse:=TRUE , 
+	EventId:=log_ID+4 , 
+	EventActive:= GVL_API.stSystemEnvironment.BuzzerOff  , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ ]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_SystemEnvironment">
+      <LineId Id="73" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="43" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SystemEnvironment.ACT_LOG">
+      <LineId Id="2" Count="1" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="123" Count="1" />
+      <LineId Id="253" Count="5" />
+      <LineId Id="132" Count="1" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="201" Count="18" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="222" Count="1" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="233" Count="0" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="226" Count="6" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="252" Count="0" />
+      <LineId Id="239" Count="1" />
+      <LineId Id="244" Count="7" />
+      <LineId Id="237" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

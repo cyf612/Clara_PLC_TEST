@@ -1,0 +1,488 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_UVLed_L" Id="{091ed3af-a4f5-4b1f-b7b8-73f7d3914d4c}" SpecialFunc="None">
+    <Declaration><![CDATA[(**************1个LED灯*************************)
+FUNCTION_BLOCK FB_UVLed_L
+VAR_INPUT
+	single_double			:BOOL;//"Indicates unidirectional printing.TRUE IF the print is unidirectional, otherwise FALSE FOR bi-directional printing.
+	initial_print_position	:INT;//"Indicates the initial print position: 0:from_home, 1:to_home."
+	uv_power_leading		:DINT;//% "(leadingPower ConfigurePower-Settings method)Power to apply to leading LEDs of the UVUnit"
+	uv_power_trailing		:DINT;//% "(trailingPower ConfigurePower-Settings method)Power to apply to trailing LEDs of the UVUnit"
+	uvStart					:LREAL;//mm "Position in micron where to start/stop curing depending on the direction (left/right)."
+	uvEnd					:LREAL;//mm "Position in micron where to start/stop curing depending on the direction (left/right)"
+	ahead_pos				:LREAL:=100;//UV开灯提前
+	delay_pos				:LREAL:=100;//UV关闭延迟
+	parts					:BYTE;
+	
+	Encoder					:LREAL;
+	Moving					:BOOL;//fs MOVING
+	FS_Direction_N			:BOOL;//反向
+	FS_Direction_P			:BOOL;//正向
+	UVError					:BOOL;
+	IO_Error				:BOOL;
+	UVisRemote				:BOOL;
+END_VAR
+VAR_OUTPUT
+	state				:INT;
+	error_code			:INT;
+	uv_power			:DINT;//一个UV灯内 分段功率
+	set_prats			:BYTE;//
+	initialized			:BOOL;
+	settings_applide		:BOOL;
+	curing_started	:BOOL;
+	curing_stopped	:BOOL;
+	error					:BOOL;
+	off					:BOOL;
+END_VAR
+VAR
+	step				:INT;
+	unidirection		:BOOL;//单向
+	bidirectiona		:BOOL;//双向
+	from_home			:BOOL;//Printing starts from the home position
+	to_home				:BOOL;//Printing starts towards the home position
+	error_trig1,error_trig2:Tc2_Standard.R_TRIG;
+	uvStart_temp		:LREAL;//因UV灯有延迟，提前量
+	uvEnd_temp			:LREAL;//因UV灯有延迟，提前量
+	ton1:Tc2_Standard.TON;
+END_VAR
+VAR_IN_OUT
+	Initialize				:BOOL;
+	ConfigurePowerSettings	:BOOL;
+	ConfigurePositions		:BOOL;
+	StopCuring				:BOOL;
+	SetOff					:BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[set_prats:=parts;
+
+(***************因UV灯有延迟，提前量****************************)
+	uvStart_temp:=uvStart-ahead_pos;
+	uvEnd_temp:=uvEnd+delay_pos;
+
+CASE step OF
+0://waiting
+	IF Initialize THEN 
+		step:=5;	
+	ELSIF ConfigurePowerSettings THEN 
+		step:=20;	
+	ELSIF ConfigurePositions THEN 
+		step:=40;
+	ELSIF ConfigurePowerSettings THEN 
+		step:=10;
+	ELSIF StopCuring THEN 
+		step:=40;
+	ELSIF SetOff OR GVL.Reset THEN 
+		step:=200;
+	ELSIF state=UVLedStateEnum.ready_for_curing AND Moving THEN 
+		step:=50;
+	END_IF
+	(******************状态自复位***************************)
+	ton1(IN:=initialized OR  settings_applide OR  curing_started OR  curing_stopped 
+				OR error OR  off , PT:=State_reset_time , Q=> , ET=> );
+	IF ton1.Q THEN 
+		initialized:=FALSE;
+		settings_applide:=FALSE;
+		curing_started:=FALSE;
+		curing_stopped:=FALSE;
+		error:=FALSE;
+		off:=FALSE;
+	END_IF
+	
+5://off
+	state:=UVLedStateEnum.off;
+	error_code:=UVLedErrorEnum.no_error;	
+	uv_power:=0;
+	
+	ConfigurePowerSettings	:=FALSE;
+	ConfigurePositions		:=FALSE;
+	StopCuring				:=FALSE;
+	SetOff					:=FALSE;
+	bidirectiona			:=FALSE;
+	from_home				:=FALSE;
+	
+	IF Initialize  THEN 
+		Initialize:=FALSE;	
+		state:=UVLedStateEnum.initializing;	
+		step:=6;		
+	END_IF
+6://
+	IF UVisRemote THEN 
+		step:=10;	
+	END_IF
+10://initializing	
+	initialized:=TRUE;
+	state:=UVLedStateEnum.ready;	
+	settings_applide:=FALSE;
+	curing_started:=FALSE;
+	curing_stopped:=FALSE;
+	off:=FALSE;
+	step:=0;
+20://ready	
+	IF 	ConfigurePowerSettings THEN
+		ConfigurePowerSettings:=FALSE; 
+		IF single_double THEN 
+			unidirection:=TRUE;
+			bidirectiona:=FALSE;
+		ELSE
+			unidirection:=FALSE;
+			bidirectiona:=TRUE;
+		END_IF
+		IF initial_print_position=1 THEN 
+			to_home:=TRUE;
+			from_home:=FALSE;
+		ELSIF initial_print_position=0 THEN 
+			to_home:=FALSE;
+			from_home:=TRUE;
+		END_IF		
+		state:=UVLedStateEnum.applying_settings;
+		step:=30;
+	END_IF
+	IF SetOff THEN	
+		step :=200;
+	END_IF
+30://applying_settings
+	ConfigurePowerSettings:=FALSE;	
+	uv_power:=0;
+	state:=UVLedStateEnum.settings_applied;
+	settings_applide:=TRUE;
+	step:=0;
+40://settings_applied	
+	IF 	ConfigurePositions THEN 
+		ConfigurePositions:=FALSE;
+		IF uvStart>0 AND uvEnd>0   THEN 
+			state:=UVLedStateEnum.ready_for_curing;
+			step:=0;
+		END_IF	
+	END_IF
+	IF StopCuring THEN 
+		StopCuring:=FALSE;
+		state:=UVLedStateEnum.ready;
+		step:=0;
+	END_IF
+50://ready_for_curing
+	//IF is_printing THEN 
+		IF bidirectiona THEN 
+			step:=60;
+		ELSIF unidirection THEN 
+			IF from_home THEN 
+				step:=70;
+			ELSIF to_home THEN 
+				step:=80;
+			END_IF
+		END_IF
+	//END_IF
+60://bidirectiona   双向
+	IF FS_Direction_P THEN 	//向右
+		IF Encoder>=uvStart_temp  AND Encoder<=uvEnd_temp THEN    //左灯
+			 uv_power:=uv_power_trailing;	
+			curing_started :=TRUE;
+		ELSE uv_power:=0;
+		END_IF
+		IF Encoder>uvEnd_temp  THEN  //结束
+			curing_started :=FALSE;
+			curing_stopped:=TRUE;
+			step:=30;
+		END_IF
+	ELSIF FS_Direction_N THEN 
+		IF Encoder>=uvStart_temp  AND Encoder<=uvEnd_temp THEN    //左灯
+			 uv_power:=uv_power_leading;
+			 curing_started :=TRUE;
+		ELSE uv_power:=0;
+		END_IF
+		IF Encoder<uvStart_temp  THEN  //结束
+			curing_started :=FALSE;
+			curing_stopped:=TRUE;
+			step:=30;
+		END_IF
+	END_IF
+	
+	IF uv_power<>0  THEN 
+		state:=UVLedStateEnum.curing;
+	END_IF
+
+	(*******范围内小车不运动*******)
+	IF (Encoder>=uvStart_temp AND Encoder <=uvEnd_temp) AND NOT Moving (*OR NOT is_printing *) THEN 
+		uv_power:=0;
+		curing_stopped:=TRUE;
+		step:=30; 
+	END_IF
+70://unidirection/from_home
+	IF FS_Direction_P THEN 
+		IF Encoder>=uvStart_temp  AND Encoder<=uvEnd_temp THEN    //左灯
+			 uv_power:=uv_power_trailing;
+			  curing_started :=TRUE;
+		ELSE uv_power:=0;
+		END_IF
+		IF Encoder>uvEnd_temp  THEN  //结束
+			curing_started :=FALSE;
+			curing_stopped:=TRUE;
+			step:=30;
+		END_IF				
+	END_IF
+	
+	IF uv_power<>0  THEN 
+		state:=UVLedStateEnum.curing;
+	END_IF
+	IF FS_Direction_N THEN 
+		uv_power:=0;
+		curing_stopped:=TRUE;
+		step:=30; 
+	END_IF
+	(*******范围内小车不运动******)
+	IF (Encoder>=uvStart_temp AND Encoder <=uvEnd_temp) AND NOT Moving (*OR NOT is_printing *) THEN 
+		uv_power:=0;
+		curing_stopped:=TRUE;
+		step:=30; 
+	END_IF
+
+80://unidirection/to_home
+	IF FS_Direction_N THEN 
+		IF Encoder>=uvStart_temp  AND Encoder<=uvEnd_temp THEN    //左灯
+			 uv_power:=uv_power_leading;
+			 curing_started :=TRUE;
+		ELSE uv_power:=0;
+		END_IF
+		IF Encoder<uvStart_temp  THEN  //结束
+			curing_started :=FALSE;
+			curing_stopped:=TRUE;
+			step:=30;
+		END_IF	
+	END_IF
+	
+	IF uv_power<>0  THEN 
+		state:=UVLedStateEnum.curing;
+	END_IF
+	IF FS_Direction_P THEN 
+		uv_power:=0;
+		curing_stopped:=TRUE;
+		step:=30; 
+	END_IF
+	(*******范围内小车不运动*******)
+	IF (Encoder>=uvStart_temp AND Encoder <=uvEnd_temp) AND NOT Moving (*OR NOT is_printing*)  THEN 
+		uv_power:=0;
+		curing_stopped:=TRUE;
+		step:=30; 
+	END_IF
+100://error
+	state:=UVLedStateEnum.error;
+	error:=TRUE;
+	uv_power:=0;
+	step:=0; 
+	IF SetOff OR GVL.Reset THEN
+		SetOff:=FALSE; 	
+		step :=200;
+	END_IF
+200://seting_off	
+	SetOff:=FALSE; 
+	state:=UVLedStateEnum.setting_off;
+	error_code:=UVLedErrorEnum.no_error;
+	uv_power:=0;
+	off:=TRUE;
+	state:=UVLedStateEnum.off;
+	step:=0;
+END_CASE
+IF SetOff OR GVL.Reset THEN 
+	step:=200;
+END_IF
+
+(*****************ERROR**************************************)
+IF 	state<>UVLedStateEnum.setting_off AND state<>UVLedStateEnum.off AND state<>UVLedStateEnum.error THEN 
+	error_trig1(CLK:=UVError AND state<>UVLedStateEnum.off , Q=> );
+	error_trig2(CLK:=IO_Error AND state<>UVLedStateEnum.off , Q=> );
+	IF GVL.Emstop_SAFE THEN 
+		error_code:=UVLedErrorEnum.emergency_error;
+		step:=100;
+	ELSIF error_trig1.Q THEN 
+		error_code:=UVLedErrorEnum.abnormal_temperature;
+		step:=100;
+	ELSIF error_trig2.Q THEN 
+		error_code:=UVLedErrorEnum.unknown_error;
+		step:=100;
+	END_IF
+END_IF
+
+	(*******只要速度低于值，就不开灯*****)
+IF ABS( Axis[FastScan].Ref.NcToPlc.ActVelo)<=10 THEN
+	uv_power:=0;	
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_UVLed_L">
+      <LineId Id="186" Count="0" />
+      <LineId Id="816" Count="0" />
+      <LineId Id="815" Count="0" />
+      <LineId Id="809" Count="0" />
+      <LineId Id="811" Count="0" />
+      <LineId Id="807" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="955" Count="2" />
+      <LineId Id="959" Count="5" />
+      <LineId Id="966" Count="3" />
+      <LineId Id="1054" Count="1" />
+      <LineId Id="958" Count="0" />
+      <LineId Id="979" Count="0" />
+      <LineId Id="975" Count="0" />
+      <LineId Id="986" Count="0" />
+      <LineId Id="976" Count="2" />
+      <LineId Id="987" Count="3" />
+      <LineId Id="972" Count="0" />
+      <LineId Id="974" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="43" Count="2" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="991" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="1251" Count="2" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="992" Count="1" />
+      <LineId Id="1143" Count="3" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="453" Count="0" />
+      <LineId Id="440" Count="12" />
+      <LineId Id="439" Count="0" />
+      <LineId Id="1046" Count="0" />
+      <LineId Id="68" Count="1" />
+      <LineId Id="614" Count="1" />
+      <LineId Id="613" Count="0" />
+      <LineId Id="70" Count="1" />
+      <LineId Id="361" Count="0" />
+      <LineId Id="1045" Count="0" />
+      <LineId Id="1058" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="324" Count="0" />
+      <LineId Id="434" Count="0" />
+      <LineId Id="1047" Count="0" />
+      <LineId Id="438" Count="0" />
+      <LineId Id="436" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="321" Count="0" />
+      <LineId Id="325" Count="0" />
+      <LineId Id="1070" Count="0" />
+      <LineId Id="322" Count="1" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="191" Count="1" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="275" Count="2" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="208" Count="1" />
+      <LineId Id="1125" Count="0" />
+      <LineId Id="252" Count="0" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="352" Count="0" />
+      <LineId Id="1126" Count="0" />
+      <LineId Id="1056" Count="0" />
+      <LineId Id="353" Count="1" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="255" Count="1" />
+      <LineId Id="1128" Count="0" />
+      <LineId Id="257" Count="1" />
+      <LineId Id="356" Count="0" />
+      <LineId Id="1129" Count="0" />
+      <LineId Id="1059" Count="0" />
+      <LineId Id="357" Count="0" />
+      <LineId Id="355" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="262" Count="1" />
+      <LineId Id="269" Count="0" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="340" Count="0" />
+      <LineId Id="386" Count="1" />
+      <LineId Id="1138" Count="1" />
+      <LineId Id="343" Count="0" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="283" Count="1" />
+      <LineId Id="1131" Count="0" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="278" Count="0" />
+      <LineId Id="371" Count="0" />
+      <LineId Id="1132" Count="0" />
+      <LineId Id="1060" Count="0" />
+      <LineId Id="1133" Count="0" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="365" Count="0" />
+      <LineId Id="308" Count="1" />
+      <LineId Id="307" Count="0" />
+      <LineId Id="286" Count="1" />
+      <LineId Id="1061" Count="0" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="288" Count="0" />
+      <LineId Id="378" Count="0" />
+      <LineId Id="389" Count="1" />
+      <LineId Id="1136" Count="1" />
+      <LineId Id="344" Count="0" />
+      <LineId Id="666" Count="0" />
+      <LineId Id="291" Count="1" />
+      <LineId Id="295" Count="1" />
+      <LineId Id="1134" Count="0" />
+      <LineId Id="297" Count="1" />
+      <LineId Id="374" Count="0" />
+      <LineId Id="1135" Count="0" />
+      <LineId Id="1062" Count="0" />
+      <LineId Id="375" Count="0" />
+      <LineId Id="373" Count="0" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="364" Count="0" />
+      <LineId Id="311" Count="1" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="302" Count="0" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="1063" Count="0" />
+      <LineId Id="303" Count="1" />
+      <LineId Id="382" Count="2" />
+      <LineId Id="1064" Count="1" />
+      <LineId Id="347" Count="0" />
+      <LineId Id="330" Count="1" />
+      <LineId Id="1066" Count="0" />
+      <LineId Id="350" Count="0" />
+      <LineId Id="1067" Count="0" />
+      <LineId Id="616" Count="0" />
+      <LineId Id="860" Count="0" />
+      <LineId Id="617" Count="0" />
+      <LineId Id="351" Count="0" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="1068" Count="0" />
+      <LineId Id="574" Count="0" />
+      <LineId Id="334" Count="0" />
+      <LineId Id="1069" Count="0" />
+      <LineId Id="1071" Count="1" />
+      <LineId Id="335" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="1198" Count="0" />
+      <LineId Id="1197" Count="0" />
+      <LineId Id="1199" Count="0" />
+      <LineId Id="619" Count="0" />
+      <LineId Id="568" Count="0" />
+      <LineId Id="720" Count="0" />
+      <LineId Id="903" Count="1" />
+      <LineId Id="721" Count="2" />
+      <LineId Id="906" Count="2" />
+      <LineId Id="910" Count="2" />
+      <LineId Id="724" Count="0" />
+      <LineId Id="719" Count="0" />
+      <LineId Id="725" Count="0" />
+      <LineId Id="667" Count="0" />
+      <LineId Id="672" Count="1" />
+      <LineId Id="670" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="RTRErrorEnum" Id="{6bb71222-6e4b-4dc9-b115-7e6a5548d32b}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE RTRErrorEnum :
+(
+no_error	:=	0	,//	No error detected
+not_connected	:=	1	,//	A command was requested prior to opening the driver
+invalid_state	:=	2	,//	An invalid command was requested
+break_exceeded_timeout	:=	3	,//	
+cmd_timeout	:=	4	,//	excute commond timed out
+unknown_error	:=	5	,//	Unknown – Network error
+Drive_not_ready_for_operation	:=	6	,//	Drive not ready for operation
+roll_unclamped	:=	7	,//
+Invalid_IO_data_for_more_than_n_subsequent_NC_cycles_encoder	:=	8	,//	Possible reasons for this error: An EtherCAT slave may have left its OP state or there is a too high real time usage or a too high real time jitter.
+
+emergency_error	:=	666	//	The object is in error due to an active emergency error.
+
+
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

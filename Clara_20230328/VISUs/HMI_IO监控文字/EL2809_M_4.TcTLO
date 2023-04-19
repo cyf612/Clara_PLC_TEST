@@ -1,0 +1,200 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <TextList Name="EL2809_M_4" Id="{4c0abf45-40c5-4928-98c9-95a6a888e007}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="TextListObject">
+          <v n="UniqueIdGenerator">"0"</v>
+          <l n="TextList" t="ArrayList" cet="TextListRow">
+            <o>
+              <v n="TextID">"1"</v>
+              <v n="TextDefault">"Pump C1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵C1</v>
+                <v></v>
+                <v>供墨泵C1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"2"</v>
+              <v n="TextDefault">"Pump C2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵C2</v>
+                <v></v>
+                <v>供墨泵C2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"3"</v>
+              <v n="TextDefault">"Pump Y1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵Y1</v>
+                <v></v>
+                <v>供墨泵Y1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"4"</v>
+              <v n="TextDefault">"Pump Y2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵Y2</v>
+                <v></v>
+                <v>供墨泵Y2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"5"</v>
+              <v n="TextDefault">"Pump M1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵M1</v>
+                <v></v>
+                <v>供墨泵M1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"6"</v>
+              <v n="TextDefault">"Pump M2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵M2</v>
+                <v></v>
+                <v>供墨泵M2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"7"</v>
+              <v n="TextDefault">"Pump K1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵K1</v>
+                <v></v>
+                <v>供墨泵K1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"8"</v>
+              <v n="TextDefault">"Pump K2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵K2</v>
+                <v></v>
+                <v>供墨泵K2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"9"</v>
+              <v n="TextDefault">"Pump LC1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵LC1</v>
+                <v></v>
+                <v>供墨泵LC1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"10"</v>
+              <v n="TextDefault">"Pump LC2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵LC2</v>
+                <v></v>
+                <v>供墨泵LC2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"11"</v>
+              <v n="TextDefault">"Pump LM1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵LM1</v>
+                <v></v>
+                <v>供墨泵LM1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"12"</v>
+              <v n="TextDefault">"Pump LM2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵LM2</v>
+                <v></v>
+                <v>供墨泵LM2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"13"</v>
+              <v n="TextDefault">"Pump P1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>图层泵 P1</v>
+                <v></v>
+                <v>供墨泵 W1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"14"</v>
+              <v n="TextDefault">"Pump P2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>图层泵 P2</v>
+                <v></v>
+                <v>供墨泵 W2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"15"</v>
+              <v n="TextDefault">"Pump W1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵W1</v>
+                <v></v>
+                <v>清洗液泵1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"16"</v>
+              <v n="TextDefault">"Pump W2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>供墨泵W2</v>
+                <v></v>
+                <v>清洗液泵2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">""</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+          </l>
+          <l n="Languages" t="ArrayList" cet="String">
+            <v>chinese</v>
+            <v>english</v>
+            <v>Chinese</v>
+            <v>English</v>
+          </l>
+          <v n="GuidInit">{e8792131-3988-411f-ad8f-784fd76982ee}</v>
+          <v n="GuidReInit">{32f1fc5c-2171-422a-acb2-11dafef1a8c8}</v>
+          <v n="GuidExitX">{4f5a753d-8f28-4362-875b-cc70aaa2febe}</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="String">System.String</Type>
+        <Type n="TextListObject">{2bef0454-1bd3-412a-ac2c-af0f31dbc40f}</Type>
+        <Type n="TextListRow">{53da1be7-ad25-47c3-b0e8-e26286dad2e0}</Type>
+      </TypeList>
+    </XmlArchive>
+  </TextList>
+</TcPlcObject>

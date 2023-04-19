@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <GVL Name="GVL" Id="{44c18538-0f34-49ce-94eb-4a7e4e28a58a}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+(********************ISS****************************)	
+		MainTankLevel		:ARRAY[1..10] OF LREAL; //LC,LM,Y,M,C,K,W,P,F,WAST
+		MainTankLevel_timeout:BOOL;
+		inkLevel_W_L_BOT	:BOOL;
+		inkLevel_W_L_TOP	:BOOL;
+		inkLevel_W_R_TOP	:BOOL;
+		inkLevel_W_R_BOT	:BOOL;	
+		fill_W_in_swap_enable	:BOOL;
+		fill_F_in_swap_enable	:BOOL;
+(**************UVLED********************)
+	set_uv_power_left		:DINT;//set power
+	set_uv_power_right		:DINT;//set power
+	set_uv_parts_left		:BYTE;
+	set_uv_parts_right		:BYTE;
+	HMI_TEMP_L,HMI_TEMP_R :INT;
+	HMI_power_L,HMI_power_R:INT;
+	UV_error_L,UV_error_R:BOOL;
+	UV_timeout:BOOL;
+	UVisRemote:BOOL;//远程模式	
+(******************System*************************)
+	temp_measured:LREAL;
+	humidity_measured:LREAL;
+(********************safe****************************)	
+		Emstop_SAFE			:BOOL;		//急停 安全输出
+		Emstop_Button		:BOOL;		//急停按 钮
+		Reset			:BOOL;
+		shuttle_crash		:BOOL;		//碰撞
+		interlock_triggered		:BOOL;	//	安全门触发
+		
+(*********************)
+	HMI_btReset				:BOOL;
+	HMI_btEmstop		:BOOL;	
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

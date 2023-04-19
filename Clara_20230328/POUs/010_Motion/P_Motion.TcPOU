@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_Motion" Id="{a07fa915-69b4-42b1-8b6d-ccc4cf561082}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_Motion
+VAR
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[P_FastScan();
+P_Z_Axis();
+P_SlowScan();
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="P_Motion">
+      <LineId Id="30" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

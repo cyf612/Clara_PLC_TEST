@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <GVL Name="_01_Global_Variables" Id="{a6e8d5a7-2a79-41ff-b036-804688d67680}">
+    <Declaration><![CDATA[{attribute 'Tc2GvlVarNames'}
+VAR_GLOBAL
+	Axis:                   ARRAY[1..4] OF 	Axis_PTP_CoE;(*1:FastScan; 2:SlowScan; 3:Z_Axis; 4:SpitUnit*)
+			
+END_VAR
+
+VAR_GLOBAL PERSISTENT(*断电保存型变量*)
+	
+	State_reset_time			:TIME:=T#100MS;//状态自复位延时时间
+	inkFillTimeOutSet  		:TIME:=T#60S;
+	T								:ARRAY[1..13] OF LREAL:=[45,4,0.5,15,120,0.2,1,60,180,2,240,1200,100];
+	
+	(******************drip_purge,接收上位数据，并保存***********************)
+	IntervalTime_W 			:LREAL;//min
+	DripTime_W 				:LREAL;//sec
+	PurgeTime_W 			:LREAL;//sec
+	IntervalTime_C 			:LREAL;//min
+	DripTime_C 				:LREAL;//sec
+	PurgeTime_C 			:LREAL;//sec
+	(**********************墨盒里 
+		0” circuit not filled (default setting)
+	“1” circuit filled with “white ink”
+	“2” circuit filled with “storage fluid”
+	****)
+	SubTankInk_type			:INT;//
+
+
+(***********************HMI******************************)	
+	HMI_SetStirrer_continueTime			:LREAL:=0.1;//M   持续时间
+	HMI_SetStirrer_intervalTime			:LREAL:=5;//M  间隔时间
+	HMI_SetWaste_continueTime			:LREAL:=0.1;//M   废墨持续时间
+	HMI_SetWaste_intervalTime			:LREAL:=5;//M  废墨间隔时间
+	HMI_CircPump1_V						:LREAL:=1;(*0-5V*)
+	HMI_CircPump2_V						:LREAL:=1;(*0-5V*)
+	HMI_EM_STOP_Dec_FS					:LREAL:=5709;
+	HMI_EM_STOP_Jerk_FS					:LREAL:=28591;
+	
+	HMI_RTR_set_Torque          		:ARRAY[1..4] OF DINT:=[80,80,80,80];//0-100
+	
+	HMI_Vac_dely_on						:INT:=3000;//ms
+	
+	
+	
+	
+END_VAR
+
+VAR_GLOBAL CONSTANT
+	FastScan:INT:=1;
+	SlowScan:INT:=2;
+	Z_Axis	:INT:=3;
+	SpitUnit :INT:=4;
+	number_TableVacuum:INT:=1;
+	number_UpDownSlot:INT:=6;	//1-6  S1-S6
+	number_FootPedal:INT:=4;	//1-4:1-4:1:Footpedal1 input; 2:Footpedal2 output; 3:Footpeda3  input; 4:Footpedal4 output
+	number_RoolToRool:INT:=4;   //1:input1; 2:output1; 3:input2; 4:output2
+END_VAR
+]]></Declaration>
+  </GVL>
+</TcPlcObject>

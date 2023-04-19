@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_Stirrer_WastePump" Id="{aadc8222-b861-4ca9-8a71-ba64791d686d}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_Stirrer_WastePump
+VAR
+	(*********搅拌**************)
+	FB_Stirrer:FB_Stirrer;	
+	EnStirrer: BOOL:=TRUE;
+	(*********吸废墨**************)
+	FB_waste_pump :FB_Stirrer;
+	
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FB_Stirrer(
+	enable:=HMI_SetStirrer_intervalTime>0 AND HMI_SetStirrer_continueTime>0 AND NOT GVL.Emstop_Button , 
+	continueTime:=HMI_SetStirrer_continueTime , 
+	intervalTime:=HMI_SetStirrer_intervalTime , 
+	PumpWorkingF=>stOutput.bqStirrerWorkingF , 
+	PumpWorkingB=>stOutput.bqStirrerWorkingB );
+	
+FB_waste_pump(
+	enable:=NOT GVL.Emstop_Button , 
+	continueTime:=HMI_SetWaste_continueTime , 
+	intervalTime:=HMI_SetWaste_intervalTime , 
+	PumpWorkingF=> , 
+	PumpWorkingB=>);
+IF FB_waste_pump.PumpWorkingB OR FB_waste_pump.PumpWorkingF THEN 
+	stOutput.bqWastePump:=TRUE;
+ELSIF NOT FB_waste_pump.PumpWorkingB AND NOT  FB_waste_pump.PumpWorkingF THEN 
+	stOutput.bqWastePump:=FALSE;
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="P_Stirrer_WastePump">
+      <LineId Id="7" Count="4" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="28" Count="4" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="46" Count="1" />
+      <LineId Id="45" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

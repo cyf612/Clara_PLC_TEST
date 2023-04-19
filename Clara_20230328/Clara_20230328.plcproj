@@ -1,0 +1,937 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <FileVersion>1.0.0.0</FileVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{0ad03918-9106-4337-acff-d9e0c6425144}</ProjectGuid>
+    <SubObjectsSortedByName>True</SubObjectsSortedByName>
+    <Name>Clara_20230328</Name>
+    <ProgramVersion>3.1.4022.7</ProgramVersion>
+    <Application>{0c6ac812-7d82-4543-899a-cec71f1923a7}</Application>
+    <TypeSystem>{a46a0650-5da8-4b92-85f9-ab5a1113923e}</TypeSystem>
+    <Implicit_Task_Info>{aacffcfc-0df2-415e-9d4a-f44798e15ee5}</Implicit_Task_Info>
+    <Implicit_KindOfTask>{22087518-005c-4c3f-892c-dcaeae44d4c9}</Implicit_KindOfTask>
+    <Implicit_Jitter_Distribution>{ad87dcba-790b-4978-8393-c9f7d82f937f}</Implicit_Jitter_Distribution>
+    <LibraryReferences>{a851872a-1073-40fb-a8ba-2dabddf3032a}</LibraryReferences>
+    <CompilerDefines>VISU_USEWSTRING</CompilerDefines>
+    <Released>false</Released>
+    <ObjectProtection>{7d22c9aa-eebf-4b02-aa49-255aa771c29f}</ObjectProtection>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="DUTs\01_ST_IO\ST_Input.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\01_ST_IO\ST_IO_FootPedal.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\01_ST_IO\ST_Output.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stAxis.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stFootPedal.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stISS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stSubTank.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stMaintenanceUnit.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stRollToRoll.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stRtu.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stSafetyGuard.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stSpitUnit.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stSystemEnvironment.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stTableVacuum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stUpDownSlot.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\02_PLC\stUVLed.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\AxisStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\Axis_XY_ErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\Axis_Z_ErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\EnvironmentErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\EnvironmentStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\FootPedalErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\FootPedalStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\ISSErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\SubTankErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\ISSStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\SubTankInkEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\SubTankStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\MUErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\MUStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\RTRErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\RTRStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\SafetyGuardErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\SafetyGuardStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\SpitUnitErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\SpitUnitStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\SwapInfoEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\TabVacErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\TabVacStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\UpDownSlotErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\UpDownSlotStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\UVLedErrorEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\PLC\UVLedStateEnum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\TwinSafe\TwinSAFE_FB_ESTOP_State_Enum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Enum_Text\Enum\TwinSafe\TwinSAFE_Group_State_Enum.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Global Variables\_01_Global_Variables.TcGVL">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Global Variables\_04_Global_Variables_InOutput.TcGVL">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GlobalTextList.TcGTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GVLs\COMM.TcGVL">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
+    <Compile Include="GVLs\GVL.TcGVL">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
+    <Compile Include="GVLs\GVL_Alarm.TcGVL">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GVLs\GVL_API.TcGVL">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
+    <Compile Include="ImagePool.TcIPO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="PlcTask.TcTTO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\Data types\Alm_AlarmHistoryType.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\Data types\Alm_AlarmType.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\Data types\Alm_AlmMsg.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\Data types\Alm_EventClass.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\diag_FB\ethercatinfo_read.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\Alarm_FB\FB_AlarmMain.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\Alarm_FB\FB_DiagDataLogging_S.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\Alarm_FB\FB_SetAlarm.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\Alarm_FB\Products\FB_DirectoryCopy.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\Alarm_FB\Products\FB_FileCopy.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\Alarm_FB\SW_FormatWstring.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\报警\MAIN_Alarm.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\系统功能\P_UPS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\000_程序辅助系统\系统功能\systime.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\001_FB\FB_Buzzer.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\001_FB\FB_count.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\001_FB\FB_SQUARE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\001_FB\FB_WriteAnalog.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\002_Modbus\BackPrg\PRG_COMM.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\002_Modbus\PRG_SerialComm.TcPOU">
+      <SubType>Code</SubType>
+      <ObjectProtection>f18742db-e293-4fa8-8e35-7dd09c6e17e5</ObjectProtection>
+    </Compile>
+    <Compile Include="POUs\002_Modbus\P_Modbus.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\002_Modbus\P_Modbus_RTU.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\003_Input_Output\IO_Link.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\003_Input_Output\P_API_IO.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\010_Motion\MotionBase\FB_Home_Z.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\010_Motion\XMove\P_FastScan.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\010_Motion\YMove\P_SlowScan.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\010_Motion\ZMove\P_Z_Axis.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\030_MediaTransport\TableVacuum\FB\FB_TableVacuum.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\030_MediaTransport\UpDownSlot\FB\FB_UpDownSlotS1.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\030_MediaTransport\UpDownSlot\FB\FB_UpDownSlotS2_S6.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\040_System\FootPedal\FB\FB_FootPedal.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\040_System\SafetyGuard\FB\FB_SafetyGuard.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\040_System\SafetyGuard\P_SafetyGuard.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\040_System\SystemEnvironment\FB\FB_SystemEnvironment.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\050_InkSystem\ISS\P_ISS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\050_InkSystem\P_InkSystem.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\050_InkSystem\搅拌_吸废墨\FB\FB_Stirrer.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\050_InkSystem\搅拌_吸废墨\P_Stirrer_WastePump.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\030_MediaTransport\P_MediaTransport.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\030_MediaTransport\TableVacuum\P_TableVacuum.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\030_MediaTransport\UpDownSlot\P_UpDownSlot.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\010_Motion\MotionBase\FB_Home_X.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\010_Motion\MotionBase\FB_MoveFS_Exte.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\010_Motion\MotionBase\FB_MoveSS_Exte.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\010_Motion\MotionBase\FB_MoveZ_Exte.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\010_Motion\MotionBase\PTP\Axis_IO.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\010_Motion\MotionBase\PTP\Axis_PTP_CoE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\010_Motion\P_Motion.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\060_UVLed\FB\FB_UVLed_L.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\060_UVLed\FB\FB_UVLed_R.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\070_RollToRoll\FB\FB_RollToRoll_Torque.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\100_SubTank\FB\FB_Circulation.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\100_SubTank\FB\FB_SubTank_C.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\100_SubTank\FB\FB_SubTank_W.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\100_SubTank\P_SubTank.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\999_TwinSAFE\P_TwinSAFE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\MAIN.TcPOU">
+      <SubType>Code</SubType>
+      <ObjectProtection>00000000-0000-0000-0000-000000000000</ObjectProtection>
+    </Compile>
+    <Compile Include="POUs\070_RollToRoll\P_RollToRoll.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\040_System\FootPedal\P_FootPedal.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\040_System\P_System.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\040_System\SystemEnvironment\P_SystemEnvironment.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\060_UVLed\P_UVLed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\090MaintenanceUnit\FB\FB_Auto_Cycles_Swap.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\090MaintenanceUnit\FB\FB_drip_purge.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\090MaintenanceUnit\P_MaintenanceUnit.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\080SpitUnit\FB\FB_HomeSpitUnit.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\080SpitUnit\FB\FB_MoveSpitUnit_Exte.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\080SpitUnit\P_SpitUnit.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Task_com.TcTTO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\base\title.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\IO_Components\F99_IO_IO.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\IO_Components\F99_IO_IO_1.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\IO_Components\F99_IO_IO_2.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_FootPedal.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_Drip_purge.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_SubTank.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_SystemEnvironment.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_ISS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_MU.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_RTR_1.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_RTR_2.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_SaftyGuard.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_SpitUnit.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_TabVac.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Components\VIS_UpDownSlot.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL1809_M_1.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL1809_M_2.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL1809_M_3.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL1809_S_1.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL1809_S_2.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL1904_M_1.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL1904_M_2.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL1904_M_3.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL1904_M_4.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL1904_M_5.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL2809_M_1.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL2809_M_2.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL2809_M_3.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL2809_M_4.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL2809_S_1.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\HMI_IO监控文字\EL2904_M_1.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\F99_Monitor.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\F7_RTR.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\F4_System.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\F1_AXIS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\F5_InkSystem.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\F3_MediaTransport.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\F6_UVLed.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\ISS_Object.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\subinklevel.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextListSpitUnitErrorid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextListSpitUnitState.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_EnvironmentError.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_EnvironmentState.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_FootPedalerroid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_SubTankerroid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_FootPedalstate.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_ISSerrorid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_ISSstate.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_MU_errorid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_MU_state.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_RTRstate.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_RTR_errorid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_SafetyGuarderrorid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_SafetyGuardstate.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_SubTank_circuit.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_SwapInfo.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_tabvac_errorid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_tabvac_state.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_UpDownSlot_errorid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_UpDownSlot_state.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_UVLed_errorid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_UVLed_state.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_xyErrorid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_xyzState.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\PLC\TextList_zErrorid.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\TwinSafe\TextList_TwinSAFE_FB_ESTOP_State.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\VIS文本\TwinSafe\TextList_TwinSAFE_Group_State.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\报警\Visualization_ActEvent.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\报警\Visualization_LogEvent.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\报警\vis_arm.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>视图管理器.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="视图管理器.TcVMO">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="DUTs" />
+    <Folder Include="DUTs\01_ST_IO" />
+    <Folder Include="DUTs\02_PLC" />
+    <Folder Include="Enum_Text\Enum" />
+    <Folder Include="Enum_Text\Enum\PLC" />
+    <Folder Include="Enum_Text\Enum\TwinSafe" />
+    <Folder Include="Global Variables" />
+    <Folder Include="GVLs" />
+    <Folder Include="Enum_Text" />
+    <Folder Include="POUs\000_程序辅助系统\报警\Data types" />
+    <Folder Include="POUs\000_程序辅助系统\报警\diag_FB" />
+    <Folder Include="POUs\000_程序辅助系统\报警" />
+    <Folder Include="POUs\000_程序辅助系统\报警\Alarm_FB" />
+    <Folder Include="POUs\000_程序辅助系统\报警\Alarm_FB\Products" />
+    <Folder Include="POUs\000_程序辅助系统\系统功能" />
+    <Folder Include="POUs\002_Modbus\BackPrg" />
+    <Folder Include="POUs\010_Motion\ZMove" />
+    <Folder Include="POUs\010_Motion\YMove" />
+    <Folder Include="POUs\010_Motion\XMove" />
+    <Folder Include="POUs\030_MediaTransport\TableVacuum\FB">
+      <ObjectProtection>f18742db-e293-4fa8-8e35-7dd09c6e17e5</ObjectProtection>
+    </Folder>
+    <Folder Include="POUs\030_MediaTransport\UpDownSlot\FB">
+      <ObjectProtection>f18742db-e293-4fa8-8e35-7dd09c6e17e5</ObjectProtection>
+    </Folder>
+    <Folder Include="POUs\040_System\FootPedal\FB">
+      <ObjectProtection>f18742db-e293-4fa8-8e35-7dd09c6e17e5</ObjectProtection>
+    </Folder>
+    <Folder Include="POUs\040_System\SafetyGuard" />
+    <Folder Include="POUs\040_System\SafetyGuard\FB">
+      <ObjectProtection>f18742db-e293-4fa8-8e35-7dd09c6e17e5</ObjectProtection>
+    </Folder>
+    <Folder Include="POUs\040_System\SystemEnvironment\FB">
+      <ObjectProtection>f18742db-e293-4fa8-8e35-7dd09c6e17e5</ObjectProtection>
+    </Folder>
+    <Folder Include="POUs\050_InkSystem" />
+    <Folder Include="POUs\050_InkSystem\ISS" />
+    <Folder Include="POUs\050_InkSystem\搅拌_吸废墨" />
+    <Folder Include="POUs\030_MediaTransport\TableVacuum" />
+    <Folder Include="POUs\030_MediaTransport\UpDownSlot" />
+    <Folder Include="POUs\010_Motion\MotionBase">
+      <ObjectProtection>f18742db-e293-4fa8-8e35-7dd09c6e17e5</ObjectProtection>
+    </Folder>
+    <Folder Include="POUs\010_Motion\MotionBase\PTP" />
+    <Folder Include="POUs\030_MediaTransport" />
+    <Folder Include="POUs\001_FB" />
+    <Folder Include="POUs\050_InkSystem\搅拌_吸废墨\FB">
+      <ObjectProtection>f18742db-e293-4fa8-8e35-7dd09c6e17e5</ObjectProtection>
+    </Folder>
+    <Folder Include="POUs\060_UVLed\FB">
+      <ObjectProtection>f18742db-e293-4fa8-8e35-7dd09c6e17e5</ObjectProtection>
+    </Folder>
+    <Folder Include="POUs\070_RollToRoll" />
+    <Folder Include="POUs\040_System\FootPedal" />
+    <Folder Include="POUs\040_System\SystemEnvironment" />
+    <Folder Include="POUs\060_UVLed" />
+    <Folder Include="POUs\040_System" />
+    <Folder Include="POUs\000_程序辅助系统" />
+    <Folder Include="POUs\010_Motion" />
+    <Folder Include="POUs\070_RollToRoll\FB">
+      <ObjectProtection>f18742db-e293-4fa8-8e35-7dd09c6e17e5</ObjectProtection>
+    </Folder>
+    <Folder Include="POUs\100_SubTank\FB">
+      <ObjectProtection>f18742db-e293-4fa8-8e35-7dd09c6e17e5</ObjectProtection>
+    </Folder>
+    <Folder Include="POUs\999_TwinSAFE" />
+    <Folder Include="POUs\002_Modbus" />
+    <Folder Include="POUs\003_Input_Output" />
+    <Folder Include="POUs\100_SubTank" />
+    <Folder Include="POUs\090MaintenanceUnit" />
+    <Folder Include="POUs\090MaintenanceUnit\FB" />
+    <Folder Include="POUs\080SpitUnit" />
+    <Folder Include="POUs\080SpitUnit\FB" />
+    <Folder Include="VISUs">
+      <ObjectProtection>6a3bc611-d882-424f-b122-ba8942f7f02f</ObjectProtection>
+    </Folder>
+    <Folder Include="POUs" />
+    <Folder Include="VISUs\base" />
+    <Folder Include="VISUs\Components" />
+    <Folder Include="VISUs\Components\IO_Components" />
+    <Folder Include="VISUs\HMI_IO监控文字" />
+    <Folder Include="VISUs\VIS文本" />
+    <Folder Include="VISUs\VIS文本\PLC" />
+    <Folder Include="VISUs\VIS文本\TwinSafe" />
+    <Folder Include="VISUs\报警" />
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderReference Include="CAA Memory">
+      <DefaultResolution>CAA Memory, * (CAA Technical Workgroup)</DefaultResolution>
+      <Namespace>MEM</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="CmpBitmapPool">
+      <DefaultResolution>CmpBitmapPool, * (System)</DefaultResolution>
+      <Namespace>CmpBitmapPool</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemEventTable">
+      <DefaultResolution>VisuElemEventTable, 1.0.3.0 (System)</DefaultResolution>
+      <Namespace>VisuElemEventTable</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemMeter">
+      <DefaultResolution>VisuElemMeter, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemMeter</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElems">
+      <DefaultResolution>VisuElems, 3.5.13.40 (System)</DefaultResolution>
+      <Namespace>VisuElems</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemsSpecialControls">
+      <DefaultResolution>VisuElemsSpecialControls, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemsSpecialControls</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemsWinControls">
+      <DefaultResolution>VisuElemsWinControls, 3.5.13.20 (System)</DefaultResolution>
+      <Namespace>VisuElemsWinControls</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemTextEditor">
+      <DefaultResolution>VisuElemTextEditor, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemTextEditor</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="system_visuinputs">
+      <DefaultResolution>visuinputs, 3.5.13.0 (system)</DefaultResolution>
+      <Namespace>visuinputs</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuNativeControl">
+      <DefaultResolution>VisuNativeControl, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuNativeControl</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_EtherCAT">
+      <DefaultResolution>Tc2_EtherCAT, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_EtherCAT</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_IoFunctions">
+      <DefaultResolution>Tc2_IoFunctions, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_IoFunctions</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_MC2">
+      <DefaultResolution>Tc2_MC2, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_MC2</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_MDP">
+      <DefaultResolution>Tc2_MDP, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_MDP</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_ModbusRTU">
+      <DefaultResolution>Tc2_ModbusRTU, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_ModbusRTU</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_SerialCom">
+      <DefaultResolution>Tc2_SerialCom, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_SerialCom</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_Standard">
+      <DefaultResolution>Tc2_Standard, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_Standard</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_SUPS">
+      <DefaultResolution>Tc2_SUPS, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_SUPS</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_System">
+      <DefaultResolution>Tc2_System, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_System</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_SystemCX">
+      <DefaultResolution>Tc2_SystemCX, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_SystemCX</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_Utilities">
+      <DefaultResolution>Tc2_Utilities, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_Utilities</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc3_Module">
+      <DefaultResolution>Tc3_Module, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc3_Module</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="VisuDialogs">
+      <DefaultResolution>VisuDialogs, * (System)</DefaultResolution>
+      <Namespace>VisuDialogs</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="VisuUserManagement">
+      <DefaultResolution>VisuUserMgmt, * (System)</DefaultResolution>
+      <Namespace>VisuUserManagement</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+    </PlaceholderReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Clara_20230328.tmc">
+      <SubType>Content</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <LibraryReference Include="VisuSymbols,3.5.10.0,System">
+      <Namespace>VisuSymbols</Namespace>
+    </LibraryReference>
+  </ItemGroup>
+  <ProjectExtensions>
+    <PlcProjectOptions>
+      <XmlArchive>
+        <Data>
+          <o xml:space="preserve" t="OptionKey">
+      <v n="Name">"&lt;ProjectRoot&gt;"</v>
+      <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+        <v>{8F99A816-E488-41E4-9FA3-846536012284}</v>
+        <o>
+          <v n="Name">"{8F99A816-E488-41E4-9FA3-846536012284}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{29BD8D0C-3586-4548-BB48-497B9A01693F}</v>
+        <o>
+          <v n="Name">"{29BD8D0C-3586-4548-BB48-497B9A01693F}"</v>
+          <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+            <v>Rules</v>
+            <o>
+              <v n="Name">"Rules"</v>
+              <d n="SubKeys" t="Hashtable" />
+              <d n="Values" t="Hashtable" />
+            </o>
+          </d>
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{40450F57-0AA3-4216-96F3-5444ECB29763}</v>
+        <o>
+          <v n="Name">"{40450F57-0AA3-4216-96F3-5444ECB29763}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String">
+            <v>ActiveVisuExtensionsLength</v>
+            <v>1</v>
+            <v>ActiveVisuExtensions_0</v>
+            <v>"IR0whWr8bwdyBwAA2CM5uwAAAAC4AQAAabXwRAAAAAABAAAAAAAAAAEaUwB5AHMAdABlAG0ALgBTAHQAcgBpAG4AZwACTHsANgBkADQAMgBlADkAMQA4AC0AZQA2AGEANQAtADQAYgAyAGMALQA5ADEANwBiAC0AZQAwADcAMwAxAGIANwA2ADYAYgAxAGYAfQADDkMAbwBtAHAAYQBuAHkABDBCAGUAYwBrAGgAbwBmAGYAIABBAHUAdABvAG0AYQB0AGkAbwBuACAARwBtAGIASAAFDlYAZQByAHMAaQBvAG4ABg4xAC4AMAAuADMALgAwAAcMQQBjAHQAaQB2AGUACAhiAG8AbwBsAAkITgBhAG0AZQAKJFYAaQBzAHUARQBsAGUAbQBFAHYAZQBuAHQAVABhAGIAbABlAAsWUAByAG8AZgBpAGwAZQBEAGEAdABhAAxMewAxADYAZQA1ADUAYgA2ADAALQA3ADAANAAzAC0ANABhADYAMwAtAGIANgA1AGIALQA2ADEANAA3ADEAMwA4ADcAOABkADQAMgB9AA0STABpAGIAcgBhAHIAaQBlAHMADkx7ADMAYgBmAGQANQA0ADUAOQAtAGIAMAA3AGYALQA0AGQANgBlAC0AYQBlADEAYQAtAGEAOAAzADMANQA2AGEANQA1ADEANAAyAH0AD0x7ADkAYwA5ADUAOAA5ADYAOAAtADIAYwA4ADUALQA0ADEAYgBiAC0AOAA4ADcAMQAtADgAOQA1AGYAZgAxAGYAZQBkAGUAMQBhAH0AEAZpAG4AdAARClUAcwBhAGcAZQASClQAaQB0AGwAZQATDFMAeQBzAHQAZQBtABQSVgBpAHMAdQBFAGwAZQBtAHMAFRhWAGkAcwB1AEUAbABlAG0AQgBhAHMAZQAWFFYAaQBzAHUASQBuAHAAdQB0AHMAFyZEAGUAdgBQAGwAYQBjAGUAaABvAGwAZABlAHIAcwBVAHMAZQBkABgiUABsAHUAZwBpAG4AQwBvAG4AcwB0AHIAYQBpAG4AdABzABlMewA0ADMAZAA1ADIAYgBjAGUALQA5ADQAMgBjAC0ANAA0AGQANwAtADkAZQA5ADQALQAxAGIAZgBkAGYAMwAxADAAZQA2ADMAYwB9ABocQQB0AEwAZQBhAHMAdABWAGUAcgBzAGkAbwBuABsUUABsAHUAZwBpAG4ARwB1AGkAZAAcFlMAeQBzAHQAZQBtAC4ARwB1AGkAZAAdSGEAZgBjAGQANQA0ADQANgAtADQAOQAxADQALQA0AGYAZQA3AC0AYgBiADcAOAAtADkAYgBmAGYAZQBiADcAMABmAGQAMQA3AB4UVQBwAGQAYQB0AGUASQBuAGYAbwAfTHsAYgAwADMAMwA2ADYAYQA4AC0AYgA1AGMAMAAtADQAYgA5AGEALQBhADAAMABlAC0AZQBiADgANgAwADEAMQAxADAANABjADMAfQAgDlUAcABkAGEAdABlAHMAIUx7ADEAOAA2ADgAZgBmAGMAOQAtAGUANABmAGMALQA0ADUAMwAyAC0AYQBjADAANgAtADEAZQAzADkAYgBiADUANQA3AGIANgA5AH0AIkx7AGEANQBiAGQANAA4AGMAMwAtADAAZAAxADcALQA0ADEAYgA1AC0AYgAxADYANAAtADUAZgBjADYAYQBkADIAYgA5ADYAYgA3AH0AIxZPAGIAagBlAGMAdABzAFQAeQBwAGUAJFRVAHAAZABhAHQAZQBMAGEAbgBnAHUAYQBnAGUATQBvAGQAZQBsAEYAbwByAEMAbwBuAHYAZQByAHQAaQBiAGwAZQBMAGkAYgByAGEAcgBpAGUAcwAlEEwAaQBiAFQAaQB0AGwAZQAmFEwAaQBiAEMAbwBtAHAAYQBuAHkAJx5VAHAAZABhAHQAZQBQAHIAbwB2AGkAZABlAHIAcwAoOFMAeQBzAHQAZQBtAC4AQwBvAGwAbABlAGMAdABpAG8AbgBzAC4ASABhAHMAaAB0AGEAYgBsAGUAKRJ2AGkAcwB1AGUAbABlAG0AcwAqDHMAeQBzAHQAZQBtACtINgBjAGIAMQBjAGQAZQAxAC0AZAA1AGQAYwAtADQAYQAzAGIALQA5ADAANQA0AC0AMgAxAGYAYQA3ADUANgBhADMAZgBhADQALChJAG4AdABlAHIAZgBhAGMAZQBWAGUAcgBzAGkAbwBuAEkAbgBmAG8ALUx7AGMANgAxADEAZQA0ADAAMAAtADcAZgBiADkALQA0AGMAMwA1AC0AYgA5AGEAYwAtADQAZQAzADEANABiADUAOQA5ADYANAAzAH0ALhhNAGEAagBvAHIAVgBlAHIAcwBpAG8AbgAvGE0AaQBuAG8AcgBWAGUAcgBzAGkAbwBuADAMTABlAGcAYQBjAHkAMTBMAGEAbgBnAHUAYQBnAGUATQBvAGQAZQBsAFYAZQByAHMAaQBvAG4ASQBuAGYAbwAyMEwAbwBhAGQATABpAGIAcgBhAHIAaQBlAHMASQBuAHQAbwBQAHIAbwBqAGUAYwB0ADMaQwBvAG0AcABhAHQAaQBiAGkAbABpAHQAeQDQAAIaBtADAS0E0AUBLQbQBwitAdAJAS0K0AsMGgfQDQ4aAUUNDwTQAA8aBEUFEAQBAAAAAAAAAAMAAAAAAAAA0BEQrQIAAADQEgEtCtADAS0T0AAPGgRFBRAEAwAAAAUAAAANAAAAFAAAANAREK0BAAAA0BIBLRTQAwEtE9AADxoERQUQBAMAAAAFAAAADQAAABQAAADQERCtBAAAANASAS0V0AMBLRPQAA8aBEUFEAQDAAAABQAAAA0AAAAAAAAA0BEQrQQAAADQEgEtFtADAS0T0BcIrQFFGBkB0AAZGgJFGhAEAwAAAAUAAAANAAAAAAAAANAbHC0d0B4fGgJFICEC0AAiGgVFBRAEAwAAAAMAAAAAAAAACgAAANAjEK0AAAAA0AkBLSTQJQEtFNAmAS0T0AAiGgVFBRAEAwAAAAMAAAAAAAAACgAAANAjEK0BAAAA0AkBLSTQJQEtFNAmAS0TmicoAUUAAQLQAAEtKdAAAS0q0AAcLSvQLC0aA9AuEK0BAAAA0C8QrRcAAADQMAitANAxLRoD0C4QrQIAAADQLxCtAwAAANAwCK0A0DIIrQDQMwitAA=="</v>
+            <v>ActiveVisuProfile</v>
+            <v>"IR0whWr8bwfwBwAAiD2qpQAAAABVAgAA37x72QAAAAABAAAAAAAAAAEaUwB5AHMAdABlAG0ALgBTAHQAcgBpAG4AZwACTHsAZgA5ADUAYgBiADQAMgA2AC0ANQA1ADIANAAtADQAYgA0ADUALQA5ADQAMAAwAC0AZgBiADAAZgAyAGUANwA3AGUANQAxAGIAfQADCE4AYQBtAGUABDBUAHcAaQBuAEMAQQBUACAAMwAuADEAIABCAHUAaQBsAGQAIAA0ADAAMgA0AC4ANwAFFlAAcgBvAGYAaQBsAGUARABhAHQAYQAGTHsAMQA2AGUANQA1AGIANgAwAC0ANwAwADQAMwAtADQAYQA2ADMALQBiADYANQBiAC0ANgAxADQANwAxADMAOAA3ADgAZAA0ADIAfQAHEkwAaQBiAHIAYQByAGkAZQBzAAhMewAzAGIAZgBkADUANAA1ADkALQBiADAANwBmAC0ANABkADYAZQAtAGEAZQAxAGEALQBhADgAMwAzADUANgBhADUANQAxADQAMgB9AAlMewA5AGMAOQA1ADgAOQA2ADgALQAyAGMAOAA1AC0ANAAxAGIAYgAtADgAOAA3ADEALQA4ADkANQBmAGYAMQBmAGUAZABlADEAYQB9AAoOVgBlAHIAcwBpAG8AbgALBmkAbgB0AAwKVQBzAGEAZwBlAA0KVABpAHQAbABlAA4aVgBpAHMAdQBFAGwAZQBtAE0AZQB0AGUAcgAPDkMAbwBtAHAAYQBuAHkAEAxTAHkAcwB0AGUAbQARElYAaQBzAHUARQBsAGUAbQBzABIwVgBpAHMAdQBFAGwAZQBtAHMAUwBwAGUAYwBpAGEAbABDAG8AbgB0AHIAbwBsAHMAEyhWAGkAcwB1AEUAbABlAG0AcwBXAGkAbgBDAG8AbgB0AHIAbwBsAHMAFCRWAGkAcwB1AEUAbABlAG0AVABlAHgAdABFAGQAaQB0AG8AcgAVIlYAaQBzAHUATgBhAHQAaQB2AGUAQwBvAG4AdAByAG8AbAAWFHYAaQBzAHUAaQBuAHAAdQB0AHMAFwxzAHkAcwB0AGUAbQAYGFYAaQBzAHUARQBsAGUAbQBCAGEAcwBlABkmRABlAHYAUABsAGEAYwBlAGgAbwBsAGQAZQByAHMAVQBzAGUAZAAaCGIAbwBvAGwAGyJQAGwAdQBnAGkAbgBDAG8AbgBzAHQAcgBhAGkAbgB0AHMAHEx7ADQAMwBkADUAMgBiAGMAZQAtADkANAAyAGMALQA0ADQAZAA3AC0AOQBlADkANAAtADEAYgBmAGQAZgAzADEAMABlADYAMwBjAH0AHRxBAHQATABlAGEAcwB0AFYAZQByAHMAaQBvAG4AHhRQAGwAdQBnAGkAbgBHAHUAaQBkAB8WUwB5AHMAdABlAG0ALgBHAHUAaQBkACBIYQBmAGMAZAA1ADQANAA2AC0ANAA5ADEANAAtADQAZgBlADcALQBiAGIANwA4AC0AOQBiAGYAZgBlAGIANwAwAGYAZAAxADcAIRRVAHAAZABhAHQAZQBJAG4AZgBvACJMewBiADAAMwAzADYANgBhADgALQBiADUAYwAwAC0ANABiADkAYQAtAGEAMAAwAGUALQBlAGIAOAA2ADAAMQAxADEAMAA0AGMAMwB9ACMOVQBwAGQAYQB0AGUAcwAkTHsAMQA4ADYAOABmAGYAYwA5AC0AZQA0AGYAYwAtADQANQAzADIALQBhAGMAMAA2AC0AMQBlADMAOQBiAGIANQA1ADcAYgA2ADkAfQAlTHsAYQA1AGIAZAA0ADgAYwAzAC0AMABkADEANwAtADQAMQBiADUALQBiADEANgA0AC0ANQBmAGMANgBhAGQAMgBiADkANgBiADcAfQAmFk8AYgBqAGUAYwB0AHMAVAB5AHAAZQAnVFUAcABkAGEAdABlAEwAYQBuAGcAdQBhAGcAZQBNAG8AZABlAGwARgBvAHIAQwBvAG4AdgBlAHIAdABpAGIAbABlAEwAaQBiAHIAYQByAGkAZQBzACgQTABpAGIAVABpAHQAbABlACkUTABpAGIAQwBvAG0AcABhAG4AeQAqHlUAcABkAGEAdABlAFAAcgBvAHYAaQBkAGUAcgBzACs4UwB5AHMAdABlAG0ALgBDAG8AbABsAGUAYwB0AGkAbwBuAHMALgBIAGEAcwBoAHQAYQBiAGwAZQAsEnYAaQBzAHUAZQBsAGUAbQBzAC1INgBjAGIAMQBjAGQAZQAxAC0AZAA1AGQAYwAtADQAYQAzAGIALQA5ADAANQA0AC0AMgAxAGYAYQA3ADUANgBhADMAZgBhADQALihJAG4AdABlAHIAZgBhAGMAZQBWAGUAcgBzAGkAbwBuAEkAbgBmAG8AL0x7AGMANgAxADEAZQA0ADAAMAAtADcAZgBiADkALQA0AGMAMwA1AC0AYgA5AGEAYwAtADQAZQAzADEANABiADUAOQA5ADYANAAzAH0AMBhNAGEAagBvAHIAVgBlAHIAcwBpAG8AbgAxGE0AaQBuAG8AcgBWAGUAcgBzAGkAbwBuADIMTABlAGcAYQBjAHkAMzBMAGEAbgBnAHUAYQBnAGUATQBvAGQAZQBsAFYAZQByAHMAaQBvAG4ASQBuAGYAbwA0MEwAbwBhAGQATABpAGIAcgBhAHIAaQBlAHMASQBuAHQAbwBQAHIAbwBqAGUAYwB0ADUaQwBvAG0AcABhAHQAaQBiAGkAbABpAHQAeQDQAAIaA9ADAS0E0AUGGgfQBwgaAUUHCQjQAAkaBEUKCwQDAAAABQAAAA0AAAAAAAAA0AwLrQIAAADQDQEtDtAPAS0Q0AAJGgRFCgsEAwAAAAUAAAANAAAAKAAAANAMC60BAAAA0A0BLRHQDwEtENAACRoERQoLBAMAAAAFAAAADQAAAAAAAADQDAutAgAAANANAS0S0A8BLRDQAAkaBEUKCwQDAAAABQAAAA0AAAAUAAAA0AwLrQIAAADQDQEtE9APAS0Q0AAJGgRFCgsEAwAAAAUAAAANAAAAAAAAANAMC60CAAAA0A0BLRTQDwEtENAACRoERQoLBAMAAAAFAAAADQAAAAAAAADQDAutAgAAANANAS0V0A8BLRDQAAkaBEUKCwQDAAAABQAAAA0AAAAAAAAA0AwLrQIAAADQDQEtFtAPAS0X0AAJGgRFCgsEAwAAAAUAAAANAAAAKAAAANAMC60EAAAA0A0BLRjQDwEtENAZGq0BRRscAdAAHBoCRR0LBAMAAAAFAAAADQAAAAAAAADQHh8tINAhIhoCRSMkAtAAJRoFRQoLBAMAAAADAAAAAAAAAAoAAADQJgutAAAAANADAS0n0CgBLRHQKQEtENAAJRoFRQoLBAMAAAADAAAAAAAAAAoAAADQJgutAQAAANADAS0n0CgBLRHQKQEtEJoqKwFFAAEC0AABLSzQAAEtF9AAHy0t0C4vGgPQMAutAQAAANAxC60XAAAA0DIarQDQMy8aA9AwC60CAAAA0DELrQMAAADQMhqtANA0Gq0A0DUarQA="</v>
+          </d>
+        </o>
+        <v>{192FAD59-8248-4824-A8DE-9177C94C195A}</v>
+        <o>
+          <v n="Name">"{192FAD59-8248-4824-A8DE-9177C94C195A}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{F66C7017-BDD8-4114-926C-81D6D687E35F}</v>
+        <o>
+          <v n="Name">"{F66C7017-BDD8-4114-926C-81D6D687E35F}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{246001F4-279D-43AC-B241-948EB31120E1}</v>
+        <o>
+          <v n="Name">"{246001F4-279D-43AC-B241-948EB31120E1}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String">
+            <v>UnicodeStrings</v>
+            <v>true</v>
+            <v>GlobalTextListFilePath</v>
+            <v>""</v>
+            <v>ExtendedSettings</v>
+            <v>false</v>
+            <v>GlobalVisuImageFilePath</v>
+            <v>"%APPLICATIONPATH%\"</v>
+            <v>GeneralPropertySupport</v>
+            <v>false</v>
+          </d>
+        </o>
+      </d>
+      <d n="Values" t="Hashtable" />
+    </o>
+        </Data>
+        <TypeList>
+          <Type n="Boolean">System.Boolean</Type>
+          <Type n="Hashtable">System.Collections.Hashtable</Type>
+          <Type n="Int32">System.Int32</Type>
+          <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
+          <Type n="String">System.String</Type>
+        </TypeList>
+      </XmlArchive>
+    </PlcProjectOptions>
+  </ProjectExtensions>
+</Project>

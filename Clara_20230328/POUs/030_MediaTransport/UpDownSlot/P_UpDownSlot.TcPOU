@@ -1,0 +1,333 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_UpDownSlot" Id="{1e93bc92-b601-49b4-8de9-efab48533a3d}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_UpDownSlot
+VAR
+	UpDownSlot_S1: FB_UpDownSlotS1;
+	UpDownSlot_S2_S6: ARRAY[2..6] OF FB_UpDownSlotS2_S6;
+	i:INT;
+	log_ErrorEnum:UpDownSlotErrorEnum;
+	log_ID:INT;
+
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_LOG();
+
+//S1 急停用2904，S1-S6 只用急停按钮
+(***************S1************************************************)
+UpDownSlot_S1(
+	timeout_up:= GVL_API.stUpDownSlot[1].timeout_up*1000, 
+	timeout_down:= GVL_API.stUpDownSlot[1].timeout_down*1000, 
+	extra_down_time:= GVL_API.stUpDownSlot[1].extra_down_time*1000, 
+	sensor_up:= stInput.biUDS_sensor_up_S[1], 
+	sensor_down:= stInput.biUDS_sensor_down_S1, 
+	MoveDown_do=> , 
+	MoveUp_do=>  , 
+	Break=> stOutput.bqS1_Break, 
+	anysensor_down=> ,
+	state=> GVL_API.stUpDownSlot[1].state, 
+	error_code=> GVL_API.stUpDownSlot[1].error_code, 
+	error=>GVL_API.stUpDownSlot[1].Error , 
+	Initialize:= GVL_API.stUpDownSlot[1].Initialize, 
+	MoveDown:= GVL_API.stUpDownSlot[1].MoveDown, 
+	MoveUp:= GVL_API.stUpDownSlot[1].MoveUp, 
+	SetOff:= GVL_API.stUpDownSlot[1].SetOff );
+	
+	IF UpDownSlot_S1.MoveDown_do OR  UpDownSlot_S1.MoveUp_do THEN
+		stOutput.bqS1_Drive_enabled:=TRUE;
+	ELSIF NOT UpDownSlot_S1.MoveDown_do AND NOT   UpDownSlot_S1.MoveUp_do THEN 
+		stOutput.bqS1_Drive_enabled:=FALSE;
+	END_IF
+	
+	IF UpDownSlot_S1.MoveDown_do AND NOT  UpDownSlot_S1.MoveUp_do THEN 
+		stOutput.bqS1_Forward_Reverse:=FALSE;
+	ELSIF NOT UpDownSlot_S1.MoveDown_do AND   UpDownSlot_S1.MoveUp_do THEN 
+		stOutput.bqS1_Forward_Reverse:=TRUE;
+	END_IF
+
+	GVL_API.stUpDownSlot[1].sensor_up:=stInput.biUDS_sensor_up_S[1];
+	GVL_API.stUpDownSlot[1].sensor_down:=UpDownSlot_S1.anysensor_down;
+	
+(***************S2-S6:************************************************)
+FOR i:=2 TO number_UpDownSlot DO
+	UpDownSlot_S2_S6[i](
+		timeout_up:=GVL_API.stUpDownSlot[i].timeout_up*1000 , 
+		timeout_down:= GVL_API.stUpDownSlot[i].timeout_down*1000, 
+		sensor_up:= stInput.biUDS_sensor_up_S[i], 
+		MoveDown_do=> stOutput.bqUDS_MoveDown_do[i], 
+		MoveUp_do=> stOutput.bqUDS_MoveUp_do[i], 
+		state=> GVL_API.stUpDownSlot[i].state, 
+		error_code=> GVL_API.stUpDownSlot[i].error_code, 
+		error=> GVL_API.stUpDownSlot[i].Error, 
+		Initialize:= GVL_API.stUpDownSlot[i].Initialize, 
+		MoveDown:= GVL_API.stUpDownSlot[i].MoveDown, 
+		MoveUp:= GVL_API.stUpDownSlot[i].MoveUp, 
+		SetOff:=GVL_API.stUpDownSlot[i].SetOff );
+		
+		GVL_API.stUpDownSlot[i].sensor_up:=stInput.biUDS_sensor_up_S[i];
+END_FOR]]></ST>
+    </Implementation>
+    <Action Name="ACT_LOG" Id="{cf8c18b0-2a56-4fa5-a3af-c22ce0ab5f69}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+log_ID:=320;
+(******************s1******************************)
+//initialize
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:='UpDownSlot1 initialize ';												
+fbSetAlarm[log_ID+1](
+	InUse:=TRUE , 
+	EventId:=log_ID+1 , 
+	EventActive:=GVL_API.stUpDownSlot[1].Initialize , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //MoveDown
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=CONCAT('UpDownSlot1 MoveDown, ',
+																	LREAL_TO_STRING(GVL_API.stUpDownSlot[1].timeout_down));
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+2].AlarmMsg.EN,', ');
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+2].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stUpDownSlot[1].extra_down_time));
+
+fbSetAlarm[log_ID+2](
+	InUse:=TRUE , 
+	EventId:=log_ID+2 , 
+	EventActive:=GVL_API.stUpDownSlot[1].MoveDown , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //MoveUp
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT('UpDownSlot1 MoveUp, ',
+																	LREAL_TO_STRING(GVL_API.stUpDownSlot[1].timeout_up));
+
+fbSetAlarm[log_ID+3](
+	InUse:=TRUE , 
+	EventId:=log_ID+3 , 
+	EventActive:=GVL_API.stUpDownSlot[1].MoveUp , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+
+//ERROR,log_ErrorEnum只能等于一个常数
+CASE GVL_API.stUpDownSlot[1].error_code  OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+3	:	log_ErrorEnum	:=	3	;
+4	:	log_ErrorEnum	:=	4	;
+5	:	log_ErrorEnum	:=	5	;
+6	:	log_ErrorEnum	:=	6	;
+7	:	log_ErrorEnum	:=	7	;
+666	:	log_ErrorEnum	:=	666	;
+
+END_CASE
+
+AlarmActionArray[log_ID+9].AlarmMsg.EN	:=CONCAT('UpDownSlot1 Error: ',TO_STRING(log_ErrorEnum));
+fbSetAlarm[log_ID+9](
+	InUse:=TRUE , 
+	EventId:=log_ID+9 , 
+	EventActive:=GVL_API.stUpDownSlot[1].error_code<>0  AND GVL_API.stUpDownSlot[1].error_code<>666, 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//reset
+AlarmActionArray[log_ID+10].AlarmMsg.EN	:=	'UpDownSlot1 Reset ';
+fbSetAlarm[log_ID+10](
+	InUse:=TRUE , 
+	EventId:=log_ID+10 , 
+	EventActive:=GVL_API.stUpDownSlot[1].SetOff  , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ 
+(******************s2-s6******************************)
+FOR i:=2 TO number_UpDownSlot DO
+//initialize
+AlarmActionArray[log_ID+10*i+1].AlarmMsg.EN	:=CONCAT('UpDownSlot',
+																			INT_TO_STRING(i));
+AlarmActionArray[log_ID+10*i+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10*i+1].AlarmMsg.EN,
+																			' initialize');												
+fbSetAlarm[log_ID+10*i+1](
+	InUse:=TRUE , 
+	EventId:=log_ID+10*i+1 , 
+	EventActive:=GVL_API.stUpDownSlot[i].Initialize , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //MoveDown
+ AlarmActionArray[log_ID+10*i+2].AlarmMsg.EN	:=CONCAT('UpDownSlot',
+																			INT_TO_STRING(i));
+AlarmActionArray[log_ID+10*i+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10*i+2].AlarmMsg.EN,
+																			' MoveDown');
+AlarmActionArray[log_ID+10*i+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10*i+2].AlarmMsg.EN,', ');	
+AlarmActionArray[log_ID+10*i+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10*i+2].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stUpDownSlot[i].timeout_down));
+
+fbSetAlarm[log_ID+10*i+2](
+	InUse:=TRUE , 
+	EventId:=log_ID+10*i+2 , 
+	EventActive:=GVL_API.stUpDownSlot[i].MoveDown , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //MoveUp
+AlarmActionArray[log_ID+10*i+3].AlarmMsg.EN	:=CONCAT('UpDownSlot',
+																			INT_TO_STRING(i));
+AlarmActionArray[log_ID+10*i+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10*i+3].AlarmMsg.EN,
+																			' MoveUp');
+AlarmActionArray[log_ID+10*i+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10*i+3].AlarmMsg.EN,', ');	
+AlarmActionArray[log_ID+10*i+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10*i+3].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stUpDownSlot[i].timeout_up));
+
+fbSetAlarm[log_ID+10*i+3](
+	InUse:=TRUE , 
+	EventId:=log_ID+10*i+3 , 
+	EventActive:=GVL_API.stUpDownSlot[i].MoveUp , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+
+//ERROR,log_ErrorEnum只能等于一个常数
+CASE GVL_API.stUpDownSlot[i].error_code  OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+3	:	log_ErrorEnum	:=	3	;
+4	:	log_ErrorEnum	:=	4	;
+5	:	log_ErrorEnum	:=	5	;
+6	:	log_ErrorEnum	:=	6	;
+7	:	log_ErrorEnum	:=	7	;
+666	:	log_ErrorEnum	:=	666	;
+
+
+END_CASE
+AlarmActionArray[log_ID+10*i+9].AlarmMsg.EN	:=CONCAT('UpDownSlot',INT_TO_STRING(i));
+AlarmActionArray[log_ID+10*i+9].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10*i+9].AlarmMsg.EN,
+																			' Error: ');
+AlarmActionArray[log_ID+10*i+9].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10*i+9].AlarmMsg.EN,
+																			TO_STRING(log_ErrorEnum));																			
+
+fbSetAlarm[log_ID+10*i+9](
+	InUse:=TRUE , 
+	EventId:=log_ID+10*i+9 , 
+	EventActive:=GVL_API.stUpDownSlot[i].error_code<>0 AND GVL_API.stUpDownSlot[i].error_code<>666 , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//reset
+AlarmActionArray[log_ID+10*i+10].AlarmMsg.EN	:=CONCAT('UpDownSlot',
+																			INT_TO_STRING(i));
+AlarmActionArray[log_ID+10*i+10].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10*i+10].AlarmMsg.EN,
+																			' Reset');		
+
+fbSetAlarm[log_ID+10*i+10](
+	InUse:=TRUE , 
+	EventId:=log_ID+10*i+10 , 
+	EventActive:=GVL_API.stUpDownSlot[i].SetOff  , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+END_FOR
+ (*************em-stop*     *************
+ AlarmActionArray[399].AlarmMsg.EN	:='UpDownSlot Error: emergency_error';																		
+
+fbSetAlarm[399](
+	InUse:=TRUE , 
+	EventId:=399 , 
+	EventActive:=GVL_API.stUpDownSlot[i].error_code=666 , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+*)]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_UpDownSlot">
+      <LineId Id="75" Count="0" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="41" Count="7" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="51" Count="2" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="119" Count="2" />
+      <LineId Id="123" Count="1" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="87" Count="2" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="58" Count="7" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="66" Count="2" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="189" Count="1" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="P_UpDownSlot.ACT_LOG">
+      <LineId Id="2" Count="1" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="4" Count="1" />
+      <LineId Id="12" Count="9" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="22" Count="13" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="36" Count="11" />
+      <LineId Id="209" Count="7" />
+      <LineId Id="79" Count="1" />
+      <LineId Id="54" Count="20" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="175" Count="1" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="85" Count="1" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="87" Count="8" />
+      <LineId Id="158" Count="2" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="101" Count="9" />
+      <LineId Id="164" Count="5" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="113" Count="11" />
+      <LineId Id="181" Count="8" />
+      <LineId Id="131" Count="2" />
+      <LineId Id="170" Count="4" />
+      <LineId Id="135" Count="10" />
+      <LineId Id="178" Count="2" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="146" Count="7" />
+      <LineId Id="83" Count="1" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="201" Count="7" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="190" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

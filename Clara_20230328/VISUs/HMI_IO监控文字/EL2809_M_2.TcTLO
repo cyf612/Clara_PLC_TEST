@@ -1,0 +1,200 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <TextList Name="EL2809_M_2" Id="{98433cd8-49a2-44d4-bbb3-34237b80c705}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="TextListObject">
+          <v n="UniqueIdGenerator">"0"</v>
+          <l n="TextList" t="ArrayList" cet="TextListRow">
+            <o>
+              <v n="TextID">"1"</v>
+              <v n="TextDefault">"Unwinding L Brake"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>放卷L_刹车</v>
+                <v></v>
+                <v>放卷L_刹车</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"2"</v>
+              <v n="TextDefault">"Un_L Clutch Out"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>放卷L_离合器out</v>
+                <v></v>
+                <v>放卷L_离合器out</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"3"</v>
+              <v n="TextDefault">"Un_L Clutch RST"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>放卷L_离合器rst</v>
+                <v></v>
+                <v>放卷L_离合器rst</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"4"</v>
+              <v n="TextDefault">"Un_R Brake"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>放卷R_刹车</v>
+                <v></v>
+                <v>放卷R_刹车</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"5"</v>
+              <v n="TextDefault">"Un_R Clutch Out"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>放卷R_离合器out</v>
+                <v></v>
+                <v>放卷R_离合器out</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"6"</v>
+              <v n="TextDefault">"Un_R Clutch RST"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>放卷R_离合器rst</v>
+                <v></v>
+                <v>放卷R_离合器rst</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"7"</v>
+              <v n="TextDefault">"Re_L Clutch Out"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>收卷L_离合器out</v>
+                <v></v>
+                <v>收卷L_离合器out</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"8"</v>
+              <v n="TextDefault">"Re_L Clutch RST"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>收卷L_离合器rst</v>
+                <v></v>
+                <v>收卷L_离合器rst</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"9"</v>
+              <v n="TextDefault">"Re_R Clutch Out"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>收卷R_离合器out</v>
+                <v></v>
+                <v>收卷R_离合器out</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"10"</v>
+              <v n="TextDefault">"Re_R Clutch RST"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>收卷R_离合器rst</v>
+                <v></v>
+                <v>收卷R_离合器rst</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"11"</v>
+              <v n="TextDefault">"S1 Drive enabled"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>导向压轮电机使能</v>
+                <v></v>
+                <v>导向压轮电机使能</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"12"</v>
+              <v n="TextDefault">"S1 Forward/Reverse"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>导向压轮电机正/反转</v>
+                <v></v>
+                <v>导向压轮电机正/反转</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"13"</v>
+              <v n="TextDefault">"S1_Break"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>导向压轮电机刹车</v>
+                <v></v>
+                <v>导向压轮电机刹车</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"14"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"15"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"16"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">""</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+          </l>
+          <l n="Languages" t="ArrayList" cet="String">
+            <v>chinese</v>
+            <v>english</v>
+            <v>Chinese</v>
+            <v>English</v>
+          </l>
+          <v n="GuidInit">{7bf35561-c3f0-4b07-baf9-db795bda7c43}</v>
+          <v n="GuidReInit">{ae962ac9-8e5b-48bb-aef0-6d3211a3cabb}</v>
+          <v n="GuidExitX">{b4c4b7ca-60ea-4a5d-ad64-01d38ecce914}</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="String">System.String</Type>
+        <Type n="TextListObject">{2bef0454-1bd3-412a-ac2c-af0f31dbc40f}</Type>
+        <Type n="TextListRow">{53da1be7-ad25-47c3-b0e8-e26286dad2e0}</Type>
+      </TypeList>
+    </XmlArchive>
+  </TextList>
+</TcPlcObject>

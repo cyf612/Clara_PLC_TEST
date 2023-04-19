@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_UPS" Id="{cd5660d5-ba40-4397-b681-31415976940f}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_UPS
+VAR
+	FB_UPS: FB_S_UPS_CX51x0;                      //UPS功能块
+	dataloaded: BOOL;                             //UPS数据文件读取状态(TRUE为读取成功，FALSE为读取失败)
+	OldData: BOOL;                                //UPS备份数据文件读取状态
+	PersistentDataStatus: EPlcPersistentStatus;   //Persistent数据读取(恢复)状态
+	
+   	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FB_UPS(
+	sNetID:= ,                                //默认为本地的NetId
+	iPLCPort:= ,                              //PLC运行时系统的端口号,功能块会自动获取,默认为0
+	iUPSPort:= ,                              //读取PLC电源端口的状态号,默认为16#588
+	tTimeout:= ,                              
+	eUpsMode:= eSUPS_WrPersistData_Shutdown,  //UPS模式,即一旦保存了持久数据，就会自动执行快速关闭
+	ePersistentMode:= SPDM_2PASS,             //Persistent数据的写入模式,默认为SPDM_2PASS
+	tRecoverTime:= ,                          
+	bPowerFailDetect=> ,                      //断电时为TRUE，如果存在电源电压，则为FALSE   
+	eState=> );                               //当前UPS状态
+	dataloaded:=_AppInfo.BootDataLoaded;
+	OldData:=_AppInfo.OldBootData;
+	PersistentDataStatus:=_AppInfo.PersistentStatus;]]></ST>
+    </Implementation>
+    <LineIds Name="P_UPS">
+      <LineId Id="27" Count="11" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

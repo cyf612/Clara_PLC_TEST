@@ -1,0 +1,704 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_SpitUnit" Id="{58a0a9dc-67a1-427e-b0ff-e8c4302aa6aa}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_SpitUnit 
+VAR
+	ID						:INT:=SpitUnit;
+	SysStep:				DINT;	
+	HomeStep:				DINT;	
+	RestStep				:DINT;
+	MoveStep				:DINT;
+	SetoffStep				:DINT;
+	HomeDone:               BOOL;
+	
+	ton1:Tc2_Standard.TON;
+	Move_Done				:BOOL;
+	FB_HomeSpitUnit				:FB_HomeSpitUnit;
+	FB_Move					:FB_MoveSpitUnit_Exte;
+	parameter_out_of_range	:BOOL;
+	
+	log_ErrorEnum:SpitUnitErrorEnum;
+	log_ID:INT;
+	
+	ton_fan:Tc2_Standard.TON;
+	R_TRIG_FAN:Tc2_Standard.R_TRIG;
+	F_TRIG_FAN:Tc2_Standard.F_TRIG;
+	en_ton:BOOL;
+	ton_commandtimeout:Tc2_Standard.TON;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_FAN();
+ACT_LOG();
+GVL_API.stSpitUnit.ControlLoopClosed:=Axis[ID].Ref.Status .ControlLoopClosed;
+(*****************POS******************************)
+GVL_API.stSpitUnit.current_position:=Axis[ID].Ref.NcToPlc.ActPos;
+GVL_API.stSpitUnit.home_sensor_covered:=Axis[ID].IO.snHome;
+
+(*****************SysStep******************************)
+CASE SysStep OF
+0:	(*off*)
+	_00_Waiting();				
+100:(*idle*)		
+	_100_Idle();								
+200:(*home*)		
+	_200_Homing();
+300:(*ready*)	
+	_300_Ready();							
+		
+500:(*Moving*)
+	_500_Moving();	
+600:(*Stopping*)
+700:(*Error*)
+	_700_Error();	
+800:
+	_800_SetOff();
+END_CASE
+IF GVL_API.stSpitUnit.SetOff OR GVL.Reset THEN 
+	SysStep:=800;	
+END_IF
+
+ACT_SAFETY();
+
+
+Axis[ID].aReadStatus();
+Axis[ID].aReset();]]></ST>
+    </Implementation>
+    <Folder Name="SysStep" Id="{5d26b685-4d06-4c41-8bfc-8a2a4eed18fa}" />
+    <Action Name="_00_Waiting" Id="{c54c9c24-f8e9-49c8-ba16-fe5481f041b7}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[IF GVL_API.stSpitUnit.initialize THEN 
+	GVL_API.stSpitUnit.initialize:=FALSE;
+	SysStep:=100;
+ELSIF GVL_API.stSpitUnit.homeExe THEN 
+	GVL_API.stSpitUnit.homeExe:=FALSE;  
+	GVL_API.stSpitUnit.Home_Done:=FALSE;
+	SysStep:=200;
+ELSIF GVL_API.stSpitUnit.MoveAbsoluteExe THEN 
+	GVL_API.stSpitUnit.Move_Done:=FALSE;
+	SysStep:=300;	
+ELSIF GVL_API.stSpitUnit.SetOff OR GVL.Reset THEN 
+	SysStep:=800;	
+END_IF
+
+ton1(IN:=GVL_API.stSpitUnit.Home_Done OR  GVL_API.stSpitUnit.Move_Done , PT:=State_reset_time , Q=> , ET=> );
+IF ton1.Q THEN 
+	GVL_API.stSpitUnit.Home_Done:=FALSE;
+	GVL_API.stSpitUnit.Move_Done:=FALSE;
+END_IF	
+
+
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_100_Idle" Id="{2e6483f9-ca1b-4270-9ef9-3132bcd242d7}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[Axis[ID].aPower(power_do:=TRUE);	
+
+
+IF   axis[Id].Ref.Status .ControlLoopClosed THEN 
+		GVL_API.stSpitUnit.state:=AxisStateEnum.idle;
+ELSIF GVL.Emstop_Button OR GVL.Emstop_SAFE THEN 
+	GVL_API.stSpitUnit.error_code:=SpitUnitErrorEnum.emergency_error;
+		SysStep:=700;
+END_IF
+
+(*****************valid command********************)
+IF GVL_API.stSpitUnit.state=AxisStateEnum.idle AND GVL_API.stSpitUnit.moving_speed_down>0 AND 
+GVL_API.stSpitUnit.spindle_length>0 AND GVL_API.stSpitUnit.moving_speed_up>0  THEN
+	SysStep:=200;
+END_IF
+
+(*******************commandtimeout*********************************)
+ton_commandtimeout(IN:=NOT axis[Id].Ref.Status .ControlLoopClosed , 
+	PT:=T#10S ,
+	Q=> , ET=> );
+IF ton_commandtimeout.Q  THEN 
+	ton_commandtimeout(IN:=FALSE );
+	GVL_API.stSpitUnit.error_code:=Axis_XY_ErrorEnum.cmd_timeout;
+	SysStep:=700;	
+END_IF
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_200_Homing" Id="{1e0bae77-0596-43de-9a23-7ee1278efc6c}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[	FB_HomeSpitUnit(
+		Axis:= Axis[ID].Ref, 
+		Execute:= , 
+		PosLimit:= Axis[ID].IO.snLimitP, 
+		Position:= 0, 
+		HomeingVelo:= GVL_API.stSpitUnit.moving_speed_down, 
+		Standby_position:=0 , 
+		bCalibrationCam:= Axis[ID].IO.snHome, 
+		rel_dis:= 1, 
+		reset:= , 
+		maxDistance:= GVL_API.stSpitUnit.spindle_length, 
+		Done=> , 
+		Busy=> , 
+		Active=> , 
+		CommandAborted=> , 
+		Error=> , 
+		ErrorID=> );
+	
+		
+CASE HomeStep OF
+0:
+	IF GVL_API.stSpitUnit.moving_speed_down<>0 THEN 
+		HomeStep:=10;
+	END_IF
+10:
+	FB_HomeSpitUnit.Execute:=TRUE;					
+	IF FB_HomeSpitUnit.Done THEN
+		GVL_API.stSpitUnit.Home_Done:=TRUE;
+		FB_HomeSpitUnit.Execute:=FALSE;
+		HomeStep:=20;
+	END_IF
+	IF FB_HomeSpitUnit.Error THEN 
+		GVL_API.stSpitUnit.error_code:=SpitUnitErrorEnum.homing_error;
+		HomeStep:=30;
+	END_IF
+	
+20:	(**********HOME DONE****************)
+	GVL_API.stSpitUnit.state:=SpitUnitStateEnum.ready;
+	GVL_API.stSpitUnit.Homing:=FALSE;
+	HomeStep:=0;
+	SysStep:=0;
+30:(**********TIME OUT****************)
+	FB_HomeSpitUnit.Execute:=FALSE;
+	FB_HomeSpitUnit.reset:=TRUE;
+	HomeStep:=40;
+40:(**********RESET****************)
+	FB_HomeSpitUnit.reset:=FALSE;
+	HomeStep:=0;
+	SysStep:=700;
+		
+END_CASE
+
+IF FB_HomeSpitUnit.Busy THEN 
+	GVL_API.stSpitUnit.state:=SpitUnitStateEnum.homing;
+	GVL_API.stSpitUnit.Homing:=TRUE;
+END_IF
+
+
+
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_300_Ready" Id="{cea4933e-73bb-4e1d-ad69-ca40cb6c0bdf}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[Axis[ID].aStop();
+GVL_API.stSpitUnit.Home_Done:=FALSE;	
+(***********parameter_out_of_range***********)
+IF GVL_API.stSpitUnit.target_position>GVL_API.stSpitUnit.spindle_length OR GVL_API.stSpitUnit.target_position<0 THEN 
+		parameter_out_of_range:=TRUE;
+ELSE
+		parameter_out_of_range:=FALSE;
+END_IF	
+
+
+(*****************state******************************)
+IF Axis[ID].Ref.Status.NotMoving AND axis[Id].Ref.Status .ControlLoopClosed  
+AND NOT Axis[ID].Ref.Status.Error THEN 
+	IF parameter_out_of_range THEN 
+		GVL_API.stSpitUnit.error_code:=SpitUnitErrorEnum.parameter_out_of_range;		
+		SysStep:=700;
+	ELSE
+		GVL_API.stSpitUnit.state:=SpitUnitStateEnum.ready;
+		GVL_API.stSpitUnit.error_code:=SpitUnitErrorEnum.no_error;
+	END_IF
+END_IF
+
+(*****************valid command******************************)
+IF NOT parameter_out_of_range AND axis[Id].Ref.Status .ControlLoopClosed  THEN  			
+	IF GVL_API.stSpitUnit.MoveAbsoluteExe	 THEN 	
+			SysStep:=500;
+	ELSIF GVL_API.stSpitUnit.homeExe  THEN			
+			SysStep:=200;  	  							
+	END_IF
+END_IF
+
+(*****************SETOFF******************************)
+IF GVL_API.stSpitUnit.setoff THEN
+	 SysStep:=0;
+END_IF
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_500_Moving" Id="{a607f4ee-7441-4096-bf91-9393d3fe35e7}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[IF Axis[ID].Ref.Status.Moving THEN 
+	GVL_API.stSpitUnit.state:=SpitUnitStateEnum.moving;
+END_IF
+
+
+IF  GVL_API.stSpitUnit.Move_Done  THEN 			(************/Move_Done**************)			
+	GVL_API.stSpitUnit.state:=SpitUnitStateEnum.ready;	
+	SysStep:=0;
+ELSIF Axis[ID].Ref.Status.Moving THEN 				(************trigger_limit**************)
+	IF Axis[ID].Ref.Status.PositiveDirection AND Axis[ID].IO.snLimitP  
+	THEN	
+		Axis[ID].aStop(stop_do:=TRUE);
+		GVL_API.stSpitUnit.error_code:=SpitUnitErrorEnum.trigger_limit;
+		SysStep:=700;	
+	END_IF 
+ELSE GVL_API.stSpitUnit.error_code:=SpitUnitErrorEnum.no_error;
+END_IF
+
+IF NOT parameter_out_of_range THEN 
+	FB_Move(
+	ref:= Axis[ID].Ref, 
+	Acceleration:= GVL_API.stSpitUnit.acceleration, 
+	Deceleration:= GVL_API.stSpitUnit.acceleration, 
+	Jerk:= , 
+	MoveAbsExe:= GVL_API.stSpitUnit.MoveAbsoluteExe, 
+	Velo_up:= GVL_API.stSpitUnit.moving_speed_up, 
+	Velo_down:=GVL_API.stSpitUnit.moving_speed_down , 
+	TargetAbs:= GVL_API.stSpitUnit.target_position, 
+	Done:=GVL_API.stSpitUnit.Move_Done );
+
+END_IF]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_700_Error" Id="{d69d9693-f61f-4113-8861-cbcd2cee1430}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[(*****************ERROR******************************)
+GVL_API.stSpitUnit.Error:=TRUE;
+GVL_API.stSpitUnit.state:=SpitUnitStateEnum.error;
+		GVL_API.stSpitUnit.initialize:=FALSE;
+		GVL_API.stSpitUnit.homeExe:=FALSE; 
+		GVL_API.stSpitUnit.MoveAbsoluteExe:=FALSE;		
+		FB_HomeSpitUnit.Execute:=FALSE;
+		GVL_API.stSpitUnit.Homing:=FALSE;
+		GVL_API.stSpitUnit.Home_Done:=FALSE;
+		GVL_API.stSpitUnit.Move_Done:=FALSE;
+
+ SysStep:=0;
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_800_SetOff" Id="{12d7fa38-9fe9-44d8-a1a1-87b69758b48c}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[Axis[ID].aStop();
+(*****************SETOFF*****************************)
+CASE SetoffStep OF
+0:(***************复位命令**************************)
+	IF GVL_API.stSpitUnit.setoff OR GVL.Reset THEN
+		GVL_API.stSpitUnit.initialize:=FALSE;
+		GVL_API.stSpitUnit.homeExe:=FALSE; 
+		GVL_API.stSpitUnit.MoveAbsoluteExe:=FALSE;		
+		FB_HomeSpitUnit(Axis:= Axis[ID].Ref, Execute:= FALSE);
+		GVL_API.stSpitUnit.Homing:=FALSE;
+		GVL_API.stSpitUnit.Home_Done:=FALSE;
+		GVL_API.stSpitUnit.Move_Done:=FALSE;
+		SetoffStep:=1;
+	END_IF
+1:	
+	SetoffStep:=10;
+10:	(***************轴错误复位**************************)	
+		parameter_out_of_range:=FALSE;		
+		Axis[ID].Reset_do:=TRUE;		
+		SetoffStep:=100;		
+100:		
+	IF Axis[ID].Ref.Status.NotMoving THEN 
+		GVL_API.stSpitUnit.setoff:=FALSE;
+		Axis[Id].aPower(power_do:=FALSE);
+		GVL_API.stSpitUnit.Error:=FALSE;
+		GVL_API.stSpitUnit.state:=SpitUnitStateEnum.off;
+		GVL_API.stSpitUnit.error_code:=SpitUnitErrorEnum.no_error;
+		
+		SysStep:=0;
+		SetoffStep:=0;
+	END_IF
+	  
+END_CASE]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_FAN" Id="{10621228-0132-4b0f-9b96-a968f0abbd05}">
+      <Implementation>
+        <ST><![CDATA[R_TRIG_FAN(CLK:=GVL_API.stSpitUnit.FanState , Q=> );
+F_TRIG_FAN(CLK:=GVL_API.stSpitUnit.FanState , Q=> );
+IF R_TRIG_FAN.Q THEN 
+	stOutput.bqFanPower:=TRUE;
+END_IF
+
+
+IF F_TRIG_FAN.Q THEN 
+	en_ton:=TRUE;
+END_IF
+ton_fan(IN:= en_ton  , PT:=T#10S , Q=> , ET=> );
+IF ton_fan.Q THEN 
+	en_ton:=FALSE;
+	stOutput.bqFanPower:=FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_LOG" Id="{fd4c9d1c-5ed5-498a-b770-f644058e6654}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+log_ID:=580;
+//initialize
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=	CONCAT('SpitUnit Initialize maxDistance:',
+																	LREAL_TO_STRING(GVL_API.stSpitUnit.spindle_length));
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,'; velocity_up:');
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stSpitUnit.moving_speed_up));	
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,'; velocity_down:');	
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stSpitUnit.moving_speed_down));																															
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,'; acc:');	
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stSpitUnit.acceleration));	
+//AlarmActionArray[log_ID+1].AlarmMsg.EN	:=	'SpitUnit Initialize maxDistance:100; velocity_up:100.0; velocity_down:100.0; acceleration:100000'		;															
+fbSetAlarm[log_ID+1](
+	InUse:=TRUE , 
+	EventId:=log_ID+1 , 
+	EventActive:=GVL_API.stSpitUnit.initialize, 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+
+ //home
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=	'SpitUnit Home ';
+fbSetAlarm[log_ID+2](
+	InUse:=TRUE , 
+	EventId:=log_ID+2 , 
+	EventActive:=GVL_API.stSpitUnit.homeExe , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ //Move
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT('SpitUnit MoveAbsolute position:',
+																	LREAL_TO_STRING(GVL_API.stSpitUnit.target_position));
+
+fbSetAlarm[log_ID+3](
+	InUse:=TRUE , 
+	EventId:=log_ID+3 , 
+	EventActive:=GVL_API.stSpitUnit.MoveAbsoluteExe , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//ERROR,log_ErrorEnum只能等于一个常数
+CASE GVL_API.stSpitUnit.error_code  OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+3	:	log_ErrorEnum	:=	3	;
+4	:	log_ErrorEnum	:=	4	;
+5	:	log_ErrorEnum	:=	5	;
+6	:	log_ErrorEnum	:=	6	;
+7	:	log_ErrorEnum	:=	7	;
+8	:	log_ErrorEnum	:=	8	;
+9	:	log_ErrorEnum	:=	9	;
+666	:	log_ErrorEnum	:=	666	;
+
+END_CASE
+
+AlarmActionArray[log_ID+4].AlarmMsg.EN	:=CONCAT('SpitUnit Error: ',TO_STRING(log_ErrorEnum));
+fbSetAlarm[log_ID+4](
+	InUse:=TRUE , 
+	EventId:=log_ID+4 , 
+	EventActive:=GVL_API.stSpitUnit.error_code<>0 AND GVL_API.stSpitUnit.error_code<>666 , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//reset
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=	'SpitUnit Reset ';
+fbSetAlarm[log_ID+5](
+	InUse:=TRUE , 
+	EventId:=log_ID+5 , 
+	EventActive:=GVL_API.stSpitUnit.setoff , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+   //AXIX_ERRORID
+ AlarmActionArray[log_ID+6].AlarmMsg.EN	:=CONCAT('SpitUnit Axis_ErrorID: ',
+																		UDINT_TO_STRING(Axis[ID].Ref.Status.ErrorID));
+fbSetAlarm[log_ID+6](
+	InUse:=TRUE , 
+	EventId:=log_ID+6 , 
+	EventActive:=Axis[ID].Ref.Status.Error , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );		
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_Safety" Id="{6bf61fe3-ebf0-43b8-b378-18df0285a92b}">
+      <Implementation>
+        <ST><![CDATA[(*****************SAFETY******************************)
+IF  GVL_API.stSpitUnit.state<>SpitUnitStateEnum.off AND GVL_API.stSpitUnit.state<>SpitUnitStateEnum.error THEN 
+	IF GVL.Emstop_Button    THEN 	
+		GVL_API.stSpitUnit.error_code:=SpitUnitErrorEnum.emergency_error;
+		Axis[ID].aStop(stop_do:=TRUE);
+		SysStep:=700;
+	ELSIF GVL_API.stSpitUnit.state=SpitUnitStateEnum.moving AND Axis[ID].IO.snLimitP  THEN 
+		GVL_API.stSpitUnit.error_code:=SpitUnitErrorEnum.trigger_limit;
+		Axis[ID].aStop(stop_do:=TRUE);
+		SysStep:=700;
+	ELSIF  Axis[ID].mcReadStatus.ErrorID=18000 THEN 
+		GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.Drive_not_ready_for_operation;
+		SysStep:=700;
+	ELSIF  Axis[ID].mcReadStatus.ErrorID=17510 THEN 
+		GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.Invalid_IO_data_for_more_than_n_subsequent_NC_cycles_encoder;
+		SysStep:=700;
+	ELSIF  Axis[ID].mcReadStatus.ErrorID<>0 THEN 
+		GVL_API.stAxis[ID].errorid:=Axis[ID].mcReadStatus.ErrorID;
+		SysStep:=700;
+	//ELSE 
+	//	GVL_API.stAxis[ID].error:=Axis_XY_ErrorEnum.no_error;	
+	//  SysStep:=700;
+	END_IF
+END_IF
+
+
+(*****************AXIS_ERROR******************************)
+GVL_API.stSpitUnit.AxisErrorId:=Axis[ID].Ref.Status.ErrorID;
+
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_SpitUnit">
+      <LineId Id="150" Count="1" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="152" Count="19" />
+      <LineId Id="180" Count="1" />
+      <LineId Id="172" Count="0" />
+      <LineId Id="233" Count="1" />
+      <LineId Id="173" Count="5" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SpitUnit._00_Waiting">
+      <LineId Id="102" Count="4" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="115" Count="7" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="100" Count="1" />
+      <LineId Id="21" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SpitUnit._100_Idle">
+      <LineId Id="15" Count="0" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="64" Count="8" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="27" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SpitUnit._200_Homing">
+      <LineId Id="204" Count="15" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="56" Count="3" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="220" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="139" Count="1" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="146" Count="3" />
+      <LineId Id="222" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SpitUnit._300_Ready">
+      <LineId Id="18" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="140" Count="2" />
+      <LineId Id="153" Count="1" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="171" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="196" Count="1" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="190" Count="2" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SpitUnit._500_Moving">
+      <LineId Id="43" Count="0" />
+      <LineId Id="45" Count="1" />
+      <LineId Id="343" Count="0" />
+      <LineId Id="312" Count="0" />
+      <LineId Id="323" Count="0" />
+      <LineId Id="550" Count="0" />
+      <LineId Id="313" Count="0" />
+      <LineId Id="318" Count="0" />
+      <LineId Id="415" Count="1" />
+      <LineId Id="420" Count="0" />
+      <LineId Id="418" Count="0" />
+      <LineId Id="421" Count="0" />
+      <LineId Id="417" Count="0" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="488" Count="0" />
+      <LineId Id="506" Count="0" />
+      <LineId Id="530" Count="5" />
+      <LineId Id="548" Count="1" />
+      <LineId Id="537" Count="0" />
+      <LineId Id="529" Count="0" />
+      <LineId Id="538" Count="0" />
+      <LineId Id="508" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SpitUnit._700_Error">
+      <LineId Id="11" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="83" Count="2" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="88" Count="1" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="48" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SpitUnit._800_SetOff">
+      <LineId Id="5" Count="7" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="41" Count="2" />
+      <LineId Id="14" Count="2" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="21" Count="6" />
+      <LineId Id="37" Count="3" />
+      <LineId Id="28" Count="2" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SpitUnit.ACT_FAN">
+      <LineId Id="4" Count="4" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="22" Count="2" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="25" Count="2" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="28" Count="1" />
+    </LineIds>
+    <LineIds Name="P_SpitUnit.ACT_LOG">
+      <LineId Id="2" Count="2" />
+      <LineId Id="133" Count="1" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="137" Count="1" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="6" Count="7" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="14" Count="9" />
+      <LineId Id="35" Count="2" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="39" Count="8" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="94" Count="1" />
+      <LineId Id="161" Count="6" />
+      <LineId Id="169" Count="2" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="107" Count="21" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="151" Count="9" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="131" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SpitUnit.ACT_Safety">
+      <LineId Id="2" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="5" Count="1" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="48" Count="1" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="41" Count="1" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="16" Count="2" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="24" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

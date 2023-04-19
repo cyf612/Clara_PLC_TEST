@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_Input" Id="{0758fd40-83dc-414b-817e-bff263206ac4}">
+    <Declaration><![CDATA[TYPE ST_Input :
+STRUCT
+(****************XYZ,用io.********************)	
+	
+(****************ISS********************)
+	biSubInkTankLevel				:ARRAY[1..20] OF BOOL;	//
+	(*
+			墨桶	液位	泵		
+1	LC	1,2	1,2	FB_SubInkFeed_C	[1]
+2	LM	3,4	3,4	FB_SubInkFeed_C	[2]
+3	Y	5,6	5,6	FB_SubInkFeed_C	[3]
+4	M	7,8	7,8	FB_SubInkFeed_C	[4]
+5	C	9,10	9,10	FB_SubInkFeed_C	[5]
+6	K	11,12	11,12	FB_SubInkFeed_C	[6]
+7	W	13,14,15,16	13,15	FB_SubInkFeed_W	
+8	P	17,18	17,18	FB_SubInkFeed_P	
+9	F	19,20	19,20	FB_SubInkFeed_Flush	
+
+	*)
+	
+	biProtectAirTankLevel_C			:BOOL;	//保护气瓶液位
+	biProtectAirTankLevel_W			:BOOL;	//保护气瓶液位
+	btPurge									:BOOL;//正压按钮
+	btVacBt_W								:BOOL;//白墨，负压按钮
+	btVacBt_C								:BOOL;//彩墨，负压按钮
+(****************测高********************)
+	biElectromagnet_limit			:BOOL;	
+(****************UpDownSlot********************)
+	biUDS_sensor_up_S					:ARRAY[1..number_UpDownSlot] OF BOOL;  //s1-s6
+	biUDS_sensor_down_S1				:ARRAY[1..16] OF BOOL;//s1
+(****************FootPedal********************)	
+	biFootPedal						:ARRAY[1..number_FootPedal] OF ST_IO_FootPedal;
+(****************RoolToRool********************)	
+	biDualSensor					:ARRAY[1..2] OF BOOL;
+	biClamp_hold					:ARRAY[1..2] OF BOOL;//卡箍抱紧
+	biBrakeBack_L					:BOOL;//左刹车反馈
+	biBrakeBack_R					:BOOL;//右刹车反馈
+	
+(****************safe********************)	
+	biRely_back  											:ARRAY[1..4] OF BOOL;
+	btReset													:BOOL;
+
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

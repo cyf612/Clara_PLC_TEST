@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="stRtu" Id="{624c7301-7737-4da5-adb6-34f2579f5a3f}">
+    <Declaration><![CDATA[TYPE stRtu :
+STRUCT
+	_01b_writearray:ARRAY [1..10] OF BYTE;//modsim 01口写操作数组（bool）
+	_01b_readarray:ARRAY [1..10] OF BYTE;//modsim 01口读操作数组（bool）
+    _02OR_array :ARRAY [1..10] OF BYTE;//modsim 02口读操作数组
+	_03writearray:ARRAY [1..10] OF WORD;//modsim 03口写操作数组
+	_03readarray:ARRAY [1..10] OF WORD;//modsim 03口读操作数组
+	_04readarray:ARRAY[1..10] OF WORD;//04口 读	
+	_06writesinglearray:ARRAY [1..10] OF WORD;//modsim 06口写操作数组
+	_06writesinglearray_PID:ARRAY [1..6] OF WORD:=[10,10];//modsim 06口写操作数组
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

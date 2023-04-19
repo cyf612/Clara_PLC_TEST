@@ -1,0 +1,119 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_FootPedal" Id="{f0e82086-2d8c-4cc6-8ea4-527b4f27d7ab}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_FootPedal
+VAR
+	FB_FootPedal:ARRAY[1..number_FootPedal] OF FB_FootPedal;//
+	i:INT;
+	log_ErrorEnum:FootPedalErrorEnum;
+	log_ID:INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_LOG();
+FOR i:=1 TO number_FootPedal DO
+	FB_FootPedal[i](
+		PedalPressed1:=stInput.biFootPedal[i].PedalPressed1 , 
+		PedalPressed2:=stInput.biFootPedal[i].PedalPressed2 , 
+		PedalPressed3:=stInput.biFootPedal[i].PedalPressed3 , 
+		debounce_time:=GVL_API.stFootPedal[i].debounce_time , 
+		error_code=> GVL_API.stFootPedal[i].error_code, 
+		state=> GVL_API.stFootPedal[i].state, 
+		pressed=> GVL_API.stFootPedal[i].pressed, 
+		Error=>GVL_API.stFootPedal[i].Error , 
+		Reset:= GVL_API.stFootPedal[i].Reset );
+END_FOR]]></ST>
+    </Implementation>
+    <Action Name="ACT_LOG" Id="{36e5c4b6-2035-41bb-b318-0960bf8cc116}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+log_ID:=400;
+FOR i:=1 TO number_FootPedal DO//401-404
+//pressed
+AlarmActionArray[log_ID+i].AlarmMsg.EN	:=CONCAT('FootPedal',
+																			INT_TO_STRING(i));
+AlarmActionArray[log_ID+i].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+i].AlarmMsg.EN,': '	);																	
+AlarmActionArray[log_ID+i].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+i].AlarmMsg.EN,
+																			INT_TO_STRING(GVL_API.stFootPedal[i].pressed));												
+fbSetAlarm[log_ID+i](
+	InUse:=TRUE , 
+	EventId:=log_ID+i , 
+	EventActive:=GVL_API.stFootPedal[i].pressed<>0 , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//ERROR,log_ErrorEnum只能等于一个常数,   410-414
+CASE GVL_API.stUpDownSlot[i].error_code  OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+3	:	log_ErrorEnum	:=	3	;
+4	:	log_ErrorEnum	:=	4	;
+666	:	log_ErrorEnum	:=	666	;
+
+
+END_CASE
+AlarmActionArray[log_ID+10+i].AlarmMsg.EN	:=CONCAT('FootPedal',INT_TO_STRING(i));
+AlarmActionArray[log_ID+10+i].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10+i].AlarmMsg.EN,
+																			' Error: ');
+AlarmActionArray[log_ID+10+i].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+10+i].AlarmMsg.EN,
+																			TO_STRING(log_ErrorEnum));																			
+
+fbSetAlarm[log_ID+10+i](
+	InUse:=TRUE , 
+	EventId:=log_ID+10+i , 
+	EventActive:=GVL_API.stFootPedal[i].error_code<>0 AND GVL_API.stFootPedal[i].error_code<>666  , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//reset  420-424
+AlarmActionArray[log_ID+20+i].AlarmMsg.EN	:=CONCAT('FootPedal',
+																			INT_TO_STRING(i));
+AlarmActionArray[log_ID+20+i].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+20+i].AlarmMsg.EN,
+																			' Reset');		
+
+fbSetAlarm[log_ID+20+i](
+	InUse:=TRUE , 
+	EventId:=log_ID+20+i , 
+	EventActive:=GVL_API.stFootPedal[i].Reset  , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+END_FOR]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_FootPedal">
+      <LineId Id="28" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="13" Count="7" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="11" Count="1" />
+    </LineIds>
+    <LineIds Name="P_FootPedal.ACT_LOG">
+      <LineId Id="2" Count="1" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="85" Count="1" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="87" Count="7" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="123" Count="1" />
+      <LineId Id="182" Count="5" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="132" Count="1" />
+      <LineId Id="170" Count="4" />
+      <LineId Id="135" Count="10" />
+      <LineId Id="178" Count="2" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="146" Count="7" />
+      <LineId Id="83" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

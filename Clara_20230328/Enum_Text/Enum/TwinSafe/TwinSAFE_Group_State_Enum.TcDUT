@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="TwinSAFE_Group_State_Enum" Id="{eadf09e1-4296-421a-8afd-9ac08548cc1b}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE TwinSAFE_Group_State_Enum :
+(
+RUN	:=	1	,(*	"Input RUN=1, no error in the group, and all connections have started
+up without error"	*)
+STOP	:=	2	,(*	Input RUN = 0	*)
+ERROR	:=	4	,(*	Group is in error, see Diagnostic information	*)
+RESET	:=	5	,(*	"After a group error has occurred, all errors have been rectified and the
+Err Ack signal is 1"	*)
+START	:=	6	,(*	"The group remains in this state as long as not all connections have
+started up after the start of the group (RUN=1)"	*)
+STOPERROR	:=	7	,(*	"When the group is started or initialized, it assumes the STOPERROR
+status if the TwinSAFE connections are assigned to the group.
+The group switches from STOPERROR state into ERROR state if the
+Run input is TRUE."	*)
+DEACTIVE	:=	16	,(*	Group was deactivated via customizing	*)
+WAITCOMERROR	:=	17	(*	"This state is set when the customizing function ""Passivate"" is selected
+and the system waits for ComError of the group"	*)
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

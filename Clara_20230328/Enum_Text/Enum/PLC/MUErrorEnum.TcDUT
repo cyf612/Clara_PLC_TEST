@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="MUErrorEnum" Id="{8075c471-4469-422c-a054-264b15778a63}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE MUErrorEnum :
+(
+no_error									:=	0	,//	No error detected
+not_connected							:=	1	,//	A command was requested prior to opening the driver
+invalid_state								:=	2	,//	An invalid command was requested
+alarm_circulation_left					:=	3	,//	When pump 3 was activate less than …x/min => 
+alarm_circulation_right				:=	4	,//	When pump 6 was activate less than …x/min => 
+alarm_through_left						:=	5	,//	When pump 3 was activate less than 1x/2min =>
+alarm_through_right					:=	6	,//	When pump 6 was activate less than 1x/2min => 
+alarm_runtime_circulation_left		:=	7	,//	When pump 3 runs longer than 8sec => 
+alarm_runtime_circulation_right	:=	8	,//	When pump 6 runs longer than 8sec => 
+unknown_error							:=	9	,//	Unknown – Network error
+emergency_error						:=	666	//	The object is in error due to an active emergency error.
+
+
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,200 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <TextList Name="EL2809_M_1" Id="{b0c12962-faf2-4936-ae6e-9637ae91af20}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="TextListObject">
+          <v n="UniqueIdGenerator">"0"</v>
+          <l n="TextList" t="ArrayList" cet="TextListRow">
+            <o>
+              <v n="TextID">"1"</v>
+              <v n="TextDefault">"F Pump1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>清洗液泵1</v>
+                <v></v>
+                <v>图层泵1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"2"</v>
+              <v n="TextDefault">"F Pump2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>清洗液泵2</v>
+                <v></v>
+                <v>图层泵2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"3"</v>
+              <v n="TextDefault">"W ink tank stirring_F"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>白墨瓶搅拌（正转）</v>
+                <v></v>
+                <v>白墨瓶搅拌（正转）</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"4"</v>
+              <v n="TextDefault">"W ink tank stirring_B"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>白墨瓶搅拌（反转）</v>
+                <v></v>
+                <v>白墨瓶搅拌（反转）</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"5"</v>
+              <v n="TextDefault">"LED_C"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>墨瓶C  LED</v>
+                <v></v>
+                <v>墨瓶C  LED</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"6"</v>
+              <v n="TextDefault">"LED_Y"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>墨瓶Y  LED</v>
+                <v></v>
+                <v>墨瓶Y  LED</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"7"</v>
+              <v n="TextDefault">"LED_M"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>墨瓶M  LED</v>
+                <v></v>
+                <v>墨瓶M  LED</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"8"</v>
+              <v n="TextDefault">"LED_K"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>墨瓶K  LED</v>
+                <v></v>
+                <v>墨瓶K  LED</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"9"</v>
+              <v n="TextDefault">"LED_LC"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>墨瓶LC  LED</v>
+                <v></v>
+                <v>墨瓶LC  LED</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"10"</v>
+              <v n="TextDefault">"LED_LM"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>墨瓶LM  LED</v>
+                <v></v>
+                <v>墨瓶LM  LED</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"11"</v>
+              <v n="TextDefault">"LED_P"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>墨瓶P LED</v>
+                <v></v>
+                <v>墨瓶W  LED</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"12"</v>
+              <v n="TextDefault">"LED_W"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>墨瓶W LED</v>
+                <v></v>
+                <v>墨瓶清洗液  LED</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"13"</v>
+              <v n="TextDefault">"LED_F"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>墨瓶F  LED</v>
+                <v></v>
+                <v>墨瓶图层  LED</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"14"</v>
+              <v n="TextDefault">"LED_Waste"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>墨瓶废液  LED</v>
+                <v></v>
+                <v>墨瓶废液  LED</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"15"</v>
+              <v n="TextDefault">"Waste liquid  fan"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>废液吸风扇</v>
+                <v></v>
+                <v>废液吸风扇</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"16"</v>
+              <v n="TextDefault">"Waste Pump"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>废液泵</v>
+                <v></v>
+                <v>废液泵</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">""</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+          </l>
+          <l n="Languages" t="ArrayList" cet="String">
+            <v>chinese</v>
+            <v>english</v>
+            <v>Chinese</v>
+            <v>English</v>
+          </l>
+          <v n="GuidInit">{8245a97d-77d6-4a1d-b732-7a4ca72fef79}</v>
+          <v n="GuidReInit">{0581dbd1-09ec-4c01-b797-0a03aa973879}</v>
+          <v n="GuidExitX">{e8bfb01a-65bd-4eac-b440-db52d8ca1b15}</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="String">System.String</Type>
+        <Type n="TextListObject">{2bef0454-1bd3-412a-ac2c-af0f31dbc40f}</Type>
+        <Type n="TextListRow">{53da1be7-ad25-47c3-b0e8-e26286dad2e0}</Type>
+      </TypeList>
+    </XmlArchive>
+  </TextList>
+</TcPlcObject>

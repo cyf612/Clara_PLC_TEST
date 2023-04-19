@@ -1,0 +1,166 @@
+<?xml version="1.0"?>
+<TcUserDB xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2015/02/TcUserDB" FileSignature="590509193fefcff34f865a4196c15c9fe8c5b8a7ec1b9160ee1e509c4edfd658ee26c4941988a5c466512b6f4f61931ae5355d3fec0921ac33a132361602b8588a5f2276535723019aa3f8ff74c781286a93e2d0c06ceab6772343a359e8cf7147f76a1ede2419ddb8cb7dc1d24c09f48b58aff40a2883e3ca77b2cc35542399a00a17e6a279212605f30c751ddd212d5f16928baf9c1d1c96eb1b5166b61d33ab07bbd8ac6a7cf04471347f5432eb754fbb4d0208f00c169f15d55f6a08ce2dc36d7ae9382dff5a0e873c79bff21181b85b194cfc282c2d0446ce1fd13ff731ed9b57a0b5a9eb13fd42d7e49fecf70518a289e160f967fd63e0565d26943f40" FileIdentifier="1a745db558c60c19f37a13ed0f7443f547877efd">
+	<OemCertificate NodeSignature="ad5eafeb3c20eb650abde4cb14b0965cb87f93c20552a20fa88035381369fdce1e89e5eebb6775852e358beca27a4ff4ea92426726240bbb7dd9d078c66e4e6d065959fe7700a4b98b12955a0cab9ef52a9ec8a0313f48028d8425a1e5d85371a6d1627e79683f28efed65ba4e11a8f76049d47218f506e88b387f433ab1ed53f92e378bfe494797a54dee8f0e83c07dfef3a1bdfb46f3cfde379193b4dcf64a302067d37dbffe20c730c001dc33a697b9be57cdf18aa3f6b631d3331a9ae8c820d3c34561a2db22e387c21be4beeeb23ab1ce9a3d830cc971ce41ab087e4457634108966e50e4a27380f520f6c6eaea91bcdb442be2ecb5facfee640399488006160ffad9b3cecbf30bd002122527b64cc7dfe065f938dcb664e2f85877c527c9b3e6c0bf16c8c0b10b709a4d33b13e3fd12b717a0ea917b537c41163efa3ac26f1d62e7f25991e152081afadde419e6dee1c85d6f9c44fc67ee45cee982502dfa961e9ce6b8dadeed3cf54ebab1fa3a69ea4595e22858144c09084a50db25d1533010fee777c8b604ea41e50c33543eb426f9015641f058cea74e193783eecf48931c0bbccb07bf462711d95828b4dc10b02e6d7ffe9b42abaa7f5e52d90f6a733e47c2c6ee235c008ca7df9ef4a9df17e136e8b5ffe7e9fa717fc633cb6ddab065f82d92a9d9a623a08eded6e40f4f634428c4d8c50fb4980756d4fc321b5d1188a26a0accb8f555853767aa2ebd7ffe006b52da0aae644edec44ff31a3fe81d6eeaf1e55a1b2acb473c8133bb3ba44d8aef265c23110ec3781283a4c7e50f5a4e809104bd294a598c5b2d9ebcf42d97e883f77ffa37c307cd67390b228b565a8add256689101b7ebc101006e26645481471d315c470be7d32de2343b1b137adeb678063628e4b3c06c96ddb278231ffad60b7a9f7c2b3b2426094f41aef133a919c9a35ecd04cc853993b9da3624fe6787e503c96079c051811b3231831ac86e1bccf7e14ee89efe48f4cdc96ee54b2e2e3bd8120a0426e9bd0f4a19189bc7c149d2488d5e5db73f8f66e182bac1a32b2df326abfc795b3d3a4493cde6f6348ec2e642738e030fe903afd4a6c43d442d0fbece5247dde6c362ea66610ab58b94dfc3bd7f6e521b4e594aa857fd3d8a11647af05c2ccfa086704faa957036f7e31f97e8fc0d75cb3bb332f41e0db7b6c2631bf29d94b0ee154eac8f79eaf44673c1e108067d4e63bdb30c3c79d3df56eb84a0be34f308cabaf290f68adc1f5dc9728d785102afb03c12dc01986ed95095a7959959dea942e6ea020a29f68857193a2e6e74f898124c41196b8d3a4543c95b6e385b806b01b9546725b05ee0304c58dcb648fd8d0ffc8db71e556dabb8e4d744812e20ee8d31e7d6648c8aed4ff4dad8989e54cabc4d7290066b91387b172278335c3ffe0be2dbf24de8b121" OemId="{ABBF564A-A85D-4158-143F-6F4020CC0D08}" Name="JSLG" UniqueName="gubin@ntlg.cn" Issuer="Beckhoff_0215" TcCert_SignDatabaseKey="true" TcCert_SignLicenseReq="true" IssueTime="2022-08-30T07:38:00" ExpireTime="2024-08-30T23:59:59">525341310008000003000000000100000000000000000000010001e1683378a68d8e0d6f6efbb7eab9114629c46c13b99d108ad609dd3e67f0004c24da6dcc7adf7b665f95a92599cd5ddd13e9c94169244a2bb0cfcecccb3edd2bb7edc8d468f59ff57dc4ba1e6bc77863261c28d45af918871c9ae43d050c0ad46b18d01791889d302a97c9d4123c53e3f7fab10c435aed11587fd75478e38fc9897c64f5f53f0c08f0c25d46e9f95d37c19f04ff2112d0bf9bdee8424c93648e11adb379bf3f82d69bbf195b5ddd84b42659433c0926acea8746e4e5fd144b5acb9065ea13b18c1a6b392bcef24c8341074310f643fef73ea6db046068d957d40d7b1758258110015fd50381681deaf2fa4980383b1aff7fb479aaaef5e44c79</OemCertificate>
+	<DbPublicKey NodeSignature="6af429347f438eed5ee5ca19ddb8de921c5e7129cb5c792d19232ada162064f14fd9e750774dc2d25609f50b244d720caeccd109052c71ce522cd4d651ad1aef73019c1419348ea079c7ecf6e008aae027a03692cead9d5cfa9afad83f5f1ba1baede2e689504daca6a9ab9d81a9b1627f94d8f3f4af50391ef8b8aa71b330573550564e8c5d0d7c9c46423cf6a0b4aff9a7b4c577f640879e925f1f61a577e1f7522e4bf183ffba38a7182794c2e4b5565139e570503d4da67dc7994b7b8d26ace13c4e3055b1ae4b939cd683c8aecdf2f45590918fc38be7d2e8e88dc95eae7e05d39fe89bfce4b3fd38acb9bb8b4e8c0bf10b258fcea458098489c35f4768" Name="Clara_DPT1" UniqueName="Clara_DPT1" IssueTime="2023-03-21T07:00:00">525341310008000003000000000100000000000000000000010001c976e5a5e3af0b94acc8795fdcaeb85b62d081171d4eb522b2099a30455f2f85a84f08320c360d9b6bdb2a7b71924351ae6bb8bc62c2be9d733da08c1fff43c0fb3ca0a76da9fb00c137716ae3901e1774d660ec786544b607a5d685efc25acfa4858673c495675d6c936a5dc4219e187945fe2c7e01be895724e43970cd0b27f3dc366a4ef7e932efec6cc40037c8d74c341ebe8c0b614a325f2ab698f1e064872cd906d1bea8f28033d742599e802cba7696b8cf0bed6b7aeda283b82ce4b3e48cea71547c10ef200025586734139d0db27ef09c14dac9ede7ebcad6d140310a99f717a29b744d5838e8bdb39677effd0d86f1565a0ded1906471f01aacad5</DbPublicKey>
+	<DbAdmin>
+		<Name>Administrator</Name>
+		<US_PwdHash>16a8fd5e44a8ee964d8422c241ac76e21c5b13f2fbc50b86dd56a23ee370ed4c</US_PwdHash>
+		<DB_PrivateKey>05a6f407f087d19681edc5bb7971c11fc253d519185c518c0cd20751be157991ad1af963180b4c7d384031ad5936a4e4538b59ac28d909f0aa3272ccf879e3525bdf5cf215fcf5f5129519a710186b00ab19d2fc73db452e065b67c6dfda5bb66a2985a3e81a833bb5cf1845fd89f64933e3b1e8ebcb950973e36e856d673d76c6d7d8df9c10bdec605f1861c3aa4652ca46b5ed20a3a9a62eb34d1b62ef281fef16aa2a9738125be14866d2f893cd78f31bd26a06a32b32c4fcf9f4bfef6d03e4de3d263b02f02a0a9fc613e6e502732aa69c65abe76ecdd9919d45273e08a1b98d190d2828a0539f676067df8e596187f995f8467feef73168e75cf61f150644b62e4bd4f980f89acb5dbb53d086a60a5e6722d2ff48758b73c24a83dfd4b37ae91fb6d5c6549e2d99a1c3cddcb27400b690f7b5ec8db6268309929525fb3f3c8525b3239231060f67091d139533ced481fc6bc9460edee2958636ce8ae87d2a0eef8931a3eedad794ca6b485da7ef51b936f8e0b35d4bf7e60a68154e30c52bbddc2733d85debbed44e25e203e170d468e48320e8115aa5c7890123a56a2239ca8fe0ec6b3ab62d4e0f18bab5afe7fdabcfd19038da56705aa1f394f5e3ce974d3d6f76a75a14179fbf21f90e85f68e6664172707eec5133349b18651d1d61353596e41139b8b63a56e51260e5c9b3e4521c30423e15dabbc3192b8fc96ac126482bfbc66eec6a83f4faa1e3e5ac0b16b1af91c891a12cc6e906bf2bfd7f8</DB_PrivateKey>
+	</DbAdmin>
+	<OpLevel>
+		<Name>Secure</Name>
+		<GUID>{F18742DB-E293-4FA8-8E35-7DD09C6E17E5}</GUID>
+		<View>GRP_Administrators</View>
+		<Delete>GRP_Administrators</Delete>
+		<Modify>GRP_Administrators</Modify>
+		<AddRemoveChild>GRP_Administrators</AddRemoveChild>
+	</OpLevel>
+	<OpLevel>
+		<Name>LookingAllowed</Name>
+		<GUID>{6A3BC611-D882-424F-B122-BA8942F7F02F}</GUID>
+		<View>GRP_Guests</View>
+		<Delete>GRP_Administrators</Delete>
+		<Modify>GRP_Administrators</Modify>
+		<AddRemoveChild>GRP_Administrators</AddRemoveChild>
+	</OpLevel>
+	<OpLevel>
+		<Name>EditingAllowed</Name>
+		<GUID>{7D22C9AA-EEBF-4B02-AA49-255AA771C29F}</GUID>
+		<View>GRP_Guests</View>
+		<Delete>GRP_OEMDev</Delete>
+		<Modify>GRP_OEMDev</Modify>
+		<AddRemoveChild>GRP_OEMDev</AddRemoveChild>
+	</OpLevel>
+	<Right>
+		<Name>Project Rights</Name>
+		<GUID>{7C3B4EB4-CC82-49ED-AFA4-CC72AE03B274}</GUID>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>I/O Mangement</Name>
+		<GUID>{E7D3031E-EF85-4BC3-8081-C7B8BC62AF9E}</GUID>
+	</Right>
+	<Right>
+		<Name>EtherCAT</Name>
+		<GUID>{0034B3E3-FECF-4151-8A2E-03E673A44092}</GUID>
+		<Folder>I/O Mangement</Folder>
+	</Right>
+	<Right>
+		<Name>Change Security Settings</Name>
+		<GUID>{32C42E96-BB93-4FE4-8F30-6C4F7644A204}</GUID>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>License Management</Name>
+		<GUID>{59F7E9C3-34B9-4360-AE24-57B13C8C9A77}</GUID>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>User DB Management</Name>
+		<GUID>{261CDAD4-567A-4EDA-B6FD-B2CC69574288}</GUID>
+		<UserGrp>GRP_Administrators</UserGrp>
+	</Right>
+	<Right>
+		<Name>Load Unsigned Project Files</Name>
+		<GUID>{8DCD954A-BDED-4F21-A523-F976E0DCE1EF}</GUID>
+		<Folder>Project Rights</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>SaveAs Project Files</Name>
+		<GUID>{E4F2487E-1CCB-49A9-886A-6245BEEC7B0A}</GUID>
+		<Folder>Project Rights</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>Sign Project Files</Name>
+		<GUID>{30E74A79-5DF0-4229-89F6-84BBB5FF635F}</GUID>
+		<Folder>Project Rights</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>Encrypt Project Files</Name>
+		<GUID>{827A2249-5AAA-4810-9EE0-DECFEA93C3A4}</GUID>
+		<Folder>Project Rights</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>Decrypt Project Files</Name>
+		<GUID>{BE4121B5-B1F8-42D6-A20F-3967272D3352}</GUID>
+		<Folder>Project Rights</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>Change Project Files</Name>
+		<GUID>{BB9B22D3-8A34-4911-8877-82F6F328D1A6}</GUID>
+		<Folder>Project Rights</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>Activate Configuration</Name>
+		<GUID>{67619B56-B00D-42BE-8541-E4ED4E1093DF}</GUID>
+		<Folder>Project Rights</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>Advanced Settings</Name>
+		<GUID>{28E1E3EC-03EC-4899-942C-4E2B35C71C5F}</GUID>
+		<Folder>EtherCAT</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>Show EtherCAT Adapter</Name>
+		<GUID>{FE747756-12DE-48E6-B13D-738B53A521D5}</GUID>
+		<Folder>EtherCAT</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>Manage Licenses</Name>
+		<GUID>{AD1140EC-BFB7-468F-99CB-8F3BFFAFFA22}</GUID>
+		<Folder>License Management</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>Activate 7 Day Trial License</Name>
+		<GUID>{79BA3D67-E007-4EFB-80CA-F2E801F06FF5}</GUID>
+		<Folder>License Management</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<Right>
+		<Name>Activate License Response File</Name>
+		<GUID>{BD37CC7E-46A8-40D3-BC28-FD1AD2A9E929}</GUID>
+		<Folder>License Management</Folder>
+		<UserGrp>GRP_OEMDev</UserGrp>
+	</Right>
+	<UserGrp>
+		<Name>GRP_Guests</Name>
+		<GUID>{B69C9143-A453-448B-9FFC-96271EFAB6D0}</GUID>
+	</UserGrp>
+	<UserGrp>
+		<Name>GRP_OEMDev</Name>
+		<GUID>{2BEF589A-C8C0-478A-B01E-3E598A9C836C}</GUID>
+		<Parent>GRP_Guests</Parent>
+	</UserGrp>
+	<UserGrp>
+		<Name>GRP_Administrators</Name>
+		<GUID>{8A75BFA5-4CE9-414F-8B2B-80203191CF9A}</GUID>
+		<Parent>GRP_OEMDev</Parent>
+	</UserGrp>
+	<User>
+		<Name>Guest</Name>
+		<GUID>{00000000-0000-0000-0000-000000000000}</GUID>
+		<Group>GRP_Guests</Group>
+	</User>
+	<User>
+		<Name>Administrator</Name>
+		<GUID>{00000000-0000-0000-0000-000000000000}</GUID>
+		<Hash>df6098dc79c6c1e68aa505cad3653d3670ca978f</Hash>
+		<Group>GRP_Administrators</Group>
+	</User>
+	<User>
+		<Name>AGFA</Name>
+		<GUID>{BDE9EC14-3AA9-4154-BB64-7C4643503442}</GUID>
+		<Hash>cf057eaefa1ea6dad37c1240b3bae749a89cac64</Hash>
+		<Group>GRP_OEMDev</Group>
+	</User>
+</TcUserDB>

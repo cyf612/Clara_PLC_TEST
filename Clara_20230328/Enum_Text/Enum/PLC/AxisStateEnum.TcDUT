@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="AxisStateEnum" Id="{d7b3c6fa-2e49-4b14-81f3-45b4042f3af3}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE AxisStateEnum :
+(
+	off			:=	0	,//	The Reset command finished successful
+	idle		:=	1	,//	The Initialize command finished successful
+	homing		:=	2	,//	The Home command started successful. The drive is moving
+	ready		:=	3	,//	The Home command finished successful and the drive is idle again. Or The MoveX commands finished successful and the drive is idle again
+	moving		:=	4	,//	The MoveX command started successful. The drive is moving
+	stopping	:=	5	,//	The axis object is stopping
+	disabled	:=	6	,//	The axis object  is disabled
+	error		:=	100	//	The axis object  is in error state
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

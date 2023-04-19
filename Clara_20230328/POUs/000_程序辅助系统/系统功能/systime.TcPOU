@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="systime" Id="{ae3e90b9-ad75-49d9-b5f3-1b0198564b79}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM systime
+VAR
+	fb_localsystime1:Tc2_Utilities.FB_LocalSystemTime;
+	systime1:Tc2_Utilities.TIMESTRUCT;
+	dttime:DATE_AND_TIME;
+	todacttime:TIME_OF_DAY;
+	sTime,sData	:STRING;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fb_localsystime1(
+	sNetID:= , 
+	bEnable:= TRUE, 
+	dwCycle:= , 
+	dwOpt:= , 
+	tTimeout:= , 
+	bValid=> , 
+	systemTime=>systime1 , 
+	tzID=> );
+	
+dttime:=Tc2_Utilities.SYSTEMTIME_TO_DT(systime1);
+todacttime:=DT_TO_TOD(dttime);
+    sTime := concat(WORD_TO_STRING(fb_localsystime1.systemTime.wHour),':');
+	sTime := concat(sTime,WORD_TO_STRING(fb_localsystime1.systemTime.wMinute));
+	sTime := concat(sTime,':');
+	sTime := concat(sTime,WORD_TO_STRING(fb_localsystime1.systemTime.wSecond));
+(*	sData := concat(WORD_TO_STRING(fb_localsystime1.systemTime.wDayOfWeek),',');
+	sData := Tc2_Standard.CONCAT(sData,WORD_TO_STRING(fb_localsystime1.systemTime.wMonth));
+	sData := Tc2_Standard.CONCAT(sdata,'.');
+	sData := Tc2_Standard.CONCAT(sData,WORD_TO_STRING(fb_localsystime1.systemTime.wDay));
+	sData := Tc2_Standard.CONCAT(sData,',');
+	sData := Tc2_Standard.CONCAT(sData,WORD_TO_STRING(fb_localsystime1.systemTime.wYear));
+	*)
+]]></ST>
+    </Implementation>
+    <LineIds Name="systime">
+      <LineId Id="9" Count="7" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="19" Count="2" />
+      <LineId Id="31" Count="8" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="49" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

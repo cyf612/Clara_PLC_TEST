@@ -1,0 +1,297 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_MaintenanceUnit" Id="{96553073-1abf-4c81-b1ff-f09497abb5dd}" SpecialFunc="None">
+    <Declaration><![CDATA[(*换墨  泵输出，通过P_ISS 来控制*)
+PROGRAM P_MaintenanceUnit
+VAR
+	FB_Auto_Cycles_Swap:FB_Auto_Cycles_Swap;//Swap from Ink to Storage Flush
+	FB_drip_purge:FB_drip_purge;
+	
+	log_ErrorEnum:MUErrorEnum;
+	log_ID:INT;
+	
+	log_swapEnum:SwapInfoEnum;
+	old_swap_info:INT;
+	info_change_ton:Tc2_Standard.TON;
+	
+	old_dripping_allowed:BOOL;
+	ton_dripping_allowed:Tc2_Standard.TON;
+
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_LOG();
+
+(*****************MaintenanceUnit ***************************)
+FB_Auto_Cycles_Swap(
+	Sensor1:=GVL.inklevel_W_L_TOP  , 
+	Sensor4:= GVL.inklevel_W_R_TOP, 
+	Circ_Pump_L:= stOutput.bqSubCircPumpWorking[1], 
+	Circ_Pump_R:= stOutput.bqSubCircPumpWorking[2], 
+	Circ_normal_error:= P_SubTank.FB_Circulation.error_code, 
+	btPurge:= stInput.btPurge, 
+	state=> GVL_API.stMU.state , 
+	error_code=> GVL_API.stMU.error_code, 	
+	SwapInfo=>GVL_API.stMU.SwapInfo , 
+	VacValve_V8=> , 
+	PurValve_V7=> , 
+	alternate_Pumping=> , 
+	Swapping_Done=> GVL_API.stMU.Swapping_Done, 
+	Error=> GVL_API.stMU.Error, 
+	initialize:= GVL_API.stMU.Initialize, 
+	swap:= GVL_API.stMU.Swap, 
+	CYCLE:=GVL_API.stMU.cycle , 
+	setoff:=GVL_API.stMU.SetOff );
+
+(**********************三个电磁阀
+在自动换墨时，三个电磁阀不受按钮控制********************************)
+
+IF GVL_API.stMU.state=MUStateEnum.swapping THEN 
+	stOutput.bqVacValve_W		:=FB_Auto_Cycles_Swap.VacValve_V8;
+	stOutput.bqPurValve			:=FB_Auto_Cycles_Swap.PurValve_V7 ;
+ELSE
+	stOutput.bqVacValve_W		:=stInput.btVacBt_W OR  FB_drip_purge.VacWhiteValve8;
+	stOutput.bqVacValve_C		:=stInput.btVacBt_C  OR  FB_drip_purge.VacColorValve9; 
+	stOutput.bqPurValve			:=stInput.btPurge     OR  FB_drip_purge.PurgeValve7;
+END_IF
+
+(**********************废液位********************************)
+IF GVL.MainTankLevel[10]>=3 THEN 
+	GVL_API.stMU.waste_maximum_level:=TRUE;
+ELSE
+	GVL_API.stMU.waste_maximum_level:=FALSE;
+END_IF
+
+(**********************FB_drip_purge********************************)
+	IntervalTime_W 			:=GVL_API.stMU.IntervalTime_W;
+	DripTime_W 				:=GVL_API.stMU.DripTime_W;
+	PurgeTime_W 			:=GVL_API.stMU.PurgeTime_W;
+	IntervalTime_C 			:=GVL_API.stMU.IntervalTime_C;
+	DripTime_C 				:=GVL_API.stMU.DripTime_C;
+	PurgeTime_C 			:=GVL_API.stMU.PurgeTime_C ;
+FB_drip_purge(
+	start_exe:=GVL_API.stMU.dripping_allowed AND GVL_API.stMU.state<>MUStateEnum.swapping  , 
+	IntervalTime_W:=IntervalTime_W , 
+	DripTime_W:=DripTime_W , 
+	PurgeTime_W:=PurgeTime_W , 
+	IntervalTime_C:=IntervalTime_C , 
+	DripTime_C:=DripTime_C , 
+	PurgeTime_C:=PurgeTime_C , 
+	PurgeValve7=> , 
+	VacWhiteValve8=> , 
+	VacColorValve9=> , 
+	has_dripped:= GVL_API.stMU.has_dripped);
+	
+
+GVL_API.stMU.white_circuit_content:=SubTankInk_type;
+
+]]></ST>
+    </Implementation>
+    <Action Name="ACT_LOG" Id="{0e7af011-db98-40fb-bfda-3da2fc02cc40}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+log_ID:=550;
+//initialize
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=	'MaintenanceUnit  Initialize ';
+fbSetAlarm[log_ID+1](
+	InUse:=TRUE , 
+	EventId:=log_ID+1 , 
+	EventActive:=GVL_API.stMU.Initialize , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //SWAP
+ IF GVL_API.stMU.cycle=0 THEN 
+	AlarmActionArray[log_ID+2].AlarmMsg.EN	:=	'MaintenanceUnit  Swap Cycle A: Swap white ink to storage ';
+ELSIF GVL_API.stMU.cycle=1 THEN 
+	AlarmActionArray[log_ID+2].AlarmMsg.EN	:=	'MaintenanceUnit  Swap Cycle B: Swap storage to white ink ';
+END_IF
+
+fbSetAlarm[log_ID+2](
+	InUse:=TRUE , 
+	EventId:=log_ID+2 , 
+	EventActive:=GVL_API.stMU.Swap , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//ERROR,log_ErrorEnum只能等于一个常数
+CASE GVL_API.stMU.error_code OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+3	:	log_ErrorEnum	:=	3	;
+4	:	log_ErrorEnum	:=	4	;
+5	:	log_ErrorEnum	:=	5	;
+6	:	log_ErrorEnum	:=	6	;
+7	:	log_ErrorEnum	:=	7	;
+8	:	log_ErrorEnum	:=	8	;
+9	:	log_ErrorEnum	:=	9	;
+666	:	log_ErrorEnum	:=	666	;
+END_CASE
+
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT('MaintenanceUnit Error: ',TO_STRING(log_ErrorEnum));
+fbSetAlarm[log_ID+3](
+	InUse:=TRUE , 
+	EventId:=log_ID+3 , 
+	EventActive:=GVL_API.stMU.error_code<>0 AND GVL_API.stMU.error_code<>666, 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//reset
+AlarmActionArray[log_ID+4].AlarmMsg.EN	:=	'MaintenanceUnit SetOff ';
+fbSetAlarm[log_ID+4](
+	InUse:=TRUE , 
+	EventId:=log_ID+4 , 
+	EventActive:=GVL_API.stMU.SetOff , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ //dripping_allowed
+ IF GVL_API.stMU.dripping_allowed THEN 
+ AlarmActionArray[log_ID+5].AlarmMsg.EN	:=	'MaintenanceUnit DrippingAllowed ';
+ ELSE
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=	'MaintenanceUnit  Dripping not Allowed ';	 
+ END_IF
+ 
+ ton_dripping_allowed(IN:=NOT ton_dripping_allowed.Q  , PT:=T#200MS , Q=> , ET=> );
+IF ton_dripping_allowed.Q THEN 
+	old_dripping_allowed:= GVL_API.stMU.dripping_allowed  ;
+END_IF
+ 
+fbSetAlarm[log_ID+5](
+	InUse:=TRUE , 
+	EventId:=log_ID+5 , 
+	EventActive:=old_dripping_allowed<>GVL_API.stMU.dripping_allowed  , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ //has_dripped
+  AlarmActionArray[log_ID+6].AlarmMsg.EN	:=	'MaintenanceUnit Has_dripped ';
+fbSetAlarm[log_ID+6](
+	InUse:=TRUE , 
+	EventId:=log_ID+6 , 
+	EventActive:=GVL_API.stMU.has_dripped , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+  //废液位
+  AlarmActionArray[log_ID+7].AlarmMsg.EN	:=	'The maximum level in the waste container is reached ';
+fbSetAlarm[log_ID+7](
+	InUse:=TRUE , 
+	EventId:=log_ID+7 , 
+	EventActive:=GVL_API.stMU.waste_maximum_level, 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+
+ //swap info
+ CASE GVL_API.stMU.SwapInfo OF
+0	:	log_swapEnum	:=	0	;
+1	:	log_swapEnum	:=	1	;
+2	:	log_swapEnum	:=	2	;
+3	:	log_swapEnum	:=	3	;
+4	:	log_swapEnum	:=	4	;
+5	:	log_swapEnum	:=	5	;
+6	:	log_swapEnum	:=	6	;
+7	:	log_swapEnum	:=	7	;
+END_CASE
+info_change_ton(IN:=NOT info_change_ton.Q  , PT:=T#200MS , Q=> , ET=> );
+IF info_change_ton.Q THEN 
+	old_swap_info:=GVL_API.stMU.SwapInfo;
+END_IF
+
+AlarmActionArray[log_ID+9].AlarmMsg.EN	:=CONCAT('MaintenanceUnit Message: ',TO_STRING(log_swapEnum));
+fbSetAlarm[log_ID+9](
+	InUse:=TRUE , 
+	EventId:=log_ID+9 , 
+	EventActive:=old_swap_info<> GVL_API.stMU.SwapInfo, 
+	EventClass:=Alm_EventClass.Message , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ ]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_MaintenanceUnit">
+      <LineId Id="172" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="171" Count="0" />
+      <LineId Id="381" Count="8" />
+      <LineId Id="391" Count="7" />
+      <LineId Id="419" Count="0" />
+      <LineId Id="380" Count="0" />
+      <LineId Id="115" Count="1" />
+      <LineId Id="267" Count="0" />
+      <LineId Id="265" Count="1" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="269" Count="0" />
+      <LineId Id="204" Count="6" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="196" Count="4" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="147" Count="10" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="418" Count="0" />
+      <LineId Id="417" Count="0" />
+      <LineId Id="342" Count="0" />
+      <LineId Id="361" Count="0" />
+      <LineId Id="348" Count="0" />
+    </LineIds>
+    <LineIds Name="P_MaintenanceUnit.ACT_LOG">
+      <LineId Id="2" Count="11" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="132" Count="1" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="135" Count="6" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="94" Count="1" />
+      <LineId Id="143" Count="10" />
+      <LineId Id="108" Count="20" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="157" Count="1" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="228" Count="2" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="233" Count="2" />
+      <LineId Id="231" Count="1" />
+      <LineId Id="161" Count="6" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="170" Count="8" />
+      <LineId Id="180" Count="9" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="200" Count="8" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="221" Count="3" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="213" Count="7" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="156" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

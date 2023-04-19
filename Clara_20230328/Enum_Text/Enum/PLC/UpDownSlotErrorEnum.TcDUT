@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="UpDownSlotErrorEnum" Id="{83aaf439-adc4-4c7c-9db2-30eaaa08ec71}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE UpDownSlotErrorEnum :
+(
+no_error	:=	0	,//	No error detected
+not_connected	:=	1	,//	A command was requested prior to opening the driver
+invalid_state	:=	2	,//	An invalid command was requested
+timeout_up	:=	3	,//	Timeout. The UpDownSlot isn’t up left
+timeout_down	:=	4	,//	Timeout. The UpDownSlot isn’t down left
+cmd_timeout	:=	5	,//	excute commond timed out
+io_error	:=	6	,//	IO error HW board
+unknown_error	:=	7	,//	Unknown – Network error
+emergency_error	:=	666	//	
+
+
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

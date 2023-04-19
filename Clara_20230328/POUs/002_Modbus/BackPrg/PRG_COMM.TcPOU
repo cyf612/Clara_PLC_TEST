@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="PRG_COMM" Id="{516ec8c8-05a7-4008-a2f4-7e3c62e5c146}" SpecialFunc="None">
+    <Declaration><![CDATA[(***************背景程序，需快速扫描周期********************)
+PROGRAM PRG_COMM
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+(******************液位********************)
+COMCONTROL1(                                 //
+	Mode:=SERIALLINEMODE_KL6_22B_STANDARD,   //选择硬件类型
+	pComIn:= ADR(COMIN1),                     // pointer to the input variables of the process data of 
+                                              //the serial terminal
+	pComOut:= ADR(COMOUT1),   //串行硬件进程数据输入变量的通用指针
+                              //(数据类型为KL6inData、KL6inData5b、KL6inData22b、EL6inData22b、PcComInData)。
+                              //指针是用ADR()函数指定的。
+	SizeComIn:= SIZEOF(COMIN1),//正在使用的串行硬件的输入进程映像的大小。大小由SIZEOF()函数确定并分配
+	TxBuffer:=TXBUFFER1 ,                    //发送缓存
+	RxBuffer:= RXBUFFER1,                    //接收缓存
+	Error=> ,
+	ErrorID=> );
+(******************UVLed********************)	
+COMCONTROL2(                                 //
+	Mode:=SERIALLINEMODE_KL6_22B_STANDARD,
+	pComIn:= ADR(COMIN2),                                                                  
+	pComOut:= ADR(COMOUT2),                                                         
+	SizeComIn:= SIZEOF(COMIN2),
+	TxBuffer:=TXBUFFER2 ,                    
+	RxBuffer:= RXBUFFER2,                    
+	Error=> ,
+	ErrorID=> );
+]]></ST>
+    </Implementation>
+    <LineIds Name="PRG_COMM">
+      <LineId Id="90" Count="0" />
+      <LineId Id="65" Count="21" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

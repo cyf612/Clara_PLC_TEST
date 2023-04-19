@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="SubTankErrorEnum" Id="{744f343d-54f0-4c18-b533-2ced2a7693dd}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE SubTankErrorEnum :
+(
+no_error			:=	0	,//	No error detected
+pump_timeout		:=	1	,//	Pump is in error
+back_to_air_tank	:=	2	,//	
+emergency_error		:=	666	//	
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

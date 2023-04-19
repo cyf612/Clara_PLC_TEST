@@ -1,0 +1,283 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="IO_Link" Id="{a516668c-44b4-43ac-8516-42f1167c5508}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM IO_Link
+VAR
+
+	test: BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Act_Inputs();
+Act_Outputs();
+
+GVL_API.stInput:=stInput;
+GVL_API.stOutput:=stOutput;
+GVL_API.Axis_SpitUnit_snHome    :=Axis[SpitUnit].	IO.snHome;
+GVL_API.Axis_SpitUnit_snLimitP  :=Axis[SpitUnit].	IO.snLimitP;
+]]></ST>
+    </Implementation>
+    <Action Name="Act_Inputs" Id="{d87364df-1831-4366-a8a7-e63302692a93}">
+      <Implementation>
+        <ST><![CDATA[(**DI1**)
+Axis[FastScan].IO.snHome	(*	Fast Scan 原点	*)	:=	EL1809_M[1	,1]	;
+Axis[SpitUnit].	IO.snHome	(*	闪喷糟原点	*)	:=	EL1809_M[1	,2]	;
+Axis[SpitUnit].	IO.snLimitP	(*	闪喷糟极限	*)	:=	EL1809_M[1	,3]	;
+stInput.	biUDS_sensor_up_S[1]	(*	压辊S1上限位	*)	:=	EL1809_M[1	,4]	;
+stInput.	biUDS_sensor_up_S[2]	(*	压辊S2上限位	*)	:=	EL1809_M[1	,5]	;
+stInput.	biUDS_sensor_up_S[3]	(*	压辊S3上限位	*)	:=	EL1809_M[1	,6]	;
+stInput.	biUDS_sensor_up_S[4]	(*	压辊S4上限位	*)	:=	EL1809_M[1	,7]	;
+stInput.	biUDS_sensor_up_S[5]	(*	压辊S5上限位	*)	:=	EL1809_M[1	,8]	;
+stInput.	biUDS_sensor_up_S[6]	(*	压辊S6上限位	*)	:=	EL1809_M[1	,9]	;
+stInput.	biUDS_sensor_down_S1[1]	(*	压辊S1下限位1	*)	:=	EL1809_M[1	,10]	;
+stInput.	biUDS_sensor_down_S1[2]	(*	压辊S1下限位2	*)	:=	EL1809_M[1	,11]	;
+stInput.	biUDS_sensor_down_S1[3]	(*	压辊S1下限位3	*)	:=	EL1809_M[1	,12]	;
+stInput.	biUDS_sensor_down_S1[4]	(*	压辊S1下限位4	*)	:=	EL1809_M[1	,13]	;
+stInput.	biUDS_sensor_down_S1[5]	(*	压辊S1下限位5	*)	:=	EL1809_M[1	,14]	;
+stInput.	biUDS_sensor_down_S1[6]	(*	压辊S1下限位6	*)	:=	EL1809_M[1	,15]	;
+stInput.	biUDS_sensor_down_S1[7]	(*	压辊S1下限位7	*)	:=	EL1809_M[1	,16]	;
+
+(**DI2**)
+stInput.	biUDS_sensor_down_S1[8]	(*	压辊S1下限位8	*)	:=	EL1809_M[2	,1]	;
+stInput.	biUDS_sensor_down_S1[9]	(*	压辊S1下限位9	*)	:=	EL1809_M[2	,2]	;
+stInput.	biUDS_sensor_down_S1[10]	(*	压辊S1下限位10	*)	:=	EL1809_M[2	,3]	;
+stInput.	biUDS_sensor_down_S1[11]	(*	压辊S1下限位11	*)	:=	EL1809_M[2	,4]	;
+stInput.	biUDS_sensor_down_S1[12]	(*	压辊S1下限位12	*)	:=	EL1809_M[2	,5]	;
+stInput.	biUDS_sensor_down_S1[13]	(*	压辊S1下限位13	*)	:=	EL1809_M[2	,6]	;
+stInput.	biUDS_sensor_down_S1[14]	(*	压辊S1下限位14	*)	:=	EL1809_M[2	,7]	;
+stInput.	biUDS_sensor_down_S1[15]	(*	压辊S1下限位15	*)	:=	EL1809_M[2	,8]	;
+stInput.	biUDS_sensor_down_S1[16]	(*	压辊S1下限位16	*)	:=	EL1809_M[2	,9]	;
+stInput.	biFootPedal[1].PedalPressed1	(*	左前脚踏开关1	*)	:=	EL1809_M[2	,10]	;
+stInput.	biFootPedal[1].PedalPressed2	(*	左前脚踏开关2	*)	:=	EL1809_M[2	,11]	;
+stInput.	biFootPedal[1].PedalPressed3	(*	左前脚踏开关3	*)	:=	EL1809_M[2	,12]	;
+stInput.	biFootPedal[3].PedalPressed1	(*	右前脚踏开关1	*)	:=	EL1809_M[2	,13]	;
+stInput.	biFootPedal[3].PedalPressed2	(*	右前脚踏开关2	*)	:=	EL1809_M[2	,14]	;
+stInput.	biFootPedal[3].PedalPressed3	(*	右前脚踏开关3	*)	:=	EL1809_M[2	,15]	;
+stInput.	biFootPedal[2].PedalPressed1	(*	左后脚踏开关1	*)	:=	EL1809_M[2	,16]	;
+
+(**DI3**)
+stInput.	biFootPedal[2].PedalPressed2	(*	左后脚踏开关2	*)	:=	EL1809_M[3	,1]	;
+stInput.	biFootPedal[2].PedalPressed3	(*	左后脚踏开关3	*)	:=	EL1809_M[3	,2]	;
+stInput.	biFootPedal[4].PedalPressed1	(*	右后脚踏开关1	*)	:=	EL1809_M[3	,3]	;
+stInput.	biFootPedal[4].PedalPressed2	(*	右后脚踏开关2	*)	:=	EL1809_M[3	,4]	;
+stInput.	biFootPedal[4].PedalPressed3	(*	右后脚踏开关3	*)	:=	EL1809_M[3	,5]	;
+stInput.	biDualSensor[1]	(*	单/双roll检测限位input	*)	:=	EL1809_M[3	,6]	;
+stInput.	biDualSensor[2]	(*	单/双roll检测限位output	*)	:=	EL1809_M[3	,7]	;
+stInput.	biClamp_hold[1]	(*	卡盘到位检测input	*)	:=	EL1809_M[3	,8]	;
+stInput.	biClamp_hold[2]	(*	卡盘到位检测output	*)	:=	EL1809_M[3	,9]	;
+
+(**SDI1**)
+stInput.	biElectromagnet_limit	(*	探块限位	*)	:=	EL1809_S[1	,1]	;
+Axis[Z_Axis].	IO.snHome	(*	Z轴原点	*)	:=	EL1809_S[1	,2]	;
+Axis[Z_Axis].	IO.snLimitP	(*	Z轴下极限	*)	:=	EL1809_S[1	,3]	;
+stInput.	biSubInkTankLevel[9]	(*	二级墨盒液位C1	*)	:=	NOT	EL1809_S[1	,4]	;
+stInput.	biSubInkTankLevel[10]	(*	二级墨盒液位C2	*)	:=	NOT	EL1809_S[1	,5]	;
+stInput.	biSubInkTankLevel[5]	(*	二级墨盒液位Y1	*)	:=	NOT	EL1809_S[1	,6]	;
+stInput.	biSubInkTankLevel[6]	(*	二级墨盒液位Y2	*)	:=	NOT	EL1809_S[1	,7]	;
+stInput.	biSubInkTankLevel[7]	(*	二级墨盒液位M1	*)	:=	NOT	EL1809_S[1	,8]	;
+stInput.	biSubInkTankLevel[8]	(*	二级墨盒液位M2	*)	:=	NOT	EL1809_S[1	,9]	;
+stInput.	biSubInkTankLevel[11]	(*	二级墨盒液位K1	*)	:=	NOT	EL1809_S[1	,10]	;
+stInput.	biSubInkTankLevel[12]	(*	二级墨盒液位K2	*)	:=	NOT	EL1809_S[1	,11]	;
+stInput.	biSubInkTankLevel[1]	(*	二级墨盒液位LC1	*)	:=	NOT	EL1809_S[1	,12]	;
+stInput.	biSubInkTankLevel[2]	(*	二级墨盒液位LC2	*)	:=	NOT	EL1809_S[1	,13]	;
+stInput.	biSubInkTankLevel[3]	(*	二级墨盒液位LM1	*)	:=	NOT	EL1809_S[1	,14]	;
+stInput.	biSubInkTankLevel[4]	(*	二级墨盒液位LM2	*)	:=	NOT	EL1809_S[1	,15]	;
+stInput.	biSubInkTankLevel[17]	(*	二级墨盒液位图层1	*)	:=	NOT	EL1809_S[1	,16]	;
+
+
+(**SDI2**)
+stInput.	biSubInkTankLevel[18]	(*	二级墨盒液位图层2	*)	:=	NOT	EL1809_S[2	,1]	;
+stInput.	biSubInkTankLevel[13]	(*	二级墨盒液位W1	*)	:=	NOT	EL1809_S[2	,2]	;
+stInput.	biSubInkTankLevel[14]	(*	二级墨盒液位W2	*)	:=	NOT	EL1809_S[2	,3]	;
+stInput.	biSubInkTankLevel[15]	(*	二级墨盒液位W3	*)	:=	NOT	EL1809_S[2	,4]	;
+stInput.	biSubInkTankLevel[16]	(*	二级墨盒液位W4	*)	:=	NOT	EL1809_S[2	,5]	;
+
+
+stInput.	biProtectAirTankLevel_C	(*	真空保护瓶液位_彩	*)	:=	EL1809_S[2	,6]	;
+stInput.	biProtectAirTankLevel_W	(*	真空保护瓶液位_白	*)	:=	EL1809_S[2	,7]	;
+stInput.	btPurge	(*	正压按钮	*)	:=	EL1809_S[2	,8]	;
+stInput.	btVacBt_C	(*	彩色正负压切换按钮	*)	:=	EL1809_S[2	,9]	;
+stInput.	btVacBt_W	(*	白色正负压切换按钮	*)	:=	EL1809_S[2	,10]	;
+
+
+(***************************Main Ink Tank****************)
+
+	
+(***************************Sub Ink Tank******************)
+
+
+	
+
+
+
+	
+
+
+	
+
+	
+	]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="Act_Outputs" Id="{5ec759f1-2207-4b5a-ad55-5639f6c1486d}">
+      <Implementation>
+        <ST><![CDATA[
+(**DO1**)
+EL2809_M[1	,1]	:=	stOutput.	bqFillPumpWorking[19]	;	(*	清洗液泵1	*)
+EL2809_M[1	,2]	:=	stOutput.	bqFillPumpWorking[20]	;	(*	清洗液泵2	*)
+EL2809_M[1	,3]	:=	stOutput.	bqStirrerWorkingF	;	(*	白墨瓶搅拌（正转）	*)
+EL2809_M[1	,4]	:=	stOutput.	bqStirrerWorkingB	;	(*	白墨瓶搅拌（反转）	*)
+EL2809_M[1	,5]	:=	stOutput.	bqsensor_blink[5]	;	(*	墨瓶C  LED	*)
+EL2809_M[1	,6]	:=	stOutput.	bqsensor_blink[3]	;	(*	墨瓶Y  LED	*)
+EL2809_M[1	,7]	:=	stOutput.	bqsensor_blink[4]	;	(*	墨瓶M  LED	*)
+EL2809_M[1	,8]	:=	stOutput.	bqsensor_blink[6]	;	(*	墨瓶K  LED	*)
+EL2809_M[1	,9]	:=	stOutput.	bqsensor_blink[1]	;	(*	墨瓶LC  LED	*)
+EL2809_M[1	,10]	:=	stOutput.	bqsensor_blink[2]	;	(*	墨瓶LM  LED	*)
+EL2809_M[1	,11]	:=	stOutput.	bqsensor_blink[9]	;	(*	墨瓶图层  LED	*)
+EL2809_M[1	,12]	:=	stOutput.	bqsensor_blink[7]	;	(*	墨瓶W  LED	*)
+EL2809_M[1	,13]	:=	stOutput.	bqsensor_blink[8]	;	(*	墨瓶清洗液  LED	*)
+EL2809_M[1	,14]	:=	stOutput.	bqsensor_blink[10]	;	(*	墨瓶废液  LED	*)
+EL2809_M[1	,15]	:=	stOutput.	bqFanPower	;	(*	废液吸风扇	*)
+EL2809_M[1	,16]	:=	stOutput.	bqWastePump	;	(*	废液泵	*)
+
+(**DO2**)
+EL2809_M[2	,1]	:=	stOutput.	bqBreakPower[1]	;		(*	放卷L_刹车	*)
+EL2809_M[2	,2]	:=	stOutput.	bqCluthOut[1]	;		(*	放卷L_离合器out	*)
+EL2809_M[2	,3]	:=	stOutput.	bqReset[1]	;		(*	放卷L_离合器rst	*)
+EL2809_M[2	,4]	:=	stOutput.	bqBreakPower[3]	;		(*	放卷R_刹车	*)
+EL2809_M[2	,5]	:=	stOutput.	bqCluthOut[3]	;		(*	放卷R_离合器out	*)
+EL2809_M[2	,6]	:=	stOutput.	bqReset[3]	;		(*	放卷R_离合器rst	*)
+EL2809_M[2	,7]	:=	stOutput.	bqCluthOut[2]	;		(*	收卷L_离合器out	*)
+EL2809_M[2	,8]	:=	stOutput.	bqReset[2]	;		(*	收卷L_离合器rst	*)
+EL2809_M[2	,9]	:=	stOutput.	bqCluthOut[4]	;		(*	收卷R_离合器out	*)
+EL2809_M[2	,10]	:=	stOutput.	bqReset[4]	;		(*	收卷R_离合器rst	*)
+EL2809_M[2	,11]	:=	stOutput.	bqS1_Drive_enabled	;	(*	导向压轮电机使能	*)
+EL2809_M[2	,12]	:=	stOutput.	bqS1_Forward_Reverse	;	(*	导向压轮电机正/反转	*)
+EL2809_M[2	,13]	:=	stOutput.	bqS1_Break	;	(*	导向压轮电机刹车	*)
+
+(**DO3**)
+EL2809_M[3	,1]	:=	stOutput.	bqVacRun[1]	;	(*	真空吸附启停	*)
+EL2809_M[3	,2]	:=	stOutput.	bqUDS_MoveUp_do[2]	;		(*	压辊气缸S2上升	*)
+EL2809_M[3	,3]	:=	stOutput.	bqUDS_MoveDown_do[2]	;		(*	压辊气缸S2下降	*)
+EL2809_M[3	,4]	:=	stOutput.	bqUDS_MoveUp_do[3]	;		(*	压辊气缸S3上升	*)
+EL2809_M[3	,5]	:=	stOutput.	bqUDS_MoveDown_do[3]	;		(*	压辊气缸S3下降	*)
+EL2809_M[3	,6]	:=	stOutput.	bqUDS_MoveUp_do[4]	;		(*	压辊气缸S4上升	*)
+EL2809_M[3	,7]	:=	stOutput.	bqUDS_MoveDown_do[4]	;		(*	压辊气缸S4下降	*)
+EL2809_M[3	,8]	:=	stOutput.	bqUDS_MoveUp_do[5]	;		(*	压辊气缸S5上升	*)
+EL2809_M[3	,9]	:=	stOutput.	bqUDS_MoveDown_do[5]	;		(*	压辊气缸S5下降	*)
+EL2809_M[3	,10]	:=	stOutput.	bqUDS_MoveUp_do[6]	;		(*	压辊气缸S6上升	*)
+EL2809_M[3	,11]	:=	stOutput.	bqUDS_MoveDown_do[6]	;		(*	压辊气缸S6下降	*)
+
+
+(**DO4**)
+EL2809_M[4	,1]	:=	stOutput.	bqFillPumpWorking[9]	;		(*	供墨泵C1	*)
+EL2809_M[4	,2]	:=	stOutput.	bqFillPumpWorking[10]	;		(*	供墨泵C2	*)
+EL2809_M[4	,3]	:=	stOutput.	bqFillPumpWorking[5]	;		(*	供墨泵Y1	*)
+EL2809_M[4	,4]	:=	stOutput.	bqFillPumpWorking[6]	;		(*	供墨泵Y2	*)
+EL2809_M[4	,5]	:=	stOutput.	bqFillPumpWorking[7]	;		(*	供墨泵M1	*)
+EL2809_M[4	,6]	:=	stOutput.	bqFillPumpWorking[8]	;		(*	供墨泵M2	*)
+EL2809_M[4	,7]	:=	stOutput.	bqFillPumpWorking[11]	;		(*	供墨泵K1	*)
+EL2809_M[4	,8]	:=	stOutput.	bqFillPumpWorking[12]	;		(*	供墨泵K2	*)
+EL2809_M[4	,9]	:=	stOutput.	bqFillPumpWorking[1]	;		(*	供墨泵LC1	*)
+EL2809_M[4	,10]	:=	stOutput.	bqFillPumpWorking[2]	;		(*	供墨泵LC2	*)
+EL2809_M[4	,11]	:=	stOutput.	bqFillPumpWorking[3]	;		(*	供墨泵LM1	*)
+EL2809_M[4	,12]	:=	stOutput.	bqFillPumpWorking[4]	;		(*	供墨泵LM2	*)
+EL2809_M[4	,13]	:=	stOutput.	bqFillPumpWorking[17]	;		(*	图层泵1	*)
+EL2809_M[4	,14]	:=	stOutput.	bqFillPumpWorking[18]	;		(*	图层泵2	*)
+EL2809_M[4	,15]	:=	stOutput.	bqFillPumpWorking[13]	;		(*	供墨泵 W1	*)
+EL2809_M[4	,16]	:=	stOutput.	bqFillPumpWorking[15]	;		(*	供墨泵 W2	*)
+
+
+(**DO1**)
+EL2809_S[1	,1]	:=	stOutput.	bqSubCircPumpWorking[1]	;	(*	二级墨盒白循环泵1	*)
+EL2809_S[1	,2]	:=	stOutput.	bqSubCircPumpWorking[2]	;	(*	二级墨盒白循环泵2	*)
+EL2809_S[1	,3]	:=	stOutput.	bqPurValve	;	(*	正压电磁阀	*)
+EL2809_S[1	,4]	:=	stOutput.	bqVacValve_W	;	(*	负压电磁阀白	*)
+EL2809_S[1	,5]	:=	stOutput.	bqVacValve_C	;	(*	负压电磁阀彩	*)
+EL2809_S[1	,6]	:=	stOutput.	bqElectromagnet_power	;	(*	探块电源	*)
+
+
+
+								
+								
+								
+
+
+	
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="IO_Link">
+      <LineId Id="6" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="17" Count="0" />
+    </LineIds>
+    <LineIds Name="IO_Link.Act_Inputs">
+      <LineId Id="369" Count="0" />
+      <LineId Id="297" Count="15" />
+      <LineId Id="376" Count="0" />
+      <LineId Id="365" Count="0" />
+      <LineId Id="313" Count="15" />
+      <LineId Id="377" Count="0" />
+      <LineId Id="366" Count="0" />
+      <LineId Id="329" Count="8" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="367" Count="0" />
+      <LineId Id="339" Count="2" />
+      <LineId Id="429" Count="12" />
+      <LineId Id="428" Count="0" />
+      <LineId Id="378" Count="0" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="442" Count="4" />
+      <LineId Id="397" Count="0" />
+      <LineId Id="359" Count="5" />
+      <LineId Id="252" Count="0" />
+      <LineId Id="171" Count="0" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="219" Count="1" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="222" Count="0" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="214" Count="1" />
+      <LineId Id="217" Count="0" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="147" Count="0" />
+    </LineIds>
+    <LineIds Name="IO_Link.Act_Outputs">
+      <LineId Id="344" Count="0" />
+      <LineId Id="316" Count="0" />
+      <LineId Id="249" Count="15" />
+      <LineId Id="317" Count="0" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="365" Count="9" />
+      <LineId Id="341" Count="2" />
+      <LineId Id="314" Count="0" />
+      <LineId Id="277" Count="1" />
+      <LineId Id="355" Count="9" />
+      <LineId Id="288" Count="0" />
+      <LineId Id="318" Count="0" />
+      <LineId Id="312" Count="0" />
+      <LineId Id="406" Count="15" />
+      <LineId Id="304" Count="0" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="313" Count="0" />
+      <LineId Id="305" Count="5" />
+      <LineId Id="248" Count="0" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="177" Count="3" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="148" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_Output" Id="{b5aedb2a-b141-4782-af5f-6dfd949699fe}">
+    <Declaration><![CDATA[TYPE ST_Output :
+STRUCT
+   
+	bqLightGrean            :BOOL;(*绿灯 *)	
+ 	bqLightYellow			:BOOL;(*黄灯*)	
+ 	bqLightRed				:BOOL;(*红灯*)	
+ 	
+ (********************ISS********************************)  
+	bqStirrerWorkingF		:BOOL;(*正向搅拌*)
+	bqStirrerWorkingB		:BOOL;(*负向搅拌*)
+	bqWastePump				:BOOL;//吸废墨
+	
+	bqFillPumpWorking		:ARRAY[1..20] OF BOOL;//
+	(*
+			墨桶	液位	泵		
+1	LC	1,2	1,2	FB_SubInkFeed_C	[1]
+2	LM	3,4	3,4	FB_SubInkFeed_C	[2]
+3	Y	5,6	5,6	FB_SubInkFeed_C	[3]
+4	M	7,8	7,8	FB_SubInkFeed_C	[4]
+5	C	9,10	9,10	FB_SubInkFeed_C	[5]
+6	K	11,12	11,12	FB_SubInkFeed_C	[6]
+7	W	13,14,15,16	13,15	FB_SubInkFeed_W	
+8	P	17,18	17,18	FB_SubInkFeed_P	
+9	F	19,20	19,20	FB_SubInkFeed_Flush	
+
+
+	*)
+	bqSubCircPumpWorking	:ARRAY[1..2] OF BOOL;	//circulation pump transport the white ink 	
+	bqsensor_blink					:ARRAY[1..10] OF BOOL;//
+	
+	bqPurValve					:BOOL;//V7,正压电磁阀
+	bqVacValve_W				:BOOL;//V8,白负压电磁阀
+	bqVacValve_C				:BOOL;//V9,彩负压电磁阀
+
+ (********************stSpitUnit********************************)  
+	bqFanPower					:BOOL;//废墨吸风
+ (********************Z********************************)  	
+	bqElectromagnet_power	:BOOL;//探块电源
+	
+	(****************UpDownSlot********************)
+	bqUDS_MoveDown_do		:ARRAY[2..number_UpDownSlot] OF BOOL;		
+	bqUDS_MoveUp_do			:ARRAY[2..number_UpDownSlot] OF BOOL;
+	bqS1_Drive_enabled				:BOOL;//导向压轮电机使能
+	bqS1_Forward_Reverse			:BOOL;//导向压轮电机正/反转
+	bqS1_Break							:BOOL;//导向压轮电机刹车
+	
+	(****************RTR:  1:input1; 2:output1; 3:input2; 4:output2      ********************)
+	bqBreakPower           :ARRAY[1..4] OF BOOL;
+	bqCluthOut			   :ARRAY[1..4] OF BOOL;
+	bqReset				:ARRAY[1..4] OF BOOL;
+	
+	(****************Table Vacuum********************)
+	bqVacRun				:ARRAY[1..number_TableVacuum] OF BOOL;
+	(*****************************************)
+	bqBuzzer				:BOOL;(*蜂鸣器*)
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

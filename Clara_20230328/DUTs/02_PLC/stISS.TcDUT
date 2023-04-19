@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="stISS" Id="{c3abb084-1816-46cf-b1c3-03e028401aff}">
+    <Declaration><![CDATA[TYPE stISS :
+STRUCT
+	//R//						
+		error_code			:INT;
+		state						:INT;
+		mainTankLevel		:LREAL;
+		Init_Done				:BOOL;
+		Error						:BOOL;
+	//W//
+		Initialize				:BOOL;	//  
+		Setoff				:BOOL;	//  
+		sensor_blink		:BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

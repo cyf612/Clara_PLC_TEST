@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_Modbus" Id="{209a01be-f792-42d6-afed-d2e76d07080f}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_Modbus
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[P_Modbus_RTU();
+PRG_SerialComm();]]></ST>
+    </Implementation>
+    <LineIds Name="P_Modbus">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

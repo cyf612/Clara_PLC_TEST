@@ -1,0 +1,298 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_Home_X" Id="{5bd8cd51-aae0-4d85-b46a-f6724805efb7}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Home_X
+(*========================================
+Execute需一直有效，功能块才会一直执行
+先回原点，然后直接到等待位
+==========================================*)
+VAR_IN_OUT
+	ref				:AXIS_REF;	(* B *)
+END_VAR
+VAR_INPUT
+	Execute				:BOOL;	(* B *)
+	PosLimit			:BOOL;			(*正极限位信号*)
+	NegLimit			:BOOL;			(*负极限位信号*)
+	Position			:LREAL			(* B *) := DEFAULT_HOME_POSITION;
+	HomeingVelo			:LREAL:=20;
+	Standby_position	:LREAL;		//最终待机位
+	bCalibrationCam 	:BOOL;	(* V *)	(* Beckhoff proprietary input *)
+	rel_dis         	:LREAL:=50;  //碰到原点后，正向移动距离，在开始寻原点
+	TimeOutSet       	:LREAL;//s
+	reset				:BOOL;
+END_VAR
+VAR_OUTPUT
+	Done				:BOOL;	(* B *)
+	Busy				:BOOL;	(* E *)
+	Active				:BOOL;	(* E *)
+	CommandAborted		:BOOL;	(* E *)
+	Error				:BOOL;	(* B *)
+	ErrorID				:UDINT;	(* E *)
+	TimeOut				:BOOL;
+END_VAR
+VAR
+	mcJog			:MC_Jog;
+	mcHome			:MC_Home;
+	mcRel           :MC_MoveRelative;
+	mcAbs           :MC_MoveAbsolute;	
+	mcStop			:MC_Stop;
+	HomeStep		:INT;
+	ton				:TON;
+	StopDo			:BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ton(IN:=Execute , PT:=LREAL_TO_TIME(TimeOutSet*1000) , Q=> , ET=> );
+IF ton.Q THEN 
+	TimeOut:=TRUE;
+END_IF
+
+IF  NOT Execute THEN
+	mcJog.JogForward		:=FALSE;
+	mcJog.JogBackwards		:=FALSE;
+	mcHome.Execute			:=FALSE;
+	mcRel.Execute			:=FALSE;
+	mcAbs.Execute			:=FALSE;
+	done					:=FALSE;
+	busy					:=FALSE;	
+	HomeStep				:=0;
+END_IF
+
+IF reset THEN 
+	Error					:=FALSE;
+	TimeOut					:=FALSE;
+END_IF
+
+CASE HomeStep OF
+
+0:
+	busy	:=FALSE;
+	Done	:=FALSE;
+	IF 	Execute AND NOT Error  THEN		
+		IF  NOT bCalibrationCam THEN
+			HomeStep	:=10;
+		ELSE
+			HomeStep	:=20;
+		END_IF
+		busy	:=TRUE;
+		ErrorID	:=0;		
+	END_IF
+	
+10:(*先向负限位方向运动*)
+	mcJog.JogForward		:=FALSE;
+	mcJog.JogBackwards		:=TRUE;		 
+	IF	bCalibrationCam THEN
+		mcJog.JogBackwards	:=FALSE;		 
+		HomeStep	:=20;		
+	ELSIF mcJog.Error OR TimeOut THEN
+			HomeStep	:=100;
+	END_IF
+	
+20:(*从原点处正方向移动一段距离*)
+	mcRel.Execute		:=TRUE;	
+	IF mcRel.Done AND ref.Status.NotMoving THEN 
+		mcRel.Execute	:=FALSE;
+		HomeStep		:=30;
+	ELSIF mcRel.Error OR TimeOut THEN 
+		HomeStep	:=100;	
+	END_IF
+	
+30:(*调用回零功能块*)
+	mcHome.Execute	:=TRUE;
+	IF mcHome.Done AND ref.Status.Homed THEN
+		mcHome.Execute	:=FALSE;		
+		HomeStep		:=50;
+	ELSIF ref.Status.Error OR TimeOut THEN
+		HomeStep		:=100;
+	END_IF
+(*	
+40:(*碰正极限*)
+	mcJog.JogBackwards		:=FALSE;
+	mcJog.JogForward		:=TRUE;		(*向正限位方向运动*)	
+	IF PosLimit THEN 
+		mcJog.JogForward	:=FALSE;
+		IF Axis.Status.NotMoving THEN
+			HomeStep	:=50;
+		END_IF
+	ELSIF mcJog.Error OR TimeOut THEN
+			HomeStep	:=100; 
+	END_IF
+*)	
+50:(*回待机位*)
+	mcAbs.Execute:=TRUE;
+	IF mcAbs.Done AND ref.Status.NotMoving THEN 
+		mcAbs.Execute	:=FALSE;
+		done			:=TRUE;
+		HomeStep		:=99; 		
+	END_IF
+99:
+	;	
+
+100:
+	Error			:=TRUE;
+	IF	mcHome.ErrorID <> 0 THEN
+		ErrorID			:=mcHome.ErrorID;
+	ELSIF  mcJog.ErrorID <> 0 THEN
+		ErrorID			:=mcJog.ErrorID;
+	ELSIF mcRel.ErrorID<>0 THEN 
+		ErrorID			:=mcRel.ErrorID;
+	ELSIF mcAbs.ErrorID<>0 THEN 
+		ErrorID			:=mcAbs.ErrorID;	
+	END_IF
+	mcJog.JogForward		:=FALSE;
+	mcJog.JogBackwards		:=FALSE;
+	mcHome.Execute			:=FALSE;
+	mcRel.Execute			:=FALSE;
+	mcAbs.Execute			:=FALSE;
+	StopDo			:=TRUE;
+	HomeStep		:=0;
+	
+END_CASE
+
+
+Call_FB();]]></ST>
+    </Implementation>
+    <Action Name="Call_FB" Id="{4def04eb-9bbb-4cb8-91e0-c3bff3dcfdf4}">
+      <Implementation>
+        <ST><![CDATA[ref.ReadStatus();
+mcJog
+	(
+	Velocity:=	HomeingVelo ,
+	Mode:=		MC_JOGMODE_CONTINOUS ,
+	Axis:=		ref ,
+	);
+
+mcHome
+	(
+	Execute:= ,
+	Position:=			Position ,
+	HomingMode:= 		,
+	BufferMode:= 		,
+	Options:=			 ,
+	bCalibrationCam:=	bCalibrationCam ,
+	Axis:=				ref ,
+	);
+
+mcRel(
+	Axis:=ref , 
+	Execute:= , 
+	Distance:=rel_dis , 
+	Velocity:= HomeingVelo, 
+	Acceleration:= , 
+	Deceleration:= , 
+	Jerk:= , 
+	BufferMode:= , 
+	Options:= , 
+	Done=> , 
+	Busy=> , 
+	Active=> , 
+	CommandAborted=> , 
+	Error=> , 
+	ErrorID=> );
+mcAbs(
+	Axis:=ref , 
+	Execute:= , 
+	Position:=Standby_position , 
+	Velocity:=HomeingVelo , 
+	Acceleration:= , 
+	Deceleration:= , 
+	Jerk:= , 
+	BufferMode:= , 
+	Options:= , 
+	Done=> , 
+	Busy=> , 
+	Active=> , 
+	CommandAborted=> , 
+	Error=> , 
+	ErrorID=> );
+mcStop(
+	Axis:=ref , 
+	Execute:=StopDo , 
+	Deceleration:= , 
+	Jerk:= , 
+	Options:= , 
+	Done=> , 
+	Busy=> , 
+	Active=> , 
+	CommandAborted=> , 
+	Error=> , 
+	ErrorID=> );
+IF mcStop.Busy THEN 
+	StopDo:=FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_Home_X">
+      <LineId Id="273" Count="0" />
+      <LineId Id="275" Count="2" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="36" Count="3" />
+      <LineId Id="222" Count="1" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="47" Count="6" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="232" Count="0" />
+      <LineId Id="57" Count="5" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="167" Count="1" />
+      <LineId Id="170" Count="1" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="179" Count="1" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="186" Count="1" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="210" Count="1" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="193" Count="1" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="196" Count="1" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="228" Count="0" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="200" Count="3" />
+      <LineId Id="205" Count="4" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="216" Count="1" />
+      <LineId Id="220" Count="1" />
+      <LineId Id="218" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="114" Count="6" />
+      <LineId Id="280" Count="3" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="410" Count="3" />
+      <LineId Id="409" Count="0" />
+      <LineId Id="287" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="286" Count="0" />
+      <LineId Id="125" Count="3" />
+    </LineIds>
+    <LineIds Name="FB_Home_X.Call_FB">
+      <LineId Id="93" Count="0" />
+      <LineId Id="0" Count="16" />
+      <LineId Id="32" Count="15" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="77" Count="14" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="94" Count="10" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="105" Count="2" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

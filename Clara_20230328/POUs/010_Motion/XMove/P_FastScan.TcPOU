@@ -1,0 +1,1180 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_FastScan" Id="{7cc9c2b1-b180-471a-b758-cdc159abd7da}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_FastScan
+VAR
+	ID						:INT:=FastScan;
+	SysStep:				DINT;	
+	HomeStep:				DINT;	
+	RestStep				:DINT;
+	MoveStep				:DINT;
+	HomeDone:               BOOL;
+	FB_move:				FB_MoveFS_Exte;
+	FB_home:				FB_Home_X;
+	ton_commandtimeout		:TON;
+
+	ton1:Tc2_Standard.TON;	//	命令延迟关闭
+	Move_Done				:BOOL;
+	NOT_Moving_TimeOut		:BOOL;
+	parameter_out_of_range	:BOOL;
+	actuator_out_of_pos_range:BOOL;
+	actuator_out_of_neg_range:BOOL;	
+	homeTimeOut				:BOOL;
+	SpeedNotReach			:BOOL;	
+	jog_EN					:BOOL;
+	ton_Moving				:TON;
+	
+	direN:BOOL;
+	direp:BOOL;
+	log_ErrorEnum:Axis_XY_ErrorEnum;
+	log_ID:INT;
+	i:INT;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_LOG();
+GVL_API.stAxis[ID].ControlLoopClosed:=Axis[ID].Ref.Status .ControlLoopClosed;
+
+(*****************POS******************************)
+GVL_API.stAxis[ID].position:=Axis[ID].Ref.NcToPlc.ActPos;
+direN:=Axis[ID].Ref.Status.NegativeDirection;
+direp:=Axis[ID].Ref.Status.PositiveDirection;
+(*****************SysStep******************************)
+CASE SysStep OF
+0:	(*wait*)
+	_00_Waiting();				
+100:(*idle*)		
+	_100_Idle();								
+200:(*home*)		
+	_200_Homing();
+300:(*ready*)	
+	_300_Ready();							
+400:(*disable*)	
+	_400_Disable();			
+500:(*Moving*)
+	_500_Moving();	
+600:(*Stopping*)
+	_600_Stopping();
+700:(*Error*)
+	_700_Error();	
+800:(*Reset*)
+	_800_Reset();		
+END_CASE
+
+(*****************Reset*************************)
+IF GVL_API.stAxis[ID].reset OR GVL.Reset THEN 
+	SysStep:=800;	
+END_IF
+
+ACT_SAFETY();
+
+
+Axis[ID].aReadStatus();
+Axis[ID].aReset();
+
+
+
+]]></ST>
+    </Implementation>
+    <Folder Name="SysStep" Id="{a63258c5-3aed-4796-800f-5a36c19be8da}" />
+    <Action Name="_00_Waiting" Id="{9769fe14-e4b9-4259-b6f0-64c972a63d61}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[IF GVL_API.stAxis[ID].initialize THEN 
+	GVL_API.stAxis[ID].initialize:=FALSE;
+	Axis[ID].aStop(stop_do:=TRUE);
+	SysStep:=100;
+ELSIF GVL_API.stAxis[ID].homeExe THEN 
+	GVL_API.stAxis[ID].homeExe:=FALSE;  
+	GVL_API.stAxis[ID].Home_Done:=FALSE;
+	SysStep:=200;
+ELSIF GVL_API.stAxis[ID].MoveAbsoluteExe OR GVL_API.stAxis[ID].MoveRelativeExe 
+		OR GVL_API.stAxis[ID].MoveVelocityExe OR GVL_API.stAxis[ID].JogBackwards 
+		OR GVL_API.stAxis[ID].JogForward OR GVL_API.stAxis[ID].MoveConstantVelocity
+		OR GVL_API.stAxis[ID].enabled OR GVL_API.stAxis[ID].Disable THEN 
+	GVL_API.stAxis[ID].Move_Done:=FALSE;
+	SysStep:=300;	
+ELSIF GVL_API.stAxis[ID].stop THEN 
+	SysStep:=600;	
+ELSIF GVL_API.stAxis[ID].reset OR GVL.Reset THEN 
+	SysStep:=800;	
+END_IF
+
+ton1(IN:=GVL_API.stAxis[ID].Home_Done OR  GVL_API.stAxis[ID].Move_Done , PT:=State_reset_time , Q=> , ET=> );
+IF ton1.Q THEN 
+	GVL_API.stAxis[ID].Home_Done:=FALSE;
+	GVL_API.stAxis[ID].Move_Done:=FALSE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_100_Idle" Id="{5480bc58-5b5a-422f-9895-895a095013f1}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[Axis[ID].aStop(stop_do:=FALSE);
+Axis[ID].aPower(power_do:=TRUE);	
+
+IF axis[Id].Ref.Status .ControlLoopClosed THEN 
+	GVL_API.stAxis[ID].state:=AxisStateEnum.idle;
+	SysStep :=0;
+ELSIF GVl.Emstop_Button OR GVL.Emstop_SAFE THEN 
+	GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.emergency_error;
+	SysStep:=700;
+END_IF
+
+(*******************commandtimeout*********************************)
+ton_commandtimeout(IN:=NOT axis[Id].Ref.Status .ControlLoopClosed , 
+	PT:=LREAL_TO_TIME(GVL_API.stAxis[ID].commandtimeout*1000) ,
+	Q=> , ET=> );
+IF ton_commandtimeout.Q  THEN 
+	ton_commandtimeout(IN:=FALSE );
+	GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.cmd_timeout;
+	SysStep:=700;	
+END_IF
+
+(*****************RESET******************************)
+IF GVL_API.stAxis[ID].reset OR GVL.HMI_btReset   THEN
+	 SysStep:=800;
+END_IF
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_200_Homing" Id="{ff145943-35b0-4af2-b6a1-94645a607907}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[FB_Home(
+		ref:=				Axis[ID].Ref , 
+		Execute:= , 
+		PosLimit:=			Axis[ID].IO.snLimitP , 
+		Position:=			0 , 
+		HomeingVelo:=		GVL_API.stAxis[ID].homingvelocity , 
+		Standby_position:=  GVL_API.stAxis[ID].homeoffset,
+		bCalibrationCam:=	Axis[ID].IO.snHome , 
+		rel_dis:=			50 , 
+		TimeOutSet:=		GVL_API.stAxis[ID].homingtimeout , 
+		reset:= , 
+		Done=> , 
+		Busy=> , 
+		Active=> , 
+		CommandAborted=> , 
+		Error=> , 
+		ErrorID=> , 
+		TimeOut=> );
+		
+CASE HomeStep OF
+0:
+	IF GVL_API.stAxis[ID].homingvelocity<>0 THEN 
+		HomeStep:=10;
+	END_IF
+10:
+	FB_Home.Execute:=TRUE;					
+	IF FB_Home.Done THEN
+		GVL_API.stAxis[ID].Home_Done:=TRUE;
+		FB_Home.Execute:=FALSE;		
+		HomeStep:=20;
+	END_IF
+	IF FB_Home.Error THEN 		
+		GVL_API.stAxis[ID].ErrorId:=Axis_XY_ErrorEnum.homing_timeout;
+		HomeStep:=30;
+	END_IF
+	
+20:	(**********HOME DONE****************)	
+	GVL_API.stAxis[ID].state:=AxisStateEnum.ready;	
+	HomeStep:=0;	
+	SysStep:=0;
+		
+30:(**********TIME OUT****************)
+	FB_Home.Execute:=FALSE;
+	FB_Home.reset:=TRUE;
+	HomeStep:=40;
+40:(**********RESET****************)
+	FB_Home.reset:=FALSE;
+	HomeStep:=0;
+	SysStep:=700;
+		
+END_CASE
+
+IF FB_Home.Busy THEN 
+	GVL_API.stAxis[ID].state:=AxisStateEnum.homing;
+END_IF
+
+
+(*****************RESET******************************)
+IF GVL_API.stAxis[ID].reset    THEN
+	FB_Home.Execute:=FALSE;
+	 SysStep:=800;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_300_Ready" Id="{6d9bf504-d754-4d3d-8e99-a60116d2aa64}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[Axis[ID].aStop();
+GVL_API.stAxis[ID].Move_Done:=FALSE;
+(***********parameter_out_of_range***********)
+IF GVL_API.stAxis[ID].requestedposition>GVL_API.stAxis[ID].maxDistance OR GVL_API.stAxis[ID].requestedposition<0 THEN 
+		parameter_out_of_range:=TRUE;
+ELSIF GVL_API.stAxis[ID].constantvelocitystart>GVL_API.stAxis[ID].maxDistance OR GVL_API.stAxis[ID].constantvelocitystart<0 THEN
+		parameter_out_of_range:=TRUE;
+ELSIF GVL_API.stAxis[ID].constanvelocityend>GVL_API.stAxis[ID].maxDistance OR GVL_API.stAxis[ID].constanvelocityend<0 THEN
+		parameter_out_of_range:=TRUE;	
+ELSIF  GVL_API.stAxis[ID].requestedoffset>0 
+	AND (GVL_API.stAxis[ID].maxDistance-Axis[ID].Ref.NcToPlc.ActPos)<GVL_API.stAxis[ID].requestedoffset THEN
+	 	parameter_out_of_range:=TRUE;
+ELSIF GVL_API.stAxis[ID].requestedoffset<-1	
+	AND Axis[ID].Ref.NcToPlc.ActPos<ABS(GVL_API.stAxis[ID].requestedoffset) THEN 
+		parameter_out_of_range:=TRUE;
+
+ELSE
+		parameter_out_of_range:=FALSE;
+END_IF	
+
+(*********out_of_pos_range****************)
+IF Axis[ID].Ref.NcToPlc.ActPos>GVL_API.stAxis[ID].maxDistance THEN 
+	actuator_out_of_pos_range:=TRUE;
+	actuator_out_of_neg_range:=FALSE;		
+ELSIF	Axis[ID].Ref.NcToPlc.ActPos<-1 THEN 
+	actuator_out_of_pos_range:=FALSE;
+	actuator_out_of_neg_range:=TRUE;
+ELSE
+	actuator_out_of_pos_range:=FALSE;
+	actuator_out_of_neg_range:=FALSE;
+END_IF
+	
+
+(*****************state******************************)
+IF Axis[ID].Ref.Status.NotMoving AND axis[Id].Ref.Status .ControlLoopClosed  
+AND NOT Axis[ID].Ref.Status.Error THEN 
+	IF parameter_out_of_range THEN 
+		GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.parameter_out_of_range;
+		SysStep:=700;
+	ELSIF actuator_out_of_pos_range THEN 
+		GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.actuator_out_of_pos_range;
+		SysStep:=700;
+	ELSIF actuator_out_of_neg_range THEN 
+		GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.actuator_out_of_neg_range;
+		SysStep:=700;	
+	ELSE
+		GVL_API.stAxis[ID].state:=AxisStateEnum.ready;
+		GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.no_error;
+	END_IF
+END_IF
+
+(*****************valid command******************************)
+IF NOT parameter_out_of_range 
+AND axis[Id].Ref.Status .ControlLoopClosed  THEN  			
+	IF GVL_API.stAxis[ID].MoveAbsoluteExe OR GVL_API.stAxis[ID].MoveRelativeExe 
+		OR GVL_API.stAxis[ID].MoveVelocityExe OR GVL_API.stAxis[ID].JogBackwards 
+		OR GVL_API.stAxis[ID].JogForward OR GVL_API.stAxis[ID].MoveConstantVelocity	THEN 	  		
+			SysStep:=500;		
+	END_IF
+END_IF
+
+(*****************enable-disable******************************)
+IF GVL_API.stAxis[ID].enabled THEN 
+	Axis[Id].aPower(power_do:=TRUE);	
+	GVL_API.stAxis[ID].enabled:=FALSE;
+	 GVL_API.stAxis[ID].state:=AxisStateEnum.ready;
+	SysStep :=0;
+ELSIF  GVL_API.stAxis[ID].Disable THEN 
+	  SysStep:=400;
+END_IF
+
+
+(*****************RESET******************************)
+IF GVL_API.stAxis[ID].reset THEN
+	 SysStep:=800;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_400_Disable" Id="{4591e4a3-1e6c-4f02-aa39-b0aa5f548b78}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[(*****************enable-disable******************************)
+IF GVL_API.stAxis[ID].Disable THEN 
+	Axis[Id].aPower(power_do:=FALSE);
+	GVL_API.stAxis[ID].Disable:=FALSE;
+	GVL_API.stAxis[ID].state:=AxisStateEnum.disabled;
+	//IF NOT  axis[Id].Ref.Status .ControlLoopClosed THEN 
+		SysStep:=0;
+	//END_IF
+	
+END_IF
+
+(*****************RESET******************************)
+IF GVL_API.stAxis[ID].reset THEN
+	 SysStep:=800;
+END_IF
+
+	
+	
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_500_Moving" Id="{fece1bfa-205f-44d0-baf5-fde7e70c7241}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[GVL_API.stAxis[ID].state:=AxisStateEnum.moving;
+
+(*********out_of_pos_range****************)
+IF Axis[ID].Ref.NcToPlc.ActPos>GVL_API.stAxis[ID].maxDistance THEN 
+	actuator_out_of_pos_range:=TRUE;
+	actuator_out_of_neg_range:=FALSE;
+	GVL_API.stAxis[ID].JogForward:=FALSE;		
+ELSIF	Axis[ID].Ref.NcToPlc.ActPos<-1 THEN 
+	actuator_out_of_pos_range:=FALSE;
+	actuator_out_of_neg_range:=TRUE;
+	GVL_API.stAxis[ID].JogBackwards:=FALSE;
+ELSE
+	actuator_out_of_pos_range:=FALSE;
+	actuator_out_of_neg_range:=FALSE;
+END_IF
+
+(*********parameter_out_of_range****************)
+IF Axis[ID].IO.snHome 
+	AND (GVL_API.stAxis[ID].requestedoffset<0 
+	OR GVL_API.stAxis[ID].constantvelocitystart<Axis[ID].Ref.NcToPlc.ActPos
+	OR GVL_API.stAxis[ID].constanvelocityend<Axis[ID].Ref.NcToPlc.ActPos
+	OR GVL_API.stAxis[ID].requestedposition<Axis[ID].Ref.NcToPlc.ActPos)
+	THEN 	parameter_out_of_range:=TRUE;
+ELSIF Axis[ID].IO.snLimitP
+	AND (GVL_API.stAxis[ID].requestedoffset>0 
+	OR GVL_API.stAxis[ID].constantvelocitystart>Axis[ID].Ref.NcToPlc.ActPos
+	OR GVL_API.stAxis[ID].constanvelocityend>Axis[ID].Ref.NcToPlc.ActPos
+	OR GVL_API.stAxis[ID].requestedposition>Axis[ID].Ref.NcToPlc.ActPos)
+	THEN 	parameter_out_of_range:=TRUE;
+END_IF
+
+
+IF NOT_Moving_TimeOut OR GVL_API.stAxis[ID].Move_Done  THEN 			(************NOT_Moving_TimeOut/Move_Done**************)
+	NOT_Moving_TimeOut:=FALSE;	
+	GVL_API.stAxis[ID].state:=AxisStateEnum.ready;			
+	SysStep:=0;
+ELSIF SpeedNotReach THEN 							(************SpeedNotReach**************)
+	GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.SpeedNotReach;
+	SysStep:=700;
+ELSIF Axis[ID].Ref.Status.NotMoving AND parameter_out_of_range THEN 
+	GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.parameter_out_of_range;
+	SysStep:=700;
+ELSIF Axis[ID].Ref.Status.Moving THEN 				(************trigger_limit**************)
+	IF (Axis[ID].Ref.Status.NegativeDirection AND Axis[ID].IO.snLimitN) OR 
+		(Axis[ID].Ref.Status.PositiveDirection AND Axis[ID].IO.snLimitP) 
+		OR stInput.biElectromagnet_limit  OR stOutput.bqElectromagnet_power 
+	THEN	
+		Axis[ID].aStop(stop_do:=TRUE);
+		GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.trigger_limit;
+		SysStep:=700;	
+	END_IF 
+	
+ELSIF actuator_out_of_pos_range THEN 					(*********out_of_pos_range****************)
+	Axis[ID].aStop(stop_do:=TRUE);
+	GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.actuator_out_of_pos_range;
+	SysStep:=700;
+ELSIF actuator_out_of_neg_range THEN
+	Axis[ID].aStop(stop_do:=TRUE); 
+	GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.actuator_out_of_neg_range;
+	SysStep:=700;	
+ELSE GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.no_error;
+END_IF
+
+
+(*****************JOG/ABS/REL/******************************)
+(*****************MoveConstantVelocity*****************************)
+IF NOT parameter_out_of_range  THEN 
+	FB_move(
+	enable:= 					NOT stInput.biElectromagnet_limit AND NOT stOutput.bqElectromagnet_power,	
+	ref:= 						Axis[ID].Ref, 
+	jogF:= 						GVL_API.stAxis[ID].JogForward, 
+	jogB:= 						GVL_API.stAxis[ID].JogBackwards, 
+	Move_Stop:=				GVL_API.stAxis[ID].stop OR GVL_API.stAxis[ID].reset ,
+	PosLimit:=					Axis[ID].IO.snLimitP , 
+	NegLimit:= 					Axis[ID].IO.snLimitN, 
+	maxDistance:=				GVL_API.stAxis[ID].maxDistance ,	
+	Acceleration:= 				GVL_API.stAxis[ID].acceleration, 
+	Deceleration:= 				GVL_API.stAxis[ID].acceleration, 
+	Jerk:= 						GVL_API.stAxis[ID].jerk, 	 
+	MoveRelExe:= 				GVL_API.stAxis[ID].MoveRelativeExe, 
+	MoveAbsExe:= 				GVL_API.stAxis[ID].MoveAbsoluteExe, 
+	MoveConstantVelocityExe:= 	GVL_API.stAxis[ID].MoveConstantVelocity, 
+	Velo:= 						GVL_API.stAxis[ID].velocity, 
+	TargetRel:= 				GVL_API.stAxis[ID].requestedoffset, 
+	TargetAbs:= 				GVL_API.stAxis[ID].requestedposition, 
+	constantvelocitystart:= 	GVL_API.stAxis[ID].constantvelocitystart, 
+	constanvelocityend:= 		GVL_API.stAxis[ID].constanvelocityend, 
+	Done:= 						GVL_API.stAxis[ID].Move_Done,
+	NotMovingTimeOut:= 			NOT_Moving_TimeOut,
+	SpeedNotReach:=				SpeedNotReach
+	);	
+END_IF
+
+
+(*****************stop******************************)
+IF GVL_API.stAxis[ID].stop THEN 
+	SysStep:=600;
+END_IF
+(*****************RESET******************************)
+IF GVL_API.stAxis[ID].reset THEN
+	 SysStep:=800;
+END_IF]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_600_Stopping" Id="{9569bd56-b8fd-434a-826a-0242c0f97c20}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[(**************只单独用作STOP命令*************************)
+GVL_API.stAxis[ID].state:=AxisStateEnum.stopping;
+
+Axis[ID].aStop(stop_do:=GVL_API.stAxis[ID].stop,Jerk:=GVL_API.stAxis[ID].jerk);
+IF Axis[ID].mcStop.Busy THEN 
+	GVL_API.stAxis[ID].state:=AxisStateEnum.stopping;	
+	GVL_API.stAxis[ID].JogBackwards:=FALSE;
+	GVL_API.stAxis[ID].JogForward:=FALSE;
+	GVL_API.stAxis[ID].MoveAbsoluteExe:=FALSE;
+	GVL_API.stAxis[ID].MoveConstantVelocity:=FALSE;
+	GVL_API.stAxis[ID].MoveRelativeExe:=FALSE;
+	GVL_API.stAxis[ID].velocity:=0;
+	GVL_API.stAxis[ID].requestedoffset:=0;
+	GVL_API.stAxis[ID].requestedposition:=0;
+	GVL_API.stAxis[ID].stop:=FALSE;
+END_IF
+
+IF Axis[ID].mcStop.Done AND Axis[ID].Ref.Status.NotMoving   THEN 		
+	GVL_API.stAxis[ID].stop:=FALSE;
+	GVL_API.stAxis[ID].state:=AxisStateEnum.ready;	
+	GVL_API.stAxis[ID].Move_Done:=TRUE;
+	SysStep:=0;
+END_IF
+
+(*****************RESET******************************)
+IF GVL_API.stAxis[ID].reset THEN
+	 GVL_API.stAxis[ID].stop:=FALSE;
+	 Axis[ID].aStop(stop_do:=FALSE);
+	 SysStep:=800;
+END_IF]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_700_Error" Id="{74fba152-571e-44d0-b38a-4cabe217ad6d}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[(*****************ERROR******************************)
+GVL_API.stAxis[ID].Error:=TRUE;
+GVL_API.stAxis[ID].state:=AxisStateEnum.error;
+		GVL_API.stAxis[ID].initialize:=FALSE;
+		GVL_API.stAxis[ID].homeExe:=FALSE; 
+		GVL_API.stAxis[ID].stop:=FALSE;
+		GVL_API.stAxis[ID].JogBackwards:=FALSE;
+		GVL_API.stAxis[ID].JogForward:=FALSE;
+		GVL_API.stAxis[ID].MoveAbsoluteExe:=FALSE;
+		GVL_API.stAxis[ID].MoveConstantVelocity:=FALSE;
+		GVL_API.stAxis[ID].MoveRelativeExe:=FALSE;
+		GVL_API.stAxis[ID].velocity:=0;
+		GVL_API.stAxis[ID].requestedoffset:=0;
+		GVL_API.stAxis[ID].requestedposition:=0;
+		GVL_API.stAxis[ID].constantvelocitystart:=0;
+		GVL_API.stAxis[ID].constanvelocityend:=0;
+		FB_Home.Execute:=FALSE;
+		GVL_API.stAxis[ID].Home_Done:=FALSE;
+		GVL_API.stAxis[ID].Move_Done:=FALSE;
+ SysStep:=0;
+
+
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_800_Reset" Id="{60ece19a-2d3c-4abc-8107-c7a66e6ddb1d}" FolderPath="SysStep\">
+      <Implementation>
+        <ST><![CDATA[Axis[ID].aStop();
+CASE RestStep OF
+0:(***************复位命令**************************)
+	IF GVL_API.stAxis[ID].reset OR GVL.Reset THEN
+		GVL_API.stAxis[ID].initialize:=FALSE;
+		GVL_API.stAxis[ID].homeExe:=FALSE; 
+		GVL_API.stAxis[ID].stop:=FALSE;
+		GVL_API.stAxis[ID].JogBackwards:=FALSE;
+		GVL_API.stAxis[ID].JogForward:=FALSE;
+		GVL_API.stAxis[ID].MoveAbsoluteExe:=FALSE;
+		GVL_API.stAxis[ID].MoveConstantVelocity:=FALSE;
+		GVL_API.stAxis[ID].MoveRelativeExe:=FALSE;
+		GVL_API.stAxis[ID].velocity:=0;
+		GVL_API.stAxis[ID].requestedoffset:=0;
+		GVL_API.stAxis[ID].requestedposition:=0;
+		GVL_API.stAxis[ID].constantvelocitystart:=0;
+		GVL_API.stAxis[ID].constanvelocityend:=0;
+		FB_Home(ref:=Axis[ID].Ref , Execute:= FALSE);
+		GVL_API.stAxis[ID].Home_Done:=FALSE;
+		GVL_API.stAxis[ID].Move_Done:=FALSE;
+		RestStep:=1;
+	END_IF
+1:	
+		RestStep:=2;
+
+2:(***************EORROR来的错误**************************)
+		GVL_API.stAxis[ID].reset:=FALSE;
+		parameter_out_of_range:=FALSE;
+		SpeedNotReach:=FALSE;		
+		RestStep:=20;
+	
+10:	(***************轴错误复位**************************)		
+		Axis[ID].Reset_do:=TRUE;		
+		RestStep:=100;		
+20:	(***************轴停止*****************************)
+		Axis[ID].aStop(stop_do:=TRUE);		
+		RestStep:=30;
+30:
+	IF  Axis[ID].Ref.Status.NotMoving   THEN 		
+		RestStep:=10;	
+	END_IF
+100:		
+	IF Axis[ID].Ref.Status.NotMoving THEN 
+		Axis[Id].aPower(power_do:=FALSE);
+		GVL_API.stAxis[ID].Error:=FALSE;
+		GVL_API.stAxis[ID].state:=AxisStateEnum.off;
+		GVL_API.stAxis[ID].Errorid:=Axis_XY_ErrorEnum.no_error;
+			SysStep:=0;
+			RestStep:=0;
+	END_IF
+	  
+END_CASE
+	
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_LOG" Id="{a430402b-6307-44b3-8d4d-23cfdb5d6666}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+log_ID:=100;
+//initialize
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=	'Fast Scan Initialize cmdtimeout:';
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].commandtimeout));
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,'; velocity:');
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].velocity));	
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,'; acce:');																
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].acceleration));
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,'; maxposition:');	
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].maxDistance));
+fbSetAlarm[log_ID+1](
+	InUse:=TRUE , 
+	//EventId:=log_ID+1 , 
+	EventActive:=GVL_API.stAxis[ID].initialize , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //home
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=	'Fast Scan Home homingvelocity:';
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+2].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].homingvelocity));
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+2].AlarmMsg.EN,'; homeoffset:');
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+2].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].homeoffset));		
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+2].AlarmMsg.EN,'; homingtimeout:');
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+2].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].homingtimeout));																
+fbSetAlarm[log_ID+2](
+	InUse:=TRUE , 
+	//EventId:=log_ID+2 , 
+	EventActive:=GVL_API.stAxis[ID].homeExe , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //MoveRelative
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT('Fast Scan MoveRelative displacement:',
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].requestedoffset));
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+3].AlarmMsg.EN,'; velocity:');
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+3].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].velocity));
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+3].AlarmMsg.EN,'; acc:');
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+3].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].acceleration));
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+3].AlarmMsg.EN,'; jerk:');																	
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+3].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].jerk));
+fbSetAlarm[log_ID+3](
+	InUse:=TRUE , 
+	//EventId:=log_ID+3 , 
+	EventActive:=GVL_API.stAxis[ID].MoveRelativeExe , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //MoveAbsoluteExe
+AlarmActionArray[log_ID+4].AlarmMsg.EN	:=CONCAT('Fast Scan MoveAbsolute position:',
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].requestedposition));
+AlarmActionArray[log_ID+4].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+4].AlarmMsg.EN,'; velocity:');
+AlarmActionArray[log_ID+4].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+4].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].velocity));
+AlarmActionArray[log_ID+4].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+4].AlarmMsg.EN,'; acc:');
+AlarmActionArray[log_ID+4].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+4].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].acceleration));
+AlarmActionArray[log_ID+4].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+4].AlarmMsg.EN,'; jerk:');																	
+AlarmActionArray[log_ID+4].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+4].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].jerk));
+fbSetAlarm[log_ID+4](
+	InUse:=TRUE , 
+	//EventId:=log_ID+4 , 
+	EventActive:=GVL_API.stAxis[ID].MoveAbsoluteExe , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //MoveConstantVelocity
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=CONCAT('Fast Scan MoveConstantVelocity,',
+																LREAL_TO_STRING(GVL_API.stAxis[ID].constantvelocitystart));
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5].AlarmMsg.EN,'->');
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5].AlarmMsg.EN,
+																LREAL_TO_STRING(GVL_API.stAxis[ID].constanvelocityend));
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5].AlarmMsg.EN,'->');
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5].AlarmMsg.EN,
+																LREAL_TO_STRING(GVL_API.stAxis[ID].requestedposition));
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5].AlarmMsg.EN,'; velocity:');
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].velocity));
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5].AlarmMsg.EN,'; acc:');
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].acceleration));
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5].AlarmMsg.EN,'; jerk:');																	
+AlarmActionArray[log_ID+5].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+5].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stAxis[ID].jerk));
+fbSetAlarm[log_ID+5](
+	InUse:=TRUE , 
+	//EventId:=log_ID+5 , 
+	EventActive:=GVL_API.stAxis[ID].MoveConstantVelocity , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+//stop
+AlarmActionArray[log_ID+6].AlarmMsg.EN	:=	'Fast Scan MoveStop ';
+fbSetAlarm[log_ID+6](
+	InUse:=TRUE , 
+	//EventId:=log_ID+6 , 
+	EventActive:=GVL_API.stAxis[ID].stop , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //enabled
+AlarmActionArray[log_ID+7].AlarmMsg.EN	:=	'Fast Scan Enabled ';
+fbSetAlarm[log_ID+7](
+	InUse:=TRUE , 
+	//EventId:=log_ID+7 , 
+	EventActive:=GVL_API.stAxis[ID].enabled , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+  //disable
+AlarmActionArray[log_ID+8].AlarmMsg.EN	:=	'Fast Scan Disable ';
+fbSetAlarm[log_ID+8](
+	InUse:=TRUE , 
+	//EventId:=log_ID+8 , 
+	EventActive:=GVL_API.stAxis[ID].Disable , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+//ERROR,log_ErrorEnum只能等于一个常数
+CASE GVL_API.stAxis[ID].errorid  OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+3	:	log_ErrorEnum	:=	3	;
+4	:	log_ErrorEnum	:=	4	;
+5	:	log_ErrorEnum	:=	5	;
+6	:	log_ErrorEnum	:=	6	;
+7	:	log_ErrorEnum	:=	7	;
+8	:	log_ErrorEnum	:=	8	;
+9	:	log_ErrorEnum	:=	9	;
+10	:	log_ErrorEnum	:=	10	;
+11	:	log_ErrorEnum	:=	11	;
+12	:	log_ErrorEnum	:=	12	;
+13	:	log_ErrorEnum	:=	13	;
+14	:	log_ErrorEnum	:=	14	;
+15	:	log_ErrorEnum	:=	15	;
+16	:	log_ErrorEnum	:=	16	;
+666	:	log_ErrorEnum	:=	666	;
+
+END_CASE
+
+AlarmActionArray[log_ID+9].AlarmMsg.EN	:=CONCAT('Fast Scan Error: ',TO_STRING(log_ErrorEnum));
+fbSetAlarm[log_ID+9](
+	InUse:=TRUE , 
+//	EventId:=log_ID+9 , 
+	EventActive:=GVL_API.stAxis[ID].errorid<>0 AND GVL_API.stAxis[ID].errorid<>666 , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//reset
+AlarmActionArray[log_ID+10].AlarmMsg.EN	:=	'Fast Scan Reset ';
+fbSetAlarm[log_ID+10](
+	InUse:=TRUE , 
+	EventId:=log_ID+10 , 
+	EventActive:=GVL_API.stAxis[ID].reset , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //AXIX_ERRORID
+ AlarmActionArray[log_ID+11].AlarmMsg.EN	:=CONCAT('Fast Scan Axis_ErrorID: ',
+																		UDINT_TO_STRING(Axis[ID].Ref.Status.ErrorID));
+fbSetAlarm[log_ID+11](
+	InUse:=TRUE , 
+	EventId:=log_ID+11 , 
+	EventActive:=Axis[ID].Ref.Status.Error , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );																		
+ 
+ ]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_Safety" Id="{76dcdea7-03b4-40e5-8999-5c191b7963bc}">
+      <Implementation>
+        <ST><![CDATA[(*****************SAFETY******************************)
+IF GVL_API.stAxis[ID].state<>AxisStateEnum.off AND  GVL_API.stAxis[ID].state<>AxisStateEnum.error THEN 
+	IF GVl.Emstop_Button OR GVL.Emstop_SAFE  THEN 
+		GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.emergency_error;
+		Axis[ID].aStop(stop_do:=TRUE,Dec:=HMI_EM_STOP_Dec_FS,Jerk:=HMI_EM_STOP_Jerk_FS);
+		//Axis[ID].aStop(stop_do:=TRUE,Jerk:=GVL_API.stAxis[ID].jerk);
+		SysStep:=700;
+	ELSIF GVL.shuttle_crash OR  Axis[ID].IO.snLimitN OR Axis[ID].IO.snLimitP  THEN 	
+		GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.trigger_Limit;
+		Axis[ID].aStop(stop_do:=TRUE,Dec:=HMI_EM_STOP_Dec_FS,Jerk:=HMI_EM_STOP_Jerk_FS);
+		SysStep:=700;
+	(*ELSIF GVL.interlock_triggered THEN 
+		GVL_API.stAxis[ID].ErrorId:=Axis_XY_ErrorEnum.interlock_error;
+		Axis[ID].aStop(stop_do:=TRUE,Dec:=HMI_EM_STOP_Dec_FS,Jerk:=HMI_EM_STOP_Jerk_FS);
+		SysStep:=700;
+	*)
+	ELSIF  Axis[ID].mcReadStatus.ErrorID=18000 THEN 
+		GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.Drive_not_ready_for_operation;
+		SysStep:=700;
+	ELSIF   Axis[ID].mcReadStatus.ErrorID=17510 THEN 
+		GVL_API.stAxis[ID].errorid:=Axis_XY_ErrorEnum.Invalid_IO_data_for_more_than_n_subsequent_NC_cycles_encoder;
+		SysStep:=700;	
+	ELSIF  Axis[ID].mcReadStatus.ErrorID<>0 THEN 
+		GVL_API.stAxis[ID].errorid:=Axis[ID].mcReadStatus.ErrorID;
+		SysStep:=700;
+	//ELSE 
+	//	GVL_API.stAxis[ID].error:=Axis_XY_ErrorEnum.no_error;
+	//	SysStep:=700;			
+	END_IF	
+END_IF
+
+(*****************AXIS_ERROR******************************)
+GVL_API.stAxis[ID].AxisErrorId:=Axis[ID].Ref.Status.ErrorID;
+
+
+
+	]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_FastScan">
+      <LineId Id="319" Count="0" />
+      <LineId Id="416" Count="1" />
+      <LineId Id="320" Count="25" />
+      <LineId Id="452" Count="0" />
+      <LineId Id="454" Count="1" />
+      <LineId Id="453" Count="0" />
+      <LineId Id="346" Count="5" />
+      <LineId Id="382" Count="0" />
+      <LineId Id="381" Count="0" />
+      <LineId Id="352" Count="0" />
+      <LineId Id="316" Count="0" />
+    </LineIds>
+    <LineIds Name="P_FastScan._00_Waiting">
+      <LineId Id="85" Count="1" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="88" Count="2" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="93" Count="1" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="100" Count="1" />
+      <LineId Id="98" Count="1" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="103" Count="1" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="113" Count="0" />
+    </LineIds>
+    <LineIds Name="P_FastScan._100_Idle">
+      <LineId Id="82" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="79" Count="2" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="76" Count="1" />
+      <LineId Id="27" Count="0" />
+    </LineIds>
+    <LineIds Name="P_FastScan._200_Homing">
+      <LineId Id="121" Count="5" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="127" Count="9" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="56" Count="3" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="219" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="139" Count="1" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="218" Count="0" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="146" Count="3" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="86" Count="1" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="P_FastScan._300_Ready">
+      <LineId Id="18" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="140" Count="12" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="153" Count="1" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="157" Count="10" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="171" Count="0" />
+      <LineId Id="90" Count="1" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="92" Count="1" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="94" Count="2" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="37" Count="3" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="191" Count="3" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="195" Count="2" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="21" Count="3" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="199" Count="0" />
+    </LineIds>
+    <LineIds Name="P_FastScan._400_Disable">
+      <LineId Id="91" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="99" Count="2" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="95" Count="3" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="P_FastScan._500_Moving">
+      <LineId Id="45" Count="0" />
+      <LineId Id="343" Count="4" />
+      <LineId Id="361" Count="0" />
+      <LineId Id="348" Count="2" />
+      <LineId Id="362" Count="0" />
+      <LineId Id="351" Count="2" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="436" Count="0" />
+      <LineId Id="423" Count="11" />
+      <LineId Id="422" Count="0" />
+      <LineId Id="354" Count="0" />
+      <LineId Id="256" Count="0" />
+      <LineId Id="312" Count="0" />
+      <LineId Id="323" Count="0" />
+      <LineId Id="443" Count="0" />
+      <LineId Id="527" Count="0" />
+      <LineId Id="313" Count="0" />
+      <LineId Id="410" Count="2" />
+      <LineId Id="440" Count="2" />
+      <LineId Id="318" Count="0" />
+      <LineId Id="415" Count="0" />
+      <LineId Id="419" Count="0" />
+      <LineId Id="491" Count="0" />
+      <LineId Id="416" Count="0" />
+      <LineId Id="420" Count="0" />
+      <LineId Id="418" Count="0" />
+      <LineId Id="421" Count="0" />
+      <LineId Id="417" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="356" Count="0" />
+      <LineId Id="363" Count="0" />
+      <LineId Id="357" Count="2" />
+      <LineId Id="364" Count="0" />
+      <LineId Id="360" Count="0" />
+      <LineId Id="355" Count="0" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="490" Count="0" />
+      <LineId Id="489" Count="0" />
+      <LineId Id="487" Count="0" />
+      <LineId Id="466" Count="0" />
+      <LineId Id="514" Count="0" />
+      <LineId Id="467" Count="2" />
+      <LineId Id="528" Count="0" />
+      <LineId Id="470" Count="16" />
+      <LineId Id="465" Count="0" />
+      <LineId Id="488" Count="0" />
+      <LineId Id="526" Count="0" />
+      <LineId Id="515" Count="0" />
+      <LineId Id="519" Count="6" />
+      <LineId Id="492" Count="0" />
+    </LineIds>
+    <LineIds Name="P_FastScan._600_Stopping">
+      <LineId Id="45" Count="0" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="1" Count="2" />
+      <LineId Id="18" Count="1" />
+      <LineId Id="23" Count="2" />
+      <LineId Id="20" Count="2" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="53" Count="4" />
+      <LineId Id="49" Count="0" />
+    </LineIds>
+    <LineIds Name="P_FastScan._700_Error">
+      <LineId Id="11" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="91" Count="12" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="104" Count="1" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="P_FastScan._800_Reset">
+      <LineId Id="116" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="175" Count="2" />
+      <LineId Id="166" Count="8" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="213" Count="1" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="85" Count="1" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="P_FastScan.ACT_LOG">
+      <LineId Id="2" Count="0" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="188" Count="2" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="193" Count="1" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="5" Count="2" />
+      <LineId Id="9" Count="3" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="18" Count="2" />
+      <LineId Id="22" Count="4" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="216" Count="9" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="28" Count="2" />
+      <LineId Id="32" Count="3" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="206" Count="1" />
+      <LineId Id="209" Count="1" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="47" Count="2" />
+      <LineId Id="51" Count="3" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="71" Count="1" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="227" Count="7" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="62" Count="2" />
+      <LineId Id="66" Count="3" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="90" Count="3" />
+      <LineId Id="95" Count="3" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="100" Count="4" />
+      <LineId Id="106" Count="3" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="111" Count="4" />
+      <LineId Id="117" Count="5" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="239" Count="13" />
+      <LineId Id="256" Count="2" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="124" Count="6" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="167" Count="7" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="176" Count="2" />
+      <LineId Id="180" Count="6" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="254" Count="1" />
+    </LineIds>
+    <LineIds Name="P_FastScan.ACT_Safety">
+      <LineId Id="2" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="7" Count="2" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="10" Count="4" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="41" Count="1" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="45" Count="1" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="16" Count="2" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="21" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

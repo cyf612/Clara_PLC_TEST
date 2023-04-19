@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_SystemEnvironment" Id="{8b4dff29-bd3c-4071-9fe0-ae2fbc16f2b6}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SystemEnvironment
+VAR_INPUT
+	IO_Error				:BOOL;
+
+	duration:LREAL;//S
+	period :LREAL;//S
+END_VAR
+VAR_OUTPUT
+	temp_measured:LREAL;
+	humidity_measured:LREAL;
+	bqbuzzer:BOOL;
+	Error:BOOL;
+END_VAR
+VAR
+	step:INT;
+	FB_Buzzer:FB_Buzzer;
+	Start_Exe:BOOL;
+END_VAR
+VAR_IN_OUT
+	error_code			:INT;
+	state							:INT;
+	Reset:BOOL;
+	BuzzerOn				:BOOL;
+	BuzzerOff				:BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE step OF
+0://ready
+	Reset:=FALSE;
+	state:=EnvironmentStateEnum.ready;
+	error_code:=EnvironmentErrorEnum.no_error;
+	temp_measured:=GVL.temp_measured;
+	humidity_measured:=GVL.humidity_measured;
+	//IF IO_Error THEN
+		//step:=100;
+	//END_IF
+	IF BuzzerOn AND NOT BuzzerOff THEN 
+		BuzzerOn:=FALSE;
+		Start_Exe:=TRUE;
+	ELSIF BuzzerOff AND NOT BuzzerOn THEN 
+		Start_Exe:=FALSE;
+		BuzzerOff:=FALSE;
+	END_IF
+	
+	FB_Buzzer(duration:=duration , period:=period , bqbuzzer=>bqbuzzer , Start_Exe:=Start_Exe );
+99://setoff	
+		Reset:=FALSE;
+		error_code:=EnvironmentErrorEnum.no_error;
+		state:=EnvironmentStateEnum.ready;
+		error:=FALSE;
+		step:=0;
+100://error
+	state:=EnvironmentStateEnum.error;	
+	error:=TRUE;
+	IF Reset OR GVL.Reset THEN 
+		step:=99;
+	END_IF
+END_CASE
+
+IF Reset OR GVL.Reset THEN 
+		step:=99;
+END_IF
+
+IF state<>EnvironmentStateEnum.error THEN 
+	IF GVL.Emstop_Button THEN 
+		error_code:=EnvironmentErrorEnum.emergency_error;
+		step:=100;
+	ELSIF IO_Error THEN
+		error_code:=EnvironmentErrorEnum.unknown_error;
+		step:=100;
+	END_IF
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_SystemEnvironment">
+      <LineId Id="9" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="27" Count="2" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="34" Count="2" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="114" Count="2" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="84" Count="1" />
+      <LineId Id="210" Count="3" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="40" Count="2" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="241" Count="0" />
+      <LineId Id="239" Count="1" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="242" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="177" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

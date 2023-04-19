@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="TabVacErrorEnum" Id="{f48b5d33-aa6e-48cd-8d89-a49e7e7c9c56}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+
+TYPE TabVacErrorEnum :
+(
+no_error	:=	0	,//	No error detected
+not_connected	:=	1	,//	A command was requested prior to opening the driver
+invalid_state	:=	2	,//	An invalid command was requested
+vacuum_on_timeout	:=	3	,//	
+vacuum_off_timeout	:=	4	,//	
+cmd_timeout	:=	5	,//	
+TBD_error	:=	6	,//	
+io_error	:=	7	,//	IO error HW board
+unknown_error	:=	8	,//	Unknown – Network error
+emergency_error	:=	666	//	
+
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

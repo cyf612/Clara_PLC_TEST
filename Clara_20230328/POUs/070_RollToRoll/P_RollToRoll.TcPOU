@@ -1,0 +1,583 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_RollToRoll" Id="{5fc95ee1-b12e-4ff2-81f5-ba1ab1c46932}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_RollToRoll
+VAR
+	FB_RoolToRool  :ARRAY[1..number_RoolToRool] OF FB_RollToRoll_Torque;//  1:input1; 2:output1; 3:input2; 4:output2  
+ 	single_double:BOOL;//1:double;0:single
+	i:INT;
+	log_ErrorEnum:RTRErrorEnum;
+	log_ID:INT;
+	
+	old_usable:BOOL;
+	ton_old_usable:Tc2_Standard.TON;
+	
+	old_isprinting:BOOL;
+	ton_old_isprinting:Tc2_Standard.TON;
+	
+	Max_profile_velocity AT%Q*:ARRAY[1..4] OF UDINT;//转矩模式下速度限制 单位0.1r/min
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_LOG();
+
+(*************单双卷***************************)
+(*********刹车控制：单卷时，刹车同时控制**********)
+IF stInput.biDualSensor[1] AND stInput.biDualSensor[2]  THEN //DOUBLE
+	GVL_API.stRoolToRool[1].usable:=GVL_API.stRoolToRool[2].usable:=GVL_API.stRoolToRool[3].usable:=GVL_API.stRoolToRool[4].usable:=TRUE;
+	stOutput.bqBreakPower[1]:=FB_RoolToRool[1].Break_Power;
+	stOutput.bqBreakPower[3]:=FB_RoolToRool[3].Break_Power;
+	single_double:=TRUE;
+ELSIF NOT stInput.biDualSensor[1] AND NOT stInput.biDualSensor[2] THEN //SINGLE
+	GVL_API.stRoolToRool[1].usable:=GVL_API.stRoolToRool[2].usable:=TRUE;
+	GVL_API.stRoolToRool[3].usable:=GVL_API.stRoolToRool[4].usable:=FALSE;
+	stOutput.bqBreakPower[1]:=FB_RoolToRool[1].Break_Power;
+	stOutput.bqBreakPower[3]:=FB_RoolToRool[1].Break_Power;
+	single_double:=FALSE;
+ELSE
+	GVL_API.stRoolToRool[1].usable:=GVL_API.stRoolToRool[2].usable:=GVL_API.stRoolToRool[3].usable:=GVL_API.stRoolToRool[4].usable:=FALSE;
+END_IF
+
+(*********速度限制**************)
+FOR i:=1 TO 4 DO
+	Max_profile_velocity[i]:=3000*GVL_API.stRoolToRool[i].rate/10;
+END_FOR
+
+FB_RoolToRool[1](
+		biClamp_hold:=stInput.biClamp_hold[1],
+		Un_Rewinder:=FALSE,
+		Max_velo:=3000 , 
+		REF:= , 
+		usable:=GVL_API.stRoolToRool[1].usable, 
+		acceleration:= GVL_API.stRoolToRool[1].acceleration, 
+		deceleration:=GVL_API.stRoolToRool[1].deceleration , 
+		rate:=HMI_RTR_set_Torque[1], 
+		untension_rate:= GVL_API.stRoolToRool[1].untension_rate, 
+		tension_mode:= GVL_API.stRoolToRool[1].tension_mode, 
+		tension_timeout:= GVL_API.stRoolToRool[1].tension_timeout, 
+		untension_timeout:= GVL_API.stRoolToRool[1].untension_timeout, 
+		brake_timeout:= GVL_API.stRoolToRool[1].brake_timeout, 
+		error_code=> GVL_API.stRoolToRool[1].error_code, 
+		state=> GVL_API.stRoolToRool[1].state, 
+		Axis_ErrorId=> GVL_API.stRoolToRool[1].AxisErrorId, 
+		Break_Power=>  , 
+		Clutch_Out=> stOutput .bqCluthOut[1], 
+		Initialize:= GVL_API.stRoolToRool[1].Initialize, 
+		SetActivate:= GVL_API.stRoolToRool[1].SetActivate, 
+		SetReady:= GVL_API.stRoolToRool[1].SetReady, 
+		EnableBrake:= GVL_API.stRoolToRool[1].EnableBrake, 
+		DisableBrake:= GVL_API.stRoolToRool[1].DisableBrake, 
+		StartTension:= GVL_API.stRoolToRool[1].StartTension, 
+		StopTension:= GVL_API.stRoolToRool[1].StopTension, 
+		Unlock:= GVL_API.stRoolToRool[1].Unlock, 
+		Lock:= GVL_API.stRoolToRool[1].Lock, 
+		SetOff:= GVL_API.stRoolToRool[1].SetOff ,
+		Initialized=> GVL_API.stRoolToRool[1].Initialized, 
+		error=> GVL_API.stRoolToRool[1].error, 
+		tensioned=> GVL_API.stRoolToRool[1].tensioned, 
+		untensioned=>GVL_API.stRoolToRool[1].untensioned );
+
+FB_RoolToRool[2](
+		biClamp_hold:=stInput.biClamp_hold[2],
+		Un_Rewinder:=TRUE,
+		Max_velo:=3000 , 
+		REF:= , 		
+		usable:=GVL_API.stRoolToRool[2].usable, 
+		acceleration:= GVL_API.stRoolToRool[2].acceleration, 
+		deceleration:=GVL_API.stRoolToRool[2].deceleration , 
+		rate:= HMI_RTR_set_Torque[2], 
+		untension_rate:= GVL_API.stRoolToRool[2].untension_rate, 
+		tension_mode:= GVL_API.stRoolToRool[2].tension_mode, 
+		tension_timeout:= GVL_API.stRoolToRool[2].tension_timeout, 
+		untension_timeout:= GVL_API.stRoolToRool[2].untension_timeout, 
+		brake_timeout:= GVL_API.stRoolToRool[2].brake_timeout, 
+		error_code=> GVL_API.stRoolToRool[2].error_code, 
+		state=> GVL_API.stRoolToRool[2].state, 
+		Axis_ErrorId=> GVL_API.stRoolToRool[2].AxisErrorId, 
+		Break_Power=> , 
+		Clutch_Out=> stOutput .bqCluthOut[2], 
+		Initialize:= GVL_API.stRoolToRool[2].Initialize, 
+		SetActivate:= GVL_API.stRoolToRool[2].SetActivate, 
+		SetReady:= GVL_API.stRoolToRool[2].SetReady, 
+		EnableBrake:= GVL_API.stRoolToRool[2].EnableBrake, 
+		DisableBrake:= GVL_API.stRoolToRool[2].DisableBrake, 
+		StartTension:= GVL_API.stRoolToRool[2].StartTension, 
+		StopTension:= GVL_API.stRoolToRool[2].StopTension, 
+		Unlock:= GVL_API.stRoolToRool[2].Unlock, 
+		Lock:= GVL_API.stRoolToRool[2].Lock, 
+		SetOff:= GVL_API.stRoolToRool[2].SetOff ,
+		Initialized=> GVL_API.stRoolToRool[2].Initialized, 
+		error=> GVL_API.stRoolToRool[2].error, 
+		tensioned=> GVL_API.stRoolToRool[2].tensioned, 
+		untensioned=>GVL_API.stRoolToRool[2].untensioned);
+		
+FB_RoolToRool[3](
+		biClamp_hold:=stInput.biClamp_hold[1],
+		Un_Rewinder:=FALSE,
+		Max_velo:=3000 , 
+		REF:= , 
+		usable:=GVL_API.stRoolToRool[3].usable, 
+		acceleration:= GVL_API.stRoolToRool[3].acceleration, 
+		deceleration:=GVL_API.stRoolToRool[3].deceleration , 
+		rate:= HMI_RTR_set_Torque[3], 
+		untension_rate:= GVL_API.stRoolToRool[3].untension_rate, 
+		tension_mode:= GVL_API.stRoolToRool[3].tension_mode, 
+		tension_timeout:= GVL_API.stRoolToRool[3].tension_timeout, 
+		untension_timeout:= GVL_API.stRoolToRool[3].untension_timeout, 
+		brake_timeout:= GVL_API.stRoolToRool[3].brake_timeout, 
+		error_code=> GVL_API.stRoolToRool[3].error_code, 
+		state=> GVL_API.stRoolToRool[3].state, 
+		Axis_ErrorId=> GVL_API.stRoolToRool[3].AxisErrorId, 
+		Break_Power=> , 
+		Clutch_Out=> stOutput .bqCluthOut[3], 
+		Initialize:= GVL_API.stRoolToRool[3].Initialize, 
+		SetActivate:= GVL_API.stRoolToRool[3].SetActivate, 
+		SetReady:= GVL_API.stRoolToRool[3].SetReady, 
+		EnableBrake:= GVL_API.stRoolToRool[3].EnableBrake, 
+		DisableBrake:= GVL_API.stRoolToRool[3].DisableBrake, 
+		StartTension:= GVL_API.stRoolToRool[3].StartTension, 
+		StopTension:= GVL_API.stRoolToRool[3].StopTension, 
+		Unlock:= GVL_API.stRoolToRool[3].Unlock, 
+		Lock:= GVL_API.stRoolToRool[3].Lock, 
+		SetOff:= GVL_API.stRoolToRool[3].SetOff ,
+		Initialized=> GVL_API.stRoolToRool[3].Initialized, 
+		error=> GVL_API.stRoolToRool[3].error, 
+		tensioned=> GVL_API.stRoolToRool[3].tensioned, 
+		untensioned=>GVL_API.stRoolToRool[3].untensioned);
+		
+FB_RoolToRool[4](
+		biClamp_hold:=stInput.biClamp_hold[2],
+		Un_Rewinder:=TRUE,
+		Max_velo:=3000 , 
+		REF:= , 
+		usable:=GVL_API.stRoolToRool[4].usable, 
+		acceleration:= GVL_API.stRoolToRool[4].acceleration, 
+		deceleration:=GVL_API.stRoolToRool[4].deceleration , 
+		rate:= HMI_RTR_set_Torque[4], 
+		untension_rate:= GVL_API.stRoolToRool[4].untension_rate, 
+		tension_mode:= GVL_API.stRoolToRool[4].tension_mode, 
+		tension_timeout:= GVL_API.stRoolToRool[4].tension_timeout, 
+		untension_timeout:= GVL_API.stRoolToRool[4].untension_timeout, 
+		brake_timeout:= GVL_API.stRoolToRool[4].brake_timeout, 
+		error_code=> GVL_API.stRoolToRool[4].error_code, 
+		state=> GVL_API.stRoolToRool[4].state, 
+		Axis_ErrorId=> GVL_API.stRoolToRool[4].AxisErrorId, 
+		Break_Power=> , 
+		Clutch_Out=> stOutput .bqCluthOut[4], 
+		Initialize:= GVL_API.stRoolToRool[4].Initialize, 
+		SetActivate:= GVL_API.stRoolToRool[4].SetActivate, 
+		SetReady:= GVL_API.stRoolToRool[4].SetReady, 
+		EnableBrake:= GVL_API.stRoolToRool[4].EnableBrake, 
+		DisableBrake:= GVL_API.stRoolToRool[4].DisableBrake, 
+		StartTension:= GVL_API.stRoolToRool[4].StartTension, 
+		StopTension:= GVL_API.stRoolToRool[4].StopTension, 
+		Unlock:= GVL_API.stRoolToRool[4].Unlock, 
+		Lock:= GVL_API.stRoolToRool[4].Lock, 
+		SetOff:= GVL_API.stRoolToRool[4].SetOff ,
+		Initialized=> GVL_API.stRoolToRool[4].Initialized, 
+		error=> GVL_API.stRoolToRool[4].error, 
+		tensioned=> GVL_API.stRoolToRool[4].tensioned, 
+		untensioned=>GVL_API.stRoolToRool[4].untensioned);
+]]></ST>
+    </Implementation>
+    <Action Name="ACT_LOG" Id="{ca3a1f29-cd61-4207-9247-696e0076ffcb}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+log_ID:=700;
+
+FOR i:=1 TO number_RoolToRool DO //700-780
+//Initialize
+AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN	:=	CONCAT('Rool-',INT_TO_STRING(i));
+AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN,
+																				' Initialize acc:');
+AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN,
+																				LREAL_TO_STRING(GVL_API.stRoolToRool[i].acceleration));
+AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN,
+																				'; dec:');																				
+AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN,
+																				LREAL_TO_STRING(GVL_API.stRoolToRool[i].deceleration));
+AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN,
+																				'; rate:');	
+AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN,
+																				DINT_TO_STRING(GVL_API.stRoolToRool[i].rate));	
+AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN,
+																				'; untensionRate:');																						
+AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+1].AlarmMsg.EN,
+																				DINT_TO_STRING(GVL_API.stRoolToRool[i].untension_rate));																					
+fbSetAlarm[log_ID+20*i-20+1](
+	InUse:=TRUE , 
+	EventId:=log_ID+20*i-20+1 , 
+	EventActive:=GVL_API.stRoolToRool[i].Initialize, 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ //SetActivate
+AlarmActionArray[log_ID+20*i-20+2].AlarmMsg.EN	:=	CONCAT('Rool-',INT_TO_STRING(i));
+AlarmActionArray[log_ID+20*i-20+2].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+2].AlarmMsg.EN,
+																				' SetActivate');
+fbSetAlarm[log_ID+20*i-20+2](
+	InUse:=TRUE , 
+	EventId:=log_ID+20*i-20+2 , 
+	EventActive:=GVL_API.stRoolToRool[i].SetActivate, 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ //SetReady
+AlarmActionArray[log_ID+20*i-20+3].AlarmMsg.EN	:=	CONCAT('Rool-',INT_TO_STRING(i));
+AlarmActionArray[log_ID+20*i-20+3].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+3].AlarmMsg.EN,
+																				' SetReady');
+fbSetAlarm[log_ID+20*i-20+3](
+	InUse:=TRUE , 
+	EventId:=log_ID+20*i-20+3 , 
+	EventActive:=GVL_API.stRoolToRool[i].SetReady, 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ //EnableBrake
+AlarmActionArray[log_ID+20*i-20+4].AlarmMsg.EN	:=	CONCAT('Rool-',INT_TO_STRING(i));
+AlarmActionArray[log_ID+20*i-20+4].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+4].AlarmMsg.EN,
+																				' EnableBrake timeout:');
+AlarmActionArray[log_ID+20*i-20+4].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+4].AlarmMsg.EN,
+																				LREAL_TO_STRING(GVL_API.stRoolToRool[i].brake_timeout));																						
+																				
+fbSetAlarm[log_ID+20*i-20+4](
+	InUse:=TRUE , 
+	EventId:=log_ID+20*i-20+4 , 
+	EventActive:=GVL_API.stRoolToRool[i].EnableBrake, 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ //DisableBrake
+AlarmActionArray[log_ID+20*i-20+5].AlarmMsg.EN	:=	CONCAT('Rool-',INT_TO_STRING(i));
+AlarmActionArray[log_ID+20*i-20+5].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+5].AlarmMsg.EN,
+																				' DisableBrake');																					
+																				
+fbSetAlarm[log_ID+20*i-20+5](
+	InUse:=TRUE , 
+	EventId:=log_ID+20*i-20+5 , 
+	EventActive:=GVL_API.stRoolToRool[i].DisableBrake, 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ ); 
+ 
+ //StartTension
+AlarmActionArray[log_ID+20*i-20+6].AlarmMsg.EN	:=	CONCAT('Rool-',INT_TO_STRING(i));
+IF GVL_API.stRoolToRool[i].tension_mode THEN 
+AlarmActionArray[log_ID+20*i-20+6].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+6].AlarmMsg.EN,
+																				' inside');
+ELSE
+AlarmActionArray[log_ID+20*i-20+6].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+6].AlarmMsg.EN,
+																				' outside');			
+END_IF
+fbSetAlarm[log_ID+20*i-20+6](
+	InUse:=TRUE , 
+	EventId:=log_ID+20*i-20+6 , 
+	EventActive:=GVL_API.stRoolToRool[i].StartTension, 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ ); 
+ 
+ //StopTension
+AlarmActionArray[log_ID+20*i-20+7].AlarmMsg.EN	:=	CONCAT('Rool-',INT_TO_STRING(i));
+AlarmActionArray[log_ID+20*i-20+7].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+7].AlarmMsg.EN,
+																				' StopTension timeout:');	
+AlarmActionArray[log_ID+20*i-20+7].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+7].AlarmMsg.EN,
+																				LREAL_TO_STRING(GVL_API.stRoolToRool[i].untension_timeout));	
+																				
+fbSetAlarm[log_ID+20*i-20+7](
+	InUse:=TRUE , 
+	EventId:=log_ID+20*i-20+7 , 
+	EventActive:=GVL_API.stRoolToRool[i].StopTension, 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ ); 					
+
+//	SetOff
+AlarmActionArray[log_ID+20*i-20+8].AlarmMsg.EN	:=	CONCAT('Rool-',INT_TO_STRING(i));
+AlarmActionArray[log_ID+20*i-20+8].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+8].AlarmMsg.EN,
+																				' SetOff');	
+														
+fbSetAlarm[log_ID+20*i-20+8](
+	InUse:=TRUE , 
+	EventId:=log_ID+20*i-20+8 , 
+	EventActive:=GVL_API.stRoolToRool[i].SetOff, 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ ); 			 
+ 
+ //ERROR,log_ErrorEnum只能等于一个常数
+CASE GVL_API.stRoolToRool[i].error_code OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+3	:	log_ErrorEnum	:=	3	;
+4	:	log_ErrorEnum	:=	4	;
+5	:	log_ErrorEnum	:=	5	;
+6	:	log_ErrorEnum	:=	6	;
+7	:	log_ErrorEnum	:=	7	;
+8	:	log_ErrorEnum	:=	8	;
+666	:	log_ErrorEnum	:=	666	;
+ 
+END_CASE
+AlarmActionArray[log_ID+20*i-20+9].AlarmMsg.EN	:=	CONCAT('Rool-',INT_TO_STRING(i));
+AlarmActionArray[log_ID+20*i-20+9].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+9].AlarmMsg.EN,
+																				' Error:');	
+AlarmActionArray[log_ID+20*i-20+9].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+9].AlarmMsg.EN,
+																				TO_STRING(log_ErrorEnum));
+
+fbSetAlarm[log_ID+20*i-20+9](
+	InUse:=TRUE , 
+	EventId:=log_ID+20*i-20+9 , 
+	EventActive:=GVL_API.stRoolToRool[i].error_code<>0 AND GVL_API.stRoolToRool[i].error_code<>666 , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );	
+ 
+//AXIS_ERROR
+AlarmActionArray[log_ID+20*i-20+10].AlarmMsg.EN	:=	CONCAT('Rool-',INT_TO_STRING(i));
+AlarmActionArray[log_ID+20*i-20+10].AlarmMsg.EN	:=	CONCAT(AlarmActionArray[log_ID+20*i-20+10].AlarmMsg.EN,
+																				' Axis_ErrorID:');	
+AlarmActionArray[log_ID+20*i-20+10].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+20*i-20+10].AlarmMsg.EN,
+																				UDINT_TO_STRING(FB_RoolToRool[i].REF.Status.ErrorID));
+fbSetAlarm[log_ID+20*i-20+10](
+	InUse:=TRUE , 
+	EventId:=log_ID+20*i-20+10 , 
+	EventActive:=FB_RoolToRool[i].REF.Status.Error , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );																						
+ END_FOR
+ 
+ //usable
+IF GVL_API.stRoolToRool[1].usable THEN 
+AlarmActionArray[781].AlarmMsg.EN	:=	'RoolToRool object in a double lane setup ';
+ELSE
+AlarmActionArray[781].AlarmMsg.EN	:=	'RoolToRool object in a single  lane setup ';
+END_IF
+
+ton_old_usable(IN:=NOT ton_old_usable.Q  , PT:=T#200MS , Q=> , ET=> );
+IF ton_old_usable.Q THEN 
+	old_usable:=GVL_API.stRoolToRool[1].usable ;
+END_IF
+fbSetAlarm[781](
+	InUse:=TRUE , 
+	EventId:=781 , 
+	EventActive:=old_usable<> GVL_API.stRoolToRool[1].usable, 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ //isprinting
+IF GVL_API.stRoolToRool[1].is_printing THEN 
+AlarmActionArray[782].AlarmMsg.EN	:=	'is_printing:TRUE ';
+ELSE
+AlarmActionArray[782].AlarmMsg.EN	:=	'is_printing:FALSE ';
+END_IF
+
+ton_old_isprinting(IN:=NOT ton_old_isprinting.Q  , PT:=T#200MS , Q=> , ET=> );
+IF ton_old_isprinting.Q THEN 
+	old_isprinting:= GVL_API.stRoolToRool[1].is_printing ;
+END_IF
+fbSetAlarm[782](
+	InUse:=TRUE , 
+	EventId:=782 , 
+	EventActive:=old_isprinting<> GVL_API.stRoolToRool[1].is_printing, 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+ (*************em-stop*     549*************
+AlarmActionArray[783].AlarmMsg.EN	:=	'Rool Error:emergency_error';	
+
+fbSetAlarm[783](
+	InUse:=TRUE , 
+	EventId:=783 , 
+	EventActive:=GVL_API.stRoolToRool[1].error_code=666  , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );	
+ *)]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_RollToRoll">
+      <LineId Id="173" Count="0" />
+      <LineId Id="269" Count="0" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="266" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="267" Count="0" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="372" Count="0" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="371" Count="0" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="354" Count="0" />
+      <LineId Id="373" Count="0" />
+      <LineId Id="390" Count="1" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="243" Count="1" />
+      <LineId Id="246" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="28" Count="4" />
+      <LineId Id="34" Count="16" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="323" Count="2" />
+      <LineId Id="288" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="84" Count="21" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="327" Count="2" />
+      <LineId Id="326" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="108" Count="1" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="111" Count="21" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="331" Count="2" />
+      <LineId Id="330" Count="0" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="136" Count="1" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="139" Count="21" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="335" Count="2" />
+      <LineId Id="334" Count="0" />
+      <LineId Id="51" Count="0" />
+    </LineIds>
+    <LineIds Name="P_RollToRoll.ACT_LOG">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="28" Count="6" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="38" Count="9" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="79" Count="9" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="91" Count="2" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="94" Count="6" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="106" Count="2" />
+      <LineId Id="111" Count="7" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="119" Count="1" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="128" Count="6" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="135" Count="1" />
+      <LineId Id="138" Count="1" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="143" Count="6" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="154" Count="1" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="156" Count="7" />
+      <LineId Id="53" Count="1" />
+      <LineId Id="165" Count="7" />
+      <LineId Id="258" Count="2" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="173" Count="1" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="175" Count="1" />
+      <LineId Id="179" Count="7" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="199" Count="1" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="189" Count="8" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="204" Count="18" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="225" Count="16" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="256" Count="0" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="248" Count="7" />
+      <LineId Id="242" Count="0" />
+      <LineId Id="257" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

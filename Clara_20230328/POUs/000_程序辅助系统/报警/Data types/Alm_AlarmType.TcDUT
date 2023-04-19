@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="Alm_AlarmType" Id="{33e93958-b2ad-46df-89ab-9faefe20f6af}">
+    <Declaration><![CDATA[TYPE Alm_AlarmType :
+STRUCT
+      (*InPut*)
+	EventId:					DINT;
+    EventMessage:			WSTRING(255);//报警时间+等级+内容
+    EventTime:                   DT;
+	EventActive:				BOOL;
+	QuitRequired:				BOOL;
+	QuitEvent:				BOOL;
+	EventClass:				Alm_EventClass;
+	AlarmMsg:				Alm_AlmMsg;
+	AlarmlampOn:			BOOL;(*报警灯*)
+	AutoRunOff:				BOOL;(*退出自动循环*)
+
+	(* event actions OutPut	*)
+	AlarmAction1:				BOOL;
+	AlarmAction2:				BOOL;
+	AlarmAction3:				BOOL;
+	AlarmAction4:				BOOL;
+	AlarmAction5:				BOOL;
+	AlarmAction6:				BOOL;
+	AlarmAction7:				BOOL;
+	AlarmAction8:				BOOL;
+
+       (*OutPut*)
+	EventAlive:					BOOL;
+    ShowlampOn:           		BOOL;
+	InUse:                		BOOL;
+END_STRUCT
+END_TYPE;]]></Declaration>
+  </DUT>
+</TcPlcObject>

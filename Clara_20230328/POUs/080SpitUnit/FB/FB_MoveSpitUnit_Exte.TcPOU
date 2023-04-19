@@ -1,0 +1,206 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_MoveSpitUnit_Exte" Id="{77241a16-b3c7-4be6-9447-bc9b5e57866a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_MoveSpitUnit_Exte
+VAR_INPUT
+	ref		:AXIS_REF;
+
+	Acceleration		:LREAL;
+	Deceleration		:LREAL;
+	Jerk				:LREAL;
+END_VAR
+VAR_OUTPUT	
+END_VAR
+VAR
+	MC_Read:MC_ReadStatus;
+	MC_ABS:MC_MoveAbsolute;
+	MC_stop:MC_Stop;
+	
+	step1,step2,step3		:INT;	
+	R_TRIG1,R_TRIG2,R_TRIG3	:R_TRIG;
+	R_TRIG_done				:R_TRIG;
+	abs_do					:BOOL;
+	stop_do					:BOOL;
+	error					:BOOL;
+
+	MoveAbsolute_Busy		:BOOL;
+	FB_START_r_trig:		R_TRIG;
+	start					:BOOL;
+	velo					:LREAL;
+END_VAR
+VAR_IN_OUT 
+	MoveAbsExe					:BOOL;
+	Velo_up						:LREAL;	//mm/s
+	Velo_down						:LREAL;	//mm/s
+	TargetAbs					:LREAL;//mm						
+	Done						:BOOL;
+	
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*********************NOT MOVING TIMEOUT***************************)
+FB_START_r_trig(CLK:=MoveAbsExe, Q=> );
+IF FB_START_r_trig.Q THEN 
+	start:=TRUE;
+END_IF
+
+Call_FB();
+MoveAbsolute();
+
+(*********************error***************************)
+IF  MC_Read.Error  THEN	
+	start:=FALSE;
+	error:=FALSE;
+	step1:=step2:=step2:=0;	
+	MoveAbsExe:=FALSE;
+	TargetAbs:=0;
+
+	R_TRIG1(CLK:=FALSE);
+	R_TRIG2(CLK:=FALSE);
+	R_TRIG3(CLK:=FALSE);
+END_IF
+
+(*********************move done***************************)
+IF MoveAbsolute_Busy  THEN 
+	Done:=FALSE;
+END_IF
+
+R_TRIG_done(CLK:=MC_ABS.Done OR MC_stop.Done   , Q=> );
+IF R_TRIG_done.Q THEN 	
+	start:=FALSE;
+	R_TRIG_done(CLK:=FALSE);
+	step1:=step2:=step2:=0;	
+	MoveAbsExe:=FALSE;
+	TargetAbs:=0;	
+	Done:=TRUE ;
+END_IF]]></ST>
+    </Implementation>
+    <Action Name="Call_FB" Id="{61f45f87-594c-4190-a245-01d8adb5bf2f}">
+      <Implementation>
+        <ST><![CDATA[MC_Read(
+	Axis:=ref , 
+	Enable:=TRUE);
+
+MC_ABS(
+	Axis:=ref , 
+	Execute:=abs_do , 
+	Position:=TargetAbs , 
+	Velocity:=Velo , 
+	Acceleration:=Acceleration , 
+	Deceleration:=Deceleration , 
+	Jerk:=Jerk , 
+	BufferMode:= , 
+	Options:= , 
+	Done=> , 
+	Busy=>MoveAbsolute_Busy , 
+	Active=> , 
+	CommandAborted=> , 
+	Error=> , 
+	ErrorID=> );
+	IF MC_ABS.Busy THEN 
+		abs_do:=FALSE;
+		MoveAbsExe:=FALSE;
+	END_IF
+
+MC_stop(
+	Axis:=ref , 
+	Execute:=stop_do , 
+	Deceleration:=Deceleration , 
+	Jerk:=Jerk , 
+	Options:= , 
+	Done=> , 
+	Busy=> , 
+	Active=> , 
+	CommandAborted=> , 
+	Error=> , 
+	ErrorID=> );
+IF MC_stop.Done THEN 
+	stop_do:=FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="MoveAbsolute" Id="{58f5151e-0ffb-499e-be3a-95acaf1224af}">
+      <Implementation>
+        <ST><![CDATA[(****************ABS********************)
+R_TRIG2(CLK:=MoveAbsExe AND Ref.Status.NotMoving    , Q=> );
+
+CASE step2 OF 
+	0:				
+		IF R_TRIG2.Q THEN 
+			R_TRIG2(CLK:=FALSE);			
+			MoveAbsExe:=FALSE;
+
+			step2:=1;
+		END_IF
+	1:	
+		IF ref.NcToPlc.ActPos>TargetAbs THEN 
+			velo:=Velo_down;
+			abs_do:=TRUE;
+			step2:=2;
+		ELSIF ref.NcToPlc.ActPos<TargetAbs THEN 
+			velo:=Velo_up;
+			abs_do:=TRUE;
+			step2:=2;
+		END_IF
+
+	2:
+		IF MC_ABS.Busy THEN 
+			abs_do:=FALSE;								
+			step2 :=0;
+		END_IF	
+END_CASE
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_MoveSpitUnit_Exte">
+      <LineId Id="628" Count="4" />
+      <LineId Id="634" Count="1" />
+      <LineId Id="637" Count="0" />
+      <LineId Id="641" Count="3" />
+      <LineId Id="646" Count="0" />
+      <LineId Id="648" Count="0" />
+      <LineId Id="650" Count="0" />
+      <LineId Id="653" Count="0" />
+      <LineId Id="656" Count="8" />
+      <LineId Id="667" Count="0" />
+      <LineId Id="670" Count="4" />
+      <LineId Id="677" Count="0" />
+      <LineId Id="679" Count="0" />
+      <LineId Id="682" Count="0" />
+      <LineId Id="685" Count="0" />
+      <LineId Id="151" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MoveSpitUnit_Exte.Call_FB">
+      <LineId Id="94" Count="2" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="62" Count="14" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="167" Count="1" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="182" Count="10" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="193" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_MoveSpitUnit_Exte.MoveAbsolute">
+      <LineId Id="2" Count="1" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="23" Count="2" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="27" Count="2" />
+      <LineId Id="54" Count="1" />
+      <LineId Id="57" Count="2" />
+      <LineId Id="61" Count="1" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="33" Count="5" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="50" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_API_IO" Id="{120f89c6-aa84-4ed3-9662-362dea3b6d11}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_API_IO
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[gvl_api.stAxis[FastScan].Origin:=Axis[FastScan].IO.snHome;
+gvl_api.stAxis[FastScan].LimitP:=Axis[FastScan].IO.snLimitP;
+gvl_api.stAxis[Z_Axis].Origin:=Axis[Z_Axis].IO.snHome;
+gvl_api.stAxis[Z_Axis].LimitP:=Axis[Z_Axis].IO.snLimitP;
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="P_API_IO">
+      <LineId Id="5" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="23" Count="1" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

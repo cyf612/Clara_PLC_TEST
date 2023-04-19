@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_Buzzer" Id="{0f2b6d3e-e1b8-4835-969e-3b19e0585be6}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Buzzer
+VAR_INPUT	
+	duration:LREAL;//S,总时间
+	period :LREAL;//S,周期时间
+END_VAR
+VAR_OUTPUT
+	bqbuzzer:BOOL;
+END_VAR
+VAR
+		ton1,ton2       :Tc2_Standard.TON;
+		en_trig:R_TRIG;
+		ton_duration:TON;
+		enable:BOOL;
+END_VAR
+VAR_IN_OUT
+	Start_Exe:BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[en_trig(CLK:=Start_Exe , Q=> );
+IF en_trig.Q THEN 
+	enable:=TRUE;
+	bqbuzzer:=TRUE;
+END_IF
+IF NOT Start_Exe THEN 
+	enable:=FALSE;
+END_IF
+
+IF enable THEN 
+	ton1(IN:= bqbuzzer, PT:= LREAL_TO_TIME(period)*1000, Q=> , ET=> );
+	ton2(IN:= NOT bqbuzzer, PT:=LREAL_TO_TIME(period)*1000 , Q=> , ET=> );
+	ton_duration(IN:=TRUE , PT:=LREAL_TO_TIME(duration)*1000 , Q=> , ET=> );
+	IF ton1.Q OR ton2.Q THEN
+		bqbuzzer:=NOT bqbuzzer;
+	END_IF
+	IF ton_duration.Q THEN 
+		enable:=FALSE;
+		Start_Exe:=FALSE;
+	END_IF
+ELSE 
+	bqbuzzer:=FALSE;
+	ton1(IN:=FALSE);
+	ton2(IN:=FALSE);
+	ton_duration(IN:=FALSE);
+END_IF
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_Buzzer">
+      <LineId Id="28" Count="1" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="65" Count="1" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="17" Count="1" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="19" Count="1" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="37" Count="2" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="26" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

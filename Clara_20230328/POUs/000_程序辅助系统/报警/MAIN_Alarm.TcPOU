@@ -1,0 +1,269 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="MAIN_Alarm" Id="{7b0c7af9-2c6e-4cb2-966d-6fa67d19cf76}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN_ALarm
+VAR
+	fbAlarmMAIN:						FB_AlarmMAIN;
+	fbDiagDataLogging_S:				FB_DiagDataLogging_S;	
+	ethercatdiag1,ethercatdiag2:		ethercatinfo_read;
+	ec_alarm_trig1,ec_alarm_trig2:		Tc2_Standard.R_TRIG;
+	TON_Delay: 							Ton;		
+	bInidDone: 							BOOL;
+	D1:									DINT:=0;//ec1 报警总数
+	D2:									DINT:=0;//ec1报警模块位置
+	D3:									DINT:=0;
+	D4:									DINT:=0;
+    D5,D6:	DINT:=0;
+	ModleName1,ModleName2:				Tc2_System.T_MaxString;
+	ecnumber1,ecnumber2:				DINT;
+	ec_alarm1,ec_alarm2:				BOOL;
+	i: 									DINT;
+
+	a,b :INT;
+	m1,m2,m3,m4:INT;
+	
+	Auto_clean_ton:Tc2_Standard.TON;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ethercatdiag_action();
+
+IF NOT bInidDone THEN
+	aInit();
+ELSE
+	TON_Delay(IN:=TRUE , PT:=T#2S );
+	IF TON_Delay.Q THEN
+		aOtherAlarm();
+		fbAlarmMAIN();
+
+		gbAlarm_StopAlarm := fbAlarmMAIN.AlarmAction1;
+		gbAlarm_NeedPause := fbAlarmMAIN.AlarmAction2;
+		fbDiagDataLogging_s(sInputString:=gsWriteToLog);
+		
+	END_IF	
+END_IF
+
+(*************定时复位历史报警***********************)
+Auto_clean_ton(IN:=NOT Auto_clean_ton.Q  , PT:=T#1H , Q=> , ET=> );
+IF Auto_clean_ton.Q THEN 
+	Alm_bHMIClearHistory:=TRUE;
+ELSE 
+	Alm_bHMIClearHistory:=FALSE;
+END_IF
+(*报警灯*)
+//GVL_IO.yelllow_lamp:=fbAlarmMAIN.FalshLamp;
+(*蜂鸣*)
+//GVL_IO.buzz:=fbAlarmMAIN.ShowlampOn;
+(*复位*)
+//Alm_bBtReset:=GVL_IO.bReast OR gvl.HMI_reset OR GVL.STOM_LBJ.reset;]]></ST>
+    </Implementation>
+    <Action Name="aInit" Id="{f2a85357-bf82-43c5-a252-e49c1c204394}">
+      <Implementation>
+        <ST><![CDATA[	AlarmActionArray[1].AlarmMsg.CN	:=	"ETHERCAT 1总线错误,报警数量%D,在第%D个,名称为%S";
+	AlarmActionArray[2].AlarmMsg.CN	:=	"ETHERCAT 2总线错误,报警数量%D,在第%D个,名称为%S";
+
+
+	AlarmActionArray[1].AlarmMsg.EN	:=	'ETHERCAT 1 error,number:%D,deviceID:%D,%S';
+	AlarmActionArray[2].AlarmMsg.EN	:=	'ETHERCAT 2 error,number:%D,deviceID:%D,%S';
+	AlarmActionArray[3].AlarmMsg.EN	:=	'Alarm3';
+	AlarmActionArray[4].AlarmMsg.EN	:=	'Alarm4';
+	AlarmActionArray[5].AlarmMsg.EN	:=	'Alarm5';
+	AlarmActionArray[6].AlarmMsg.EN	:=	'Alarm6';
+	AlarmActionArray[7].AlarmMsg.EN	:=	'Alarm7';
+	AlarmActionArray[8].AlarmMsg.EN	:=	'Alarm8';
+	AlarmActionArray[9].AlarmMsg.EN	:=	'Alarm9';
+
+	
+	
+	FOR i:=cnAlarmFirst TO cnAlarmLast DO
+		fbSetAlarm[i].EventId := i;
+	END_FOR	
+	bInidDone:=TRUE;
+	
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="aOtherAlarm" Id="{30fcb2e1-b775-4ebc-a6db-5ec0d9869d5c}">
+      <Implementation>
+        <ST><![CDATA[ec_alarm_trig1(CLK:= ec_alarm1, Q=> );
+IF ec_alarm_trig1.Q THEN
+	D1:=D1+1;
+END_IF
+ec_alarm_trig2(CLK:= ec_alarm2, Q=> );
+IF ec_alarm_trig2.Q THEN
+	D3:=D3+1;
+END_IF
+
+fbSetAlarm[1](
+	InUse:= TRUE, 
+	EventId:= 1, 
+	EventActive:= ec_alarm1, 
+	QuitRequired:= , 
+	QuitEvent:= , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:= TRUE, 
+	ToTheHistory:= TRUE, 
+	AlarmlampOn:=  TRUE,
+	AlarmAction1:= TRUE, 
+	AlarmAction2:= TRUE, 
+	D1:=			D1,
+	D2:=			D2,
+	S1:=			ModleName1,
+	EventAlive=> , 
+	ShowlampOn=> );
+	
+fbSetAlarm[2](
+	InUse:= TRUE, 
+	EventId:= 2, 
+	EventActive:= ec_alarm2, 
+	QuitRequired:= , 
+	QuitEvent:= , 
+	EventClass:=Alm_EventClass.Alarm ,
+	ToTheLogFile:= TRUE, 
+	ToTheHistory:= TRUE,
+    AlarmlampOn:=  TRUE, 
+	AlarmAction1:= TRUE, 
+	AlarmAction2:= TRUE, 
+	D1:=			D3,
+	D2:=			D4,
+	S1:=			ModleName2,
+	EventAlive=> , 
+	ShowlampOn=> );
+
+
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ethercatdiag_action" Id="{edb01f2c-14ae-442d-97d9-823df92b0ea5}">
+      <Implementation>
+        <ST><![CDATA[ethercatdiag1(
+	netID:= , 
+	nEcMasterDeviceId:= , 
+	slaveAddresses=> , 
+	devStates=> , 
+	slavenames=> , 
+	color=> , 
+	nSlaves=> );
+
+IF ethercatdiag1.nSlaves >0 THEN
+FOR ecnumber1 :=0 TO (ethercatdiag1.nSlaves-1)  BY 1 DO
+	IF ethercatdiag1.devStates[ecnumber1].deviceState>=8 THEN
+		ec_alarm1:=FALSE;
+	ELSE
+		ec_alarm1:=TRUE;
+		D2:=ecnumber1+1;
+		ModleName1:=ethercatdiag1 .slavenames[ecnumber1];
+		EXIT;
+	END_IF
+END_FOR
+END_IF
+
+ethercatdiag2(
+	netID:= , 
+	nEcMasterDeviceId:= , 
+	slaveAddresses=> , 
+	devStates=> , 
+	slavenames=> , 
+	color=> , 
+	nSlaves=> );
+
+IF ethercatdiag2.nSlaves >0 THEN
+FOR ecnumber2 :=0 TO (ethercatdiag2.nSlaves-1)  BY 1 DO
+	IF ethercatdiag2.devStates[ecnumber2].deviceState>=8 THEN
+		ec_alarm2:=FALSE;
+	ELSE
+		ec_alarm2:=TRUE;
+		D4:=ecnumber2+1;
+		ModleName2:=ethercatdiag2 .slavenames[ecnumber2];
+		EXIT;
+	END_IF
+END_FOR
+END_IF]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="MAIN_Alarm">
+      <LineId Id="235" Count="0" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="171" Count="2" />
+      <LineId Id="215" Count="1" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="218" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="219" Count="2" />
+      <LineId Id="344" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="413" Count="0" />
+      <LineId Id="412" Count="0" />
+      <LineId Id="415" Count="0" />
+      <LineId Id="418" Count="0" />
+      <LineId Id="414" Count="0" />
+      <LineId Id="419" Count="2" />
+      <LineId Id="363" Count="0" />
+      <LineId Id="362" Count="0" />
+      <LineId Id="364" Count="1" />
+      <LineId Id="390" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="MAIN_Alarm.aInit">
+      <LineId Id="14" Count="1" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="33" Count="8" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="MAIN_Alarm.aOtherAlarm">
+      <LineId Id="111" Count="2" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="145" Count="2" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="82" Count="2" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="89" Count="1" />
+      <LineId Id="350" Count="0" />
+      <LineId Id="92" Count="1" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="108" Count="1" />
+      <LineId Id="106" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="149" Count="5" />
+      <LineId Id="351" Count="0" />
+      <LineId Id="155" Count="1" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="157" Count="5" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="222" Count="0" />
+      <LineId Id="269" Count="0" />
+      <LineId Id="164" Count="0" />
+    </LineIds>
+    <LineIds Name="MAIN_Alarm.ethercatdiag_action">
+      <LineId Id="2" Count="6" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="17" Count="1" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="32" Count="20" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

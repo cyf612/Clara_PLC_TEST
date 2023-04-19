@@ -1,0 +1,177 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_TableVacuum" Id="{43f8e08a-f449-4e55-a578-cf3e5d808385}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_TableVacuum
+VAR
+	FB_TableVacuum:ARRAY[1..number_TableVacuum] OF FB_TableVacuum;
+	i:INT;	
+	log_ErrorEnum:TabVacErrorEnum;
+	log_ID:INT;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_LOG();
+
+FOR i:=1 TO number_TableVacuum DO
+	FB_TableVacuum[i](
+		vacuum_measured:= GVL_API.stTableVacuum[i].vacuum_measured, 
+		vacuum_min:= GVL_API.stTableVacuum[i].vacuum_min, 
+		vacuum_max:= GVL_API.stTableVacuum[i].vacuum_max, 
+		setpoint:= GVL_API.stTableVacuum[i].setpoint, 
+		vacuum_offset_collector:= GVL_API.stTableVacuum[i].vacuum_offset_collector, 
+		setpoint_range_pct:= GVL_API.stTableVacuum[i].setpoint_range_pct, 
+		vacuum_timeout:= GVL_API.stTableVacuum[i].vacuum_timeout, 
+		vacuum_off_timeout:= GVL_API.stTableVacuum[i].vacuum_off_timeout, 
+		IO_Error:=P_Modbus_RTU.station_error[1] OR P_Modbus_RTU.station_error[2],
+		state=> GVL_API.stTableVacuum[i].state, 
+		error_code=> GVL_API.stTableVacuum[i].error_code, 
+		Run=> stOutput.bqVacRun[i], 
+		error=> GVL_API.stTableVacuum[1].Error, 
+		Initialize:= GVL_API.stTableVacuum[i].Initialize, 
+		SetVacuumOn:= GVL_API.stTableVacuum[i].SetVacuumOn, 
+		SetVacuumOff:= GVL_API.stTableVacuum[i].SetVacuumOff, 
+		Setoff:=GVL_API.stTableVacuum[i].Setoff  );
+		
+END_FOR
+
+]]></ST>
+    </Implementation>
+    <Action Name="ACT_LOG" Id="{d25b0494-a922-4a4a-bb34-0e4e18a05aa0}">
+      <Implementation>
+        <ST><![CDATA[(*************************LOG*******************************************)
+log_ID:=300;
+//initialize
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT('TableVacuum initialize, ',LREAL_TO_STRING(GVL_API.stTableVacuum[1].vacuum_min));
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,', ');
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stTableVacuum[1].vacuum_max));
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,', ');
+AlarmActionArray[log_ID+1].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+1].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stTableVacuum[1].setpoint_range_pct));														
+fbSetAlarm[log_ID+1](
+	InUse:=TRUE , 
+	EventId:=log_ID+1 , 
+	EventActive:=GVL_API.stTableVacuum[1].Initialize , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //SetVacuumOn
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=CONCAT('TableVacuum SetVacuumOn, ',LREAL_TO_STRING(GVL_API.stTableVacuum[1].setpoint));
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+2].AlarmMsg.EN,', ');
+AlarmActionArray[log_ID+2].AlarmMsg.EN	:=CONCAT(AlarmActionArray[log_ID+2].AlarmMsg.EN,
+																	LREAL_TO_STRING(GVL_API.stTableVacuum[1].vacuum_timeout));
+
+fbSetAlarm[log_ID+2](
+	InUse:=TRUE , 
+	EventId:=log_ID+2 , 
+	EventActive:=GVL_API.stTableVacuum[1].SetVacuumOn , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ //SetVacuumOff
+AlarmActionArray[log_ID+3].AlarmMsg.EN	:=CONCAT('TableVacuum SetVacuumOff, ',LREAL_TO_STRING(GVL_API.stTableVacuum[1].vacuum_off_timeout));
+
+fbSetAlarm[log_ID+3](
+	InUse:=TRUE , 
+	EventId:=log_ID+3 , 
+	EventActive:=GVL_API.stTableVacuum[1].SetVacuumOff , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+
+//ERROR,log_ErrorEnum只能等于一个常数
+CASE GVL_API.stTableVacuum[1].error_code  OF
+0	:	log_ErrorEnum	:=	0	;
+1	:	log_ErrorEnum	:=	1	;
+2	:	log_ErrorEnum	:=	2	;
+3	:	log_ErrorEnum	:=	3	;
+4	:	log_ErrorEnum	:=	4	;
+5	:	log_ErrorEnum	:=	5	;
+6	:	log_ErrorEnum	:=	6	;
+7	:	log_ErrorEnum	:=	7	;
+8	:	log_ErrorEnum	:=	8	;
+666	:	log_ErrorEnum	:=	666	;
+
+
+END_CASE
+
+AlarmActionArray[log_ID+9].AlarmMsg.EN	:=CONCAT('TableVacuum Error: ',TO_STRING(log_ErrorEnum));
+fbSetAlarm[log_ID+9](
+	InUse:=TRUE , 
+	EventId:=log_ID+9 , 
+	EventActive:=GVL_API.stTableVacuum[1].error_code<>0 AND GVL_API.stTableVacuum[1].error_code<>666   , 
+	EventClass:=Alm_EventClass.Alarm , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );
+ 
+//reset
+AlarmActionArray[log_ID+10].AlarmMsg.EN	:=	'TableVacuum Reset ';
+fbSetAlarm[log_ID+10](
+	InUse:=TRUE , 
+	EventId:=log_ID+10 , 
+	EventActive:=GVL_API.stTableVacuum[1].Setoff  , 
+	EventClass:=Alm_EventClass.Event , 
+	ToTheLogFile:=TRUE, 
+	ToTheHistory:=TRUE , 
+ );]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_TableVacuum">
+      <LineId Id="80" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="8" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="21" Count="2" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="24" Count="2" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="48" Count="0" />
+    </LineIds>
+    <LineIds Name="P_TableVacuum.ACT_LOG">
+      <LineId Id="2" Count="0" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="5" Count="2" />
+      <LineId Id="9" Count="3" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="183" Count="3" />
+      <LineId Id="17" Count="3" />
+      <LineId Id="22" Count="4" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="28" Count="2" />
+      <LineId Id="32" Count="3" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="121" Count="1" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="192" Count="9" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="124" Count="6" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="167" Count="7" />
+      <LineId Id="165" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

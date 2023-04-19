@@ -1,0 +1,146 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_FootPedal" Id="{17f0628c-709c-4286-9d98-7c29f7d841f8}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_FootPedal
+VAR_INPUT
+	PedalPressed1			:BOOL;	
+	PedalPressed2			:BOOL;
+	PedalPressed3			:BOOL;
+	debounce_time			:LREAL;//ms The amount of time that the foot pedal does not register another click.	
+END_VAR
+VAR_OUTPUT
+	error_code					:INT;	//	
+	state					:INT;	//	
+	pressed					:INT;//‘none’, ‘pedal1’, ‘pedal2’, ‘pedal3’	
+	Error					:BOOL;
+END_VAR
+VAR
+	ton1:Tc2_Standard.TON;
+	step:INT;
+	TRIG1:Tc2_Standard.R_TRIG;
+END_VAR
+VAR_IN_OUT
+	Reset					:BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE step OF
+0:
+	state:=FootPedalStateEnum.ready;
+	error_code:=FootPedalErrorEnum.no_error;
+	pressed:=0;
+	ton1(IN:=FALSE);
+	Reset:=FALSE;
+	
+	IF PedalPressed1 THEN 
+		step:=10;
+	ELSIF PedalPressed2 THEN 
+		step:=20;
+	ELSIF PedalPressed3 THEN 
+		step:=30;
+	END_IF
+	
+10:	
+	IF PedalPressed1 THEN 
+		pressed:=1;
+	ELSE 
+		pressed:=0;
+		step:=50;
+	END_IF
+	
+20:	
+	IF PedalPressed2 THEN 
+		pressed:=2;
+	ELSE 
+		pressed:=0;
+		step:=50;
+	END_IF
+
+30:	
+	IF PedalPressed3 THEN 
+		pressed:=3;
+	ELSE 
+		pressed:=0;
+		step:=50;
+	END_IF
+
+50://缓冲
+	ton1(IN:=TRUE , PT:=LREAL_TO_TIME(debounce_time) , Q=> , ET=> );
+	IF ton1.Q THEN 
+		step:=0;
+	END_IF
+100://error
+	state:=FootPedalStateEnum.error;
+	pressed:=0;
+	error:=TRUE;
+	IF Reset OR GVL.Reset THEN 
+		Reset:=FALSE;
+		error:=FALSE;
+		step:=0;
+	END_IF
+END_CASE
+
+IF Reset OR GVL.Reset THEN 
+	Reset:=FALSE;
+	error:=FALSE;
+	step:=0;
+END_IF
+
+
+TRIG1(CLK:=GVL.Emstop_Button , Q=> ); 
+	IF TRIG1.Q THEN 
+		error_code:=FootPedalErrorEnum.emergency_error;
+		step:=100;
+	END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_FootPedal">
+      <LineId Id="9" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="45" Count="3" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="50" Count="1" />
+      <LineId Id="53" Count="1" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="79" Count="3" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="89" Count="3" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="100" Count="1" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="132" Count="2" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="183" Count="4" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="131" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

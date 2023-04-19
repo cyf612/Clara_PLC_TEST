@@ -1,0 +1,214 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_SetAlarm" Id="{7b12fd8b-3112-48d5-bb17-275979020dcf}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SetAlarm(*设置报警功能块,每个报警调用一次*)
+VAR_INPUT
+    InUse:                         	BOOL;(*是否使用*)
+	EventId:						DINT;(*报警号*)
+	EventMessage:                  	STRING;(*报警信息*)
+	EventActive:					BOOL;(*触发信号*)
+   	FilterInUse:                  	BOOL:=FALSE;(* 是否使用滤波器*)(*对触发信号进行滤波，就是触发信号超过多少时间后才报警*)
+   	FilterTime:                    	TIME;(*滤波时间*)
+	QuitRequired:					BOOL;(*是否自动复位: true=复位信号为1时复位报警信号;false=触发信号为0时复位报警信号*)
+	QuitEvent:					 	BOOL;(*复位信号*)
+	EventClass:						Alm_EventClass;(*报警等级*)
+	ToTheLogFile:					BOOL;(*是否记录到历史记录文件*)
+   	ToTheHistory:                 	BOOL;(*是否记录到报警历史记录*)
+	(* event actions	*)
+	AlarmlampOn:				BOOL;(*是否需要报警灯亮*)
+	AutoRunOff:					BOOL;(*退出自动循环*)
+	AlarmAction1:				BOOL;(*用户定义报警动作*)(*例如定义为黄灯亮,则该报警号有触发时,主报警程序的该输出信号为1*)
+	AlarmAction2:				BOOL;(*用户定义报警动作*)
+	AlarmAction3:				BOOL;(*用户定义报警动作*)
+	AlarmAction4:				BOOL;(*用户定义报警动作*)
+	AlarmAction5:				BOOL;(*用户定义报警动作*)
+	AlarmAction6:				BOOL;(*用户定义报警动作*)
+	AlarmAction7:				BOOL;(*用户定义报警动作*)
+	AlarmAction8:				BOOL;(*用户定义报警动作*)	
+	D1:							DINT;//
+	D2:							DINT;//
+	S1:							STRING(255);//
+END_VAR
+VAR_OUTPUT
+	EventAlive:					BOOL;(*当前报警正在执行*)
+  	ShowlampOn:            		BOOL;(*当前报警灯亮*)
+END_VAR
+VAR
+ 	F_Trig_QuitEvent:          	F_TRIG;
+	n:                        	DINT;
+	R_TRIG_GetTime:          	R_TRIG;
+  	TON_Filter:               	TON;
+	sTemp: 						STRING(255);//临时=wEventMessage,无时间有内容
+	fbFormatStringDateTime: 	FB_FormatString;
+	swFormatWstring: 			SW_FormatWstring;
+	sDateTimeString: 			STRING(255);
+	wEventMessage: 				WSTRING(255);//没有时间，只有信息
+	wEventMessage_pre: 			WSTRING(255);//报警等级
+	wmesstest							:WSTRING(255);//只有时间
+	wsCurrentValue_eventclass:WSTRING(255);
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_ToTheHistory();
+IF EventId> cnAlarmLast OR EventId< cnAlarmFirst THEN
+	RETURN;
+END_IF
+
+(*--------------------------------------------------警报数组---------------------------------------------------*)
+       (*Reset Alarm*)
+	   F_Trig_QuitEvent(CLK:=QuitEvent);
+       	IF (QuitRequired AND  F_Trig_QuitEvent.Q)
+      	OR NOT QuitRequired AND NOT EventActive
+     	OR NOT InUse THEN
+              	EventAlive:=FALSE;
+            	ShowlampOn:=FALSE;
+				AlarmActionArray[EventId].AutoRunOff	:=FALSE;(*退出自动循环*)
+             	AlarmActionArray[EventId].AlarmAction1:=FALSE;
+             	AlarmActionArray[EventId].AlarmAction2:=FALSE;
+            	AlarmActionArray[EventId].AlarmAction3:=FALSE;
+             	AlarmActionArray[EventId].AlarmAction4:=FALSE;
+             	AlarmActionArray[EventId].AlarmAction5:=FALSE;
+             	AlarmActionArray[EventId].AlarmAction6:=FALSE;
+            	AlarmActionArray[EventId].AlarmAction7:=FALSE;
+            	AlarmActionArray[EventId].AlarmAction8:=FALSE;
+				AlarmActionArray[EventId].InUse:=InUse;
+				AlarmActionArray[EventId].EventAlive:=EventAlive;
+				AlarmActionArray[EventId].ShowlampOn:=ShowlampOn;
+				AlarmActionArray[EventId].EventActive:=EventActive;
+				AlarmActionArray[EventId].EventClass:=EventClass;
+				AlarmActionArray[EventId].EventId:=EventId;
+				AlarmActionArray[EventId].QuitEvent:=QuitEvent;
+				AlarmActionArray[EventId].QuitRequired:=QuitRequired;
+       	END_IF
+(*-----------------------------------------------当前激活警报数组-------------------------------------------------*)	
+       (*SetAlarm*)
+	 	TON_Filter(IN:=FilterInUse AND EventActive , PT:=FilterTime );
+		R_TRIG_GetTime(CLK:=(NOT FilterInUse AND EventActive) OR (FilterInUse AND TON_Filter.Q)AND InUse );  
+		IF R_TRIG_GetTime.Q THEN
+      		AlarmActionArray[EventId].EventTime:=SYSTEMTIME_TO_DT(tActSystemTime);
+		END_IF
+       	IF ((NOT FilterInUse AND EventActive) OR (FilterInUse AND TON_Filter.Q)) 
+		AND InUse THEN
+              EventAlive:=TRUE;
+              ShowlampOn:=AlarmlampOn;
+              AlarmActionArray[EventId].AutoRunOff:=AutoRunOff;
+              AlarmActionArray[EventId].AlarmAction1:=AlarmAction1;
+              AlarmActionArray[EventId].AlarmAction2:=AlarmAction2;
+              AlarmActionArray[EventId].AlarmAction3:=AlarmAction3;
+              AlarmActionArray[EventId].AlarmAction4:=AlarmAction4;
+              AlarmActionArray[EventId].AlarmAction5:=AlarmAction5;
+              AlarmActionArray[EventId].AlarmAction6:=AlarmAction6;
+              AlarmActionArray[EventId].AlarmAction7:=AlarmAction7;
+              AlarmActionArray[EventId].AlarmAction8:=AlarmAction8;
+			  (*I/O*)
+			 AlarmActionArray[EventId].InUse:=InUse;
+			 AlarmActionArray[EventId].EventAlive:=EventAlive;
+			 AlarmActionArray[EventId].ShowlampOn:=ShowlampOn;
+			 AlarmActionArray[EventId].EventActive:=EventActive;
+			 AlarmActionArray[EventId].EventClass:=EventClass;
+			 AlarmActionArray[EventId].EventId:=EventId;
+			 AlarmActionArray[EventId].QuitEvent:=QuitEvent;
+			 AlarmActionArray[EventId].QuitRequired:=QuitRequired;
+			 
+			 IF R_TRIG_GetTime.Q THEN
+				 fbFormatStringDateTime(
+					sFormat:= 	'%D-%D-%D-%D:%D:%D',
+					arg1:= 		F_WORD(tActSystemTime.wYear),
+					arg2:= 		F_WORD(tActSystemTime.wMonth),
+					arg3:= 		F_WORD(tActSystemTime.wDay),
+					arg4:= 		F_WORD(tActSystemTime.wHour),
+					arg5:= 		F_WORD(tActSystemTime.wMinute),
+					arg6:= 		F_WORD(tActSystemTime.wSecond),
+					sOut=> 		sDateTimeString
+					);
+				//IF VisuElems.CURRENTLANGUAGE='english' THEN
+					wEventMessage:=STRING_TO_WSTRING(AlarmActionArray[EventId].AlarmMsg.EN);
+				//ELSE
+				//	wEventMessage:=AlarmActionArray[EventId].AlarmMsg.CN;
+				//END_IF
+				
+				(********把报警等级加入************)
+				wsCurrentValue_eventclass:=TO_WSTRING(EventClass);
+				wEventMessage_pre:=WCONCAT(wsCurrentValue_eventclass,":");
+				
+				swFormatWstring(
+					WstringIn:= 	wEventMessage, 
+					D1:= 			D1, 
+					D2:= 			D2, 
+					S1:= 			S1, 
+					WstringOUT=> 	wEventMessage
+					);
+				
+				
+				//wEventMessage:=	WCONCAT(wEventMessage_pre, WCONCAT(WCONCAT(WCONCAT("ID",DINT_TO_WSTRING(EventId)),","),wEventMessage));
+				wEventMessage:=	WCONCAT(wEventMessage_pre,wEventMessage);
+				wmesstest := WCONCAT(STRING_TO_WSTRING(sDateTimeString),"-");	
+				AlarmActionArray[EventId].EventMessage := WCONCAT(wmesstest,wEventMessage);	
+			END_IF
+
+			 
+       END_IF
+	   
+]]></ST>
+    </Implementation>
+    <Action Name="ACT_ToTheHistory" Id="{2dfc7522-427d-4697-ab38-c1c5b7f136a5}">
+      <Implementation>
+        <ST><![CDATA[(*---------------------------------------------------历史警报数组----------------------------------------------------*)
+IF ToTheHistory   AND R_TRIG_GetTime.Q THEN
+        Alm_HistoryAlarmNum:=Alm_HistoryAlarmNum+1;
+        IF Alm_HistoryAlarmNum>=cnAlmHistoryLast THEN
+               Alm_HistoryAlarmNum:=cnAlmHistoryLast;
+        END_IF
+        IF Alm_HistoryAlarmNum>=cnAlmHistoryFirst+1 THEN
+             FOR n:=Alm_HistoryAlarmNum TO cnAlmHistoryFirst+1 BY -1 DO
+                  AlarmHistoryArray[n]:=AlarmHistoryArray[n-1];
+             END_FOR
+        END_IF
+ 	AlarmHistoryArray[1].EventId:=EventId;
+	AlarmHistoryArray[1].EventTime:=AlarmActionArray[EventId].EventTime;
+  	AlarmHistoryArray[1].EventMessage:=AlarmActionArray[EventId].EventMessage;
+END_IF
+IF ToTheLogFile AND R_TRIG_GetTime.Q THEN
+	wstring_to_utf8(ADR(sTemp),ADR(wEventMessage),SIZEOF(sTemp));
+	gsWriteToLog:=concat(gsWriteToLog,sTemp);
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_SetAlarm">
+      <LineId Id="857" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="9" Count="4" />
+      <LineId Id="17" Count="20" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="675" Count="0" />
+      <LineId Id="44" Count="25" />
+      <LineId Id="904" Count="1" />
+      <LineId Id="903" Count="0" />
+      <LineId Id="726" Count="15" />
+      <LineId Id="956" Count="0" />
+      <LineId Id="954" Count="1" />
+      <LineId Id="742" Count="0" />
+      <LineId Id="957" Count="0" />
+      <LineId Id="743" Count="6" />
+      <LineId Id="951" Count="0" />
+      <LineId Id="953" Count="0" />
+      <LineId Id="751" Count="0" />
+      <LineId Id="958" Count="0" />
+      <LineId Id="813" Count="0" />
+      <LineId Id="759" Count="0" />
+      <LineId Id="624" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="901" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SetAlarm.ACT_ToTheHistory">
+      <LineId Id="2" Count="1" />
+      <LineId Id="5" Count="17" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <TextList Name="EL1904_M_2" Id="{dd7a3a63-ab19-439d-b5bf-c41ecbf115c0}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="TextListObject">
+          <v n="UniqueIdGenerator">"0"</v>
+          <l n="TextList" t="ArrayList" cet="TextListRow">
+            <o>
+              <v n="TextID">"1"</v>
+              <v n="TextDefault">"shuttle crash_L"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>车头防撞L</v>
+                <v></v>
+                <v>车头防撞L</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"2"</v>
+              <v n="TextDefault">"shuttle crash_R"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>车头防撞R</v>
+                <v></v>
+                <v>车头防撞R</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"3"</v>
+              <v n="TextDefault">"interlock_in_cover"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>INPUT_透明盖</v>
+                <v></v>
+                <v>INPUT_透明盖</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"4"</v>
+              <v n="TextDefault">"interlock_in_cover"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>INPUT_透明盖</v>
+                <v></v>
+                <v>INPUT_透明盖</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">""</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+          </l>
+          <l n="Languages" t="ArrayList" cet="String">
+            <v>chinese</v>
+            <v>english</v>
+            <v>Chinese</v>
+            <v>English</v>
+          </l>
+          <v n="GuidInit">{49e2cd34-d60b-4572-923c-56f9542c2c06}</v>
+          <v n="GuidReInit">{41732977-3e7a-41da-be44-cce3bbcbc18d}</v>
+          <v n="GuidExitX">{c5e9ee27-b770-4bf9-a1a5-c6c79c6dc81e}</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="String">System.String</Type>
+        <Type n="TextListObject">{2bef0454-1bd3-412a-ac2c-af0f31dbc40f}</Type>
+        <Type n="TextListRow">{53da1be7-ad25-47c3-b0e8-e26286dad2e0}</Type>
+      </TypeList>
+    </XmlArchive>
+  </TextList>
+</TcPlcObject>

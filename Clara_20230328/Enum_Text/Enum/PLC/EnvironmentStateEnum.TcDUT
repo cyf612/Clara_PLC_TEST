@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="EnvironmentStateEnum" Id="{a2e71e64-3682-4d36-8c9c-a894b73854cd}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE EnvironmentStateEnum :
+(
+ready	:=	0	,//	The SystemEnvironment is in ready-state.
+error	:=	100	//	The SystemEnvironment is in error.
+
+
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="RTRStateEnum" Id="{373a6a5a-9563-475c-8312-137d205a5f78}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE RTRStateEnum :
+(
+off	:=	0	,//	The RollToRoll object is switched off
+initializing	:=	1	,//	The RollToRoll is busy initializing
+ready	:=	2	,//	The RollToRoll is ready to use
+active	:=	4	,//	The RollToRoll is active
+tensioning	:=	5	,//	The RollToRoll is busy tensioning
+Tensioned_locked	:=	6	,//	The RollToRoll is tensioned
+tensioned	:=	8	,//	The RollToRoll is tensioned
+untensioning	:=	9	,//	The RollToRoll is busy untensioning
+setting_off	:=	10	,//	"The RollToRoll is going to off. If needed it is busy untensioning for off.All errors - except emergency stop error - will be ignored."
+brake_enabled	:=	13	,//	The RollToRoll is locked
+error	:=	100	//	The RollToRoll is in error
+
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

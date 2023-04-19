@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="SwapInfoEnum" Id="{5c2ad063-21e0-4b0c-a238-4fa7b8fad3d9}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE SwapInfoEnum :
+(
+NONE	:=	0	,//	
+AC_STORAGE_FLUSH_RUNS	:=	1	,//
+AC_STORAGE_FLUSH_NEEDS_HELP	:=	2	,//
+AC_STORAGE_FLUSH_FINISHED	:=	3	,//
+AC_WHITE_INK_RUNS	:=	4	,//
+AC_WHITE_INK1_NEEDS_HELP	:=	5	,//
+AC_WHITE_INK2_NEEDS_HELP	:=	6	,//
+AC_WHITE_INK_FINISHED	:=	7	//
+
+
+
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

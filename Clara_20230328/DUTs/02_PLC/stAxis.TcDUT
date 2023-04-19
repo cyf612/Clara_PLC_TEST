@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="stAxis" Id="{63fcc256-9b13-4fbf-95fd-f5cd865157a1}">
+    <Declaration><![CDATA[TYPE stAxis :
+STRUCT	
+(*******************C#API*************************************************)
+//R//
+	Error								:BOOL;
+	ErrorId							  	:UDINT;	//
+	Home_Done					:BOOL;
+	Move_Done					:BOOL;
+	state							  	 :INT; //
+	position							 :LREAL;//um		The actual position of the drive
+	LimitN                             :BOOL; //负极限
+	LimitP                             :BOOL; //正极限
+    Origin                            :BOOL; //原点
+	AxisErrorId					 :UDINT;// 轴错误
+	ControlLoopClosed				 :BOOL;//使能
+//W//	
+	Enabled		                      :BOOL; 	//伺服ON	
+	Disable							  :BOOL;//伺服Off
+	velocity							  :LREAL;//mm/s
+	acceleration					  :LREAL:=5709;//	mm/s2		
+	jerk								  :LREAL:=28591;//mm/s3
+	homeoffset					  :LREAL:=10;//mm
+	homingvelocity				  :LREAL:=5;//mm/s   The velocity used during homing
+	requestedposition			  :LREAL;//um		The position to move to absolutely
+	requestedoffset				  :LREAL;//um		The distance to move over relatively	
+	constantvelocitystart		  :LREAL;//um		The position to start moving with a constant velocity
+												//      0 < ConstantVelocityStart< ConstanVelocityEnd< RequestedPosition
+	constanvelocityend			  :LREAL;//um		The position to end moving with a constant velocity	
+	homingtimeout				  :LREAL:=60;//s    A timeout that overrules the default
+	maxDistance					  :LREAL:=3000;	//mm 	The maximal mechanical distance that can be moved safely
+	stop								  :BOOL;//
+	reset								  :BOOL;//
+	Initialize							  :BOOL;//
+	MoveConstantVelocity	  :BOOL;//
+	HomeExe						  :BOOL;//
+	MoveAbsoluteExe			  :BOOL;//
+	MoveRelativeExe			  :BOOL;//
+	MoveVelocityExe			  :BOOL;//
+	JogForward					  :BOOL;//
+	JogBackwards				  :BOOL;//
+	Setoff							  :BOOL;
+	Automatic_positioning	  :BOOL;//自动测高
+	commandtimeout			 :LREAL:=10;//s		
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

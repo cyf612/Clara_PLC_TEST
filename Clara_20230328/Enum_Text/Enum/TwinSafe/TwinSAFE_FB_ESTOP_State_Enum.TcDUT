@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="TwinSAFE_FB_ESTOP_State_Enum" Id="{ffe25a76-fbfe-47ae-9883-c0d9d0a60abb}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE TwinSAFE_FB_ESTOP_State_Enum :
+(
+	undefined	:=	0	,(*	undefined	*)
+RUN	:=	1	,(*	"RUN
+The FB ESTOP module assumes the RUN state if no error is present and no active EStopIn
+input requests a safe state.
+The outputs assume the following values:
+Error=0
+EStopOut=1
+EStopDelOut=1"	*)
+STOP	:=	2	,(*	"STOP
+The FB ESTOP module assumes the STOP state if the input FbRun is FALSE.
+The outputs assume the following values:
+Error=0
+EStopOut=0
+EStopDelOut=0"	*)
+SAFE	:=	3	,(*	"SAFE
+The FB ESTOP module assumes the SAFE state as long as at least one of the active
+EStopIn inputs has requested the safe state.
+The outputs assume the following values:
+Error=0
+EStopOut=0
+EStopDelOut=0"	*)
+ERROR	:=	4	,(*	"ERROR
+If the FB ESTOP module detects an error, the FB ESTOP module assumes the ERROR state
+and transmits the corresponding Diag message to the GROUP module.
+The outputs assume the following values:
+Error=1
+EStopOut=0
+EStopDelOut=0"	*)
+RESET	:=	5	,(*	"RESET
+The FB ESTOP module assumes the RESET state if no further error is pending after an
+error has occurred and the ErrAck input of the corresponding group is set to TRUE.
+The outputs assume the following values:
+Error=0
+EStopOut=0
+EStopDelOut=0"	*)
+START	:=	6	,(*	"START
+The FB ESTOP module assumes the START state if the Restart input is TRUE, in order to
+wait for a rising and falling edge of the Restart input before entering the RUN state and the
+outputs leave the safe state.
+The outputs assume the following values:
+Error=0
+EStopOut=0
+EStopDelOut=0"	*)
+DELAYOUT	:=	8	(*	"DELAYOUT
+The FB ESTOP module assumes the DELAYOUT state if at least one of the active EStopIn
+inputs has requested the safe state and the delay time for the EStopDelOut output has not
+yet expired.
+The outputs assume the following values:
+Error=0
+EStopOut=0
+EStopDelOut=1"	*)
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

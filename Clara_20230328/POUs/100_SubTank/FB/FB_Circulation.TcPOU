@@ -1,0 +1,399 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_Circulation" Id="{1ab262f7-1b1c-45fb-84b4-4bcfee32d33a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Circulation
+VAR_INPUT	
+	BottomLevel1,BottomLevel2	:BOOL;	
+	MUstate						:INT;
+	setoff						:BOOL;
+	set_pump_voltage1			:LREAL;
+	set_pump_voltage2			:LREAL;
+END_VAR
+VAR_OUTPUT
+	CircPumpWorking1			:BOOL;
+	CircPumpWorking2			:BOOL;
+	error_code					:INT;
+	out_pump_voltage1			:INT;
+	out_pump_voltage2			:INT;
+END_VAR
+VAR
+	Bottom_ON_filterTon1		:TON;				//滤波
+	Bottom_OFF_filterTon1		:TON;
+	Bottom_filterLevel1			:BOOL;
+	
+	Bottom_ON_filterTon2		:TON;				//滤波
+	Bottom_OFF_filterTon2		:TON;
+	Bottom_filterLevel2			:BOOL;
+	
+	filterTime_ON				:TIME;	//接通滤波时间
+	filterTime_OFF				:TIME;	//接断开滤波间
+	
+	ton_circ1,ton_circ2:TON;
+	work_ton1,work_ton2:TON;
+	circ_time_trig1,circ_time_trig2:R_TRIG;
+	circ_number1,circ_number2:INT;//循坏次数
+	setoff_f_trig:F_TRIG;
+	step_L,step_R:INT;
+	state_change_trig1,state_change_trig2:R_TRIG;
+	
+	EL4002_CH			:ARRAY[1..2] OF FB_WriteAnalog;
+	temp_pump_voltage1  :INT;
+	temp_pump_voltage2  :INT;
+	
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_filter_level();
+ACT_circ_L();
+ACT_circ_R();
+
+IF MUstate=MUStateEnum.swapping THEN 
+	filterTime_ON:=T#0S;
+	filterTime_OFF:=T#0S;
+ELSE
+	filterTime_ON:=T#0.5S;
+	filterTime_OFF:=T#0.5S;
+END_IF
+
+(************setoff***************************)
+setoff_f_trig(CLK:=setoff  , Q=> );
+IF setoff_f_trig.Q THEN 
+	ton_circ1(IN:=FALSE);
+	work_ton1(IN:=FALSE);
+	ton_circ2(IN:=FALSE);
+	work_ton2(IN:=FALSE);
+	circ_number1:=0;	
+	circ_number2:=0;	
+END_IF
+(************切换到SWAP或者到idle 时，需将错误复位掉*************************** 2023.1.15 无需复位
+state_change_trig1(CLK:=MUstate=MUStateEnum.swapping  , Q=> );
+state_change_trig2(CLK:=MUstate=MUStateEnum.idle , Q=> );
+IF  state_change_trig1.Q OR state_change_trig2.Q  THEN 
+		error_code:=MUErrorEnum.no_error;
+		ton_circ1(IN:=FALSE);
+		work_ton1(IN:=FALSE);
+		ton_circ2(IN:=FALSE);
+		work_ton2(IN:=FALSE);
+		step_L:=step_R:=0;
+END_IF
+*)
+(**************PUMP  SPEED********************************)
+EL4002_CH[1](
+	Enable:=TRUE , 
+	In:=set_pump_voltage1 , 
+	AnalogOffset:= , 
+	Set_MaxValue:=5 , 
+	MaxValue:=10 , 
+	out=>temp_pump_voltage1 );
+EL4002_CH[2](
+	Enable:=TRUE , 
+	In:=set_pump_voltage2 , 
+	AnalogOffset:= , 
+	Set_MaxValue:=5 , 
+	MaxValue:=10 , 
+	out=>temp_pump_voltage2 );
+
+IF CircPumpWorking1 THEN 
+	out_pump_voltage1:=temp_pump_voltage1;
+ELSE
+	out_pump_voltage1:=0;
+END_IF
+IF CircPumpWorking2 THEN 
+	out_pump_voltage2:=temp_pump_voltage2;
+ELSE
+	out_pump_voltage2:=0;
+END_IF]]></ST>
+    </Implementation>
+    <Action Name="ACT_circ_L" Id="{7ccea794-2408-4122-9a69-6a291916951f}">
+      <Implementation>
+        <ST><![CDATA[CASE step_L  OF 
+0://
+	IF MUstate=MUStateEnum.swapping THEN 
+		step_L:=10;
+	ELSE
+		step_L:=20;
+	END_IF
+10://swappingg,循坏，不会报错
+	IF MUstate<>MUStateEnum.swapping THEN 
+		step_L:=20;
+	END_IF
+	
+	CircPumpWorking1:=Bottom_filterLevel1 ;
+20://normal,有报错
+(*When pump 3 was activate less than …x/min => Alarm 1: Check circulation Left Print Heads
+When pump 6 was activate less than …x/min => Alarm 2: Check circulation Right Print Heads
+
+When pump 3 was activate less than 1x/2min =>	Alarm 3: No Circulation through Left Print Heads
+When pump 6 was activate less than 1x/2min => 	Alarm 4: No Circulation through Right Print Heads
+
+When pump 3 runs longer than 8sec => 	Alarm 5: Runtime Error Left Circulation pump 
+When pump 6 runs longer than 8sec => 	Alarm 6: Runtime Error Right Circulation Pump 
+
+*)
+	IF MUstate=MUStateEnum.swapping THEN 
+		step_L:=10;
+	END_IF
+	
+	CircPumpWorking1:=Bottom_filterLevel1 ;
+	
+		ton_circ1(IN:=NOT ton_circ1.Q  , PT:=T#2M , Q=> , ET=> );
+		circ_time_trig1(CLK:=CircPumpWorking1 , Q=> );
+		IF circ_time_trig1.Q THEN 
+				circ_number1:=circ_number1+1;
+		END_IF
+		
+	(*************error********************)
+	IF ton_circ1.ET >=T#1M AND ton_circ1.ET<T#2M THEN 				
+		IF circ_number1<1 THEN 
+			error_code:=MUErrorEnum.alarm_circulation_left;			
+		END_IF
+	ELSIF ton_circ1.q THEN 		
+		IF circ_number1<1 THEN 
+			error_code:=MUErrorEnum.alarm_through_left;
+		END_IF
+		(********error跳转********)
+		IF error_code<>0 THEN 
+			step_L:=100;
+		END_IF
+		circ_number1:=0;	
+	END_IF
+	
+	work_ton1(IN:=CircPumpWorking1 , PT:=T#8S , Q=> , ET=> );
+	IF work_ton1.Q THEN 
+		error_code:=MUErrorEnum.alarm_runtime_circulation_left;	
+		step_L:=100;
+	END_IF
+			
+100://error
+	CircPumpWorking1:=FALSE;
+	circ_number1:=0;	
+	ton_circ1(IN:=FALSE);
+	work_ton1(IN:=FALSE);
+	step_L:=0;
+
+END_CASE
+	IF 	setoff    THEN 
+		error_code:=MUErrorEnum.no_error;
+		step_L:=0;
+	END_IF
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_circ_R" Id="{0a10275b-3b7f-48c0-a57d-e6f5099fdfee}">
+      <Implementation>
+        <ST><![CDATA[CASE step_R  OF 
+0://
+	IF MUstate=MUStateEnum.swapping THEN 
+		step_R:=10;
+	ELSE
+		step_R:=20;
+	END_IF
+10://swappingg,循坏，不会报错
+	IF MUstate<>MUStateEnum.swapping THEN 
+		step_R:=20;
+	END_IF
+	
+	CircPumpWorking2:=Bottom_filterLevel2 ;
+20://normal,有报错
+(*When pump 3 was activate less than …x/min => Alarm 1: Check circulation Left Print Heads
+When pump 6 was activate less than …x/min => Alarm 2: Check circulation Right Print Heads
+
+When pump 3 was activate less than 1x/2min =>	Alarm 3: No Circulation through Left Print Heads
+When pump 6 was activate less than 1x/2min => 	Alarm 4: No Circulation through Right Print Heads
+
+When pump 3 runs longer than 8sec => 	Alarm 5: Runtime Error Left Circulation pump 
+When pump 6 runs longer than 8sec => 	Alarm 6: Runtime Error Right Circulation Pump 
+
+*)
+	IF MUstate=MUStateEnum.swapping THEN 
+		step_R:=10;
+	END_IF
+	
+	CircPumpWorking2:=Bottom_filterLevel2 ;
+	
+		ton_circ2(IN:=NOT ton_circ2.Q  , PT:=T#2M , Q=> , ET=> );
+		circ_time_trig2(CLK:=CircPumpWorking2 , Q=> );
+		IF circ_time_trig2.Q THEN 
+				circ_number2:=circ_number2+1;
+		END_IF
+		
+	(*************error********************)
+	IF ton_circ2.ET >=T#1M AND ton_circ2.ET<T#2M THEN 				
+		IF circ_number2<1 THEN 
+			error_code:=MUErrorEnum.alarm_circulation_right;
+		END_IF
+	ELSIF ton_circ2.q THEN 
+		IF circ_number2<1 THEN 
+			error_code:=MUErrorEnum.alarm_through_right;
+		END_IF
+		(********error跳转********)
+		IF error_code<>0 THEN 
+			step_R:=100;
+		END_IF
+		circ_number2:=0;	
+	END_IF
+	
+	work_ton2(IN:=CircPumpWorking2 , PT:=T#8S , Q=> , ET=> );
+	IF work_ton2.Q THEN 
+		error_code:=MUErrorEnum.alarm_runtime_circulation_right;
+		step_R:=100;
+	END_IF
+				
+100://error
+	CircPumpWorking2:=FALSE;
+	circ_number2:=0;	
+	ton_circ2(IN:=FALSE);
+	work_ton2(IN:=FALSE);
+	step_R:=0;
+
+	
+END_CASE
+	IF setoff   THEN 
+		error_code:=MUErrorEnum.no_error;
+		step_R:=0;
+	END_IF
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_filter_level" Id="{1db58556-54c3-4b00-9f51-93c8cee515c6}">
+      <Implementation>
+        <ST><![CDATA[(************LEVEL_BOT1*****************)
+Bottom_ON_filterTon1(IN:=BottomLevel1 , PT:=filterTime_ON , Q=> , ET=> );
+Bottom_OFF_filterTon1(IN:=NOT BottomLevel1 , PT:=filterTime_OFF , Q=> , ET=> );
+
+IF Bottom_ON_filterTon1 .Q  THEN 
+	Bottom_filterLevel1:=TRUE;
+ELSIF Bottom_OFF_filterTon1 .Q THEN 
+	Bottom_filterLevel1:=FALSE;
+END_IF
+
+
+(************LEVEL_BOT2*****************)
+Bottom_ON_filterTon2(IN:=BottomLevel2 , PT:=filterTime_ON , Q=> , ET=> );
+Bottom_OFF_filterTon2(IN:=NOT BottomLevel2 , PT:=filterTime_OFF , Q=> , ET=> );
+
+IF Bottom_ON_filterTon2 .Q  THEN 
+	Bottom_filterLevel2:=TRUE;
+ELSIF Bottom_OFF_filterTon2 .Q THEN 
+	Bottom_filterLevel2:=FALSE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_Circulation">
+      <LineId Id="146" Count="0" />
+      <LineId Id="176" Count="1" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="67" Count="3" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="148" Count="1" />
+      <LineId Id="179" Count="3" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="229" Count="1" />
+      <LineId Id="223" Count="2" />
+      <LineId Id="231" Count="1" />
+      <LineId Id="226" Count="2" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="282" Count="5" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="288" Count="5" />
+      <LineId Id="276" Count="1" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="269" Count="0" />
+      <LineId Id="294" Count="1" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="296" Count="3" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Circulation.ACT_circ_L">
+      <LineId Id="2" Count="1" />
+      <LineId Id="57" Count="1" />
+      <LineId Id="62" Count="1" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="89" Count="3" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="97" Count="8" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="93" Count="2" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="16" Count="2" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="22" Count="4" />
+      <LineId Id="30" Count="3" />
+      <LineId Id="120" Count="2" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="37" Count="3" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="128" Count="2" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="126" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Circulation.ACT_circ_R">
+      <LineId Id="2" Count="1" />
+      <LineId Id="57" Count="1" />
+      <LineId Id="62" Count="1" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="89" Count="3" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="97" Count="8" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="93" Count="2" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="16" Count="2" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="22" Count="4" />
+      <LineId Id="30" Count="3" />
+      <LineId Id="110" Count="2" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="37" Count="3" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="115" Count="2" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="113" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Circulation.ACT_filter_level">
+      <LineId Id="12" Count="8" />
+      <LineId Id="30" Count="10" />
+      <LineId Id="43" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_Stirrer" Id="{e53c1647-df9f-4491-92a0-6b57a015c043}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Stirrer
+VAR_INPUT
+	enable					:BOOL;
+	continueTime			:LREAL;//Min   持续时间
+	intervalTime			:LREAL;//Min  间隔时间
+END_VAR
+VAR_OUTPUT
+	PumpWorkingF			:BOOL;//正转
+	PumpWorkingB			:BOOL;//反转
+
+END_VAR
+VAR 
+	ton_C:TON;	//   持续时间
+	ton_I:TON;	//   持续时间
+	step:INT;
+	R_trig:R_TRIG;
+	F_trig:F_TRIG;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[R_trig(CLK:=enable , Q=> );
+F_trig(CLK:=enable , Q=> );
+
+
+IF F_trig.Q THEN 
+	step:=0;
+END_IF
+
+CASE step OF
+0://启动
+	PumpWorkingF:=FALSE;
+	PumpWorkingB:=FALSE;
+	ton_C(IN:=FALSE);
+	ton_I(IN:=FALSE);
+	IF R_trig.Q THEN
+	 	step:=10;		
+	END_IF	
+10://正转
+	PumpWorkingF:=TRUE;
+	PumpWorkingB:=FALSE;
+	ton_I(IN:=FALSE);
+	ton_C(IN:=TRUE  , PT:=LREAL_TO_TIME(continueTime*1000*60) , Q=> , ET=> );
+	IF ton_C.Q THEN 		
+		step:=20;
+	END_IF	
+20://间隔
+	PumpWorkingF:=FALSE;
+	PumpWorkingB:=FALSE;
+	ton_C(IN:=FALSE);
+	ton_I(IN:=TRUE , PT:=LREAL_TO_TIME(intervalTime*1000*60) , Q=> , ET=> );
+	IF ton_I.Q THEN 
+		step:=30;
+	END_IF
+30://反转
+	PumpWorkingF:=FALSE;
+	PumpWorkingB:=TRUE;
+	ton_I(IN:=FALSE);
+	ton_C(IN:=TRUE  , PT:=LREAL_TO_TIME(continueTime*1000*60) , Q=> , ET=> );
+	IF ton_C.Q THEN 		
+		step:=40;
+	END_IF	
+40://间隔
+	PumpWorkingF:=FALSE;
+	PumpWorkingB:=FALSE;
+	ton_C(IN:=FALSE);
+	ton_I(IN:=TRUE , PT:=LREAL_TO_TIME(intervalTime*1000*60) , Q=> , ET=> );
+	IF ton_I.Q THEN 
+		step:=10;
+	END_IF
+
+END_CASE]]></ST>
+    </Implementation>
+    <LineIds Name="FB_Stirrer">
+      <LineId Id="28" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="143" Count="2" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="131" Count="2" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="101" Count="2" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="105" Count="2" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="98" Count="1" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="108" Count="2" />
+      <LineId Id="113" Count="1" />
+      <LineId Id="119" Count="3" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="124" Count="6" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="82" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

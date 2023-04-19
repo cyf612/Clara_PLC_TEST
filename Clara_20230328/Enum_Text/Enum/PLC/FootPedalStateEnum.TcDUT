@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="FootPedalStateEnum" Id="{a3fa9f9a-3628-426f-b1bb-d74c76c2635d}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE FootPedalStateEnum :
+(
+	ready	:=	0	,//	The FootPedal is in ready-state.
+	error	:=	100	//	The FootPedal is in error.
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

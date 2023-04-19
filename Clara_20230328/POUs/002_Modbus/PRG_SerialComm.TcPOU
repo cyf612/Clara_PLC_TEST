@@ -1,0 +1,1010 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="PRG_SerialComm" Id="{a1951f77-e147-42be-9abf-3ab4d6970f7f}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM PRG_SerialComm
+VAR
+	CmdSendData1,CmdSendData2,CmdSendData3		: SendData; //将任何类型的变量的内容发送到与输入变量TxBuffer对应的接口。只要Busy=TRUE，传输就没有完成。当Busy=FALSE和Error=0时，数据已成功发送
+	StsReceiveData1,StsReceiveData2	: ReceiveData;
+	DataRecive1     :ARRAY[1..16]OF BYTE;	
+	Prefix1 : ARRAY[1..5] OF BYTE :=[16#46,16#51,16#0C,16#32,16#02];
+	
+	Dely1,Dely2:Tc2_Standard.TON;
+	clearbuf1,clearbuf2,clearbuf3,clearbuf4:Tc2_SerialCom.ClearComBuffer;
+	i,j: INT;
+	
+	level:ARRAY[1..10] OF LREAL;	
+	(*******************UV mode****************************)
+	DataSend_uv_mode					:ARRAY[1..11]OF BYTE:=[16#01,16#10,16#00,16#C0,16#00,16#01,16#02,16#00,16#11,16#77,16#5C];//232
+	DataRecive_uv_mode	    			:ARRAY[1..8] OF BYTE;
+	DataRecive_uv_mode_correct			:ARRAY[1..8] OF BYTE:=[16#01,16#10,16#00,16#C0,16#00,16#01,16#01,16#F5];
+	ton_Remote							:Tc2_Standard.TON;
+	(*******************UV buad****************************)
+	step_burd							:INT;
+	DataSend_Buad_set					:ARRAY[1..17] OF BYTE;
+	DataSend_Buad						:ARRAY[1..19] OF BYTE;
+	DataRecive_Buad_correct				:ARRAY[1..8] OF BYTE:=[16#01,16#10,16#01,16#20,16#00,16#05,16#00,16#3C];
+	DataRecive_Buad						:ARRAY[1..8] OF BYTE;
+	EN_Buad:DINT;
+	HMI_Buad:INT:=2;//1：9600,2:57600,3:115200
+	CRC16_Send_Buad:WORD;
+	(*******************UV power****************************)
+	step_set_power							:INT;
+	DataSend_Power_set						:ARRAY[1..41] OF BYTE;
+	DataSend_Power						    :ARRAY[1..43] OF BYTE;
+	DataReceive_Power						:ARRAY[1..8] OF BYTE;
+	CRC16_Send_Power:WORD;
+	UV_power_old_L							:DINT;//上一次能量
+	UV_power_old_R							:DINT;//上一次能量
+	UV_Power_r_trig:						Tc2_Standard.R_TRIG;//能量变化
+	UV_Power_send_f_trig					:Tc2_Standard.F_TRIG;
+	(*******************UV STATE****************************)
+	step_read_state:INT;
+	DataSend_State						:ARRAY[1..8] OF BYTE:=[16#01,16#03,16#00,16#CB,16#00,16#1A,16#B5,16#FF];
+	DataRecive_State					:ARRAY[1..57] OF BYTE;
+	Prefix_DataRecive_State: ARRAY[1..3] OF BYTE :=[16#01,16#03,16#34];
+	
+	(*******************UV version****************************)
+	step_read_version	:INT;
+	DataSend_Version	:ARRAY[1..8] OF BYTE:=[16#01,16#03,16#00,16#AE,16#00,16#10,16#25,16#E7];
+	DataRecive_Version	:ARRAY[1..37] OF BYTE;
+	Prefix_DataRecive_Version: ARRAY[1..3] OF BYTE :=[16#01,16#03,16#20];
+	soft_version :ARRAY[0..2] OF WORD;
+	soft_date    :ARRAY[0..2] OF WORD;//年，月，日
+	hardware_version :ARRAY[0..2] OF WORD;
+	hardware_date:ARRAY[0..2] OF WORD;//年，月，日
+		
+	(*******************UV first light****************************)
+	step_first_light        :INT;
+	DataSend_First_light	:ARRAY[1..8] OF BYTE:=[16#01,16#03,16#02,16#12,16#00,16#06,16#64,16#75];
+	DataRecive_First_light	:ARRAY[1..17] OF BYTE;
+	Prefix_DataRecive_First_light: ARRAY[1..3] OF BYTE :=[16#01,16#03,16#0C];
+	
+	(*******************UV Read the accumulated working time****************************)
+	step_acc_working_time       :INT;
+	DataSend_Acc_working_time 	:ARRAY[1..8] OF BYTE:=[16#01,16#03,16#00,16#E4,16#00,16#20,16#04,16#25];
+	DataRecive_Acc_working_time	:ARRAY[1..69] OF BYTE;
+	Prefix_DataRecive_Acc_working_time: ARRAY[1..3] OF BYTE :=[16#01,16#03,16#40];
+
+
+	
+	Receive_data_F_trig:Tc2_Standard.F_TRIG;
+	
+	TON_Timeout:ARRAY[1..4] OF Tc2_Standard.TON;
+
+	
+	Main_step_UV:INT;
+	
+	
+		
+	uv_power_left_t,uv_power_right_t:DINT;
+	bHibyte,bLobyte:BYTE;
+	
+	error_count_test:ARRAY[1..10] OF DINT;
+	error_trig_test:ARRAY[1..10] OF Tc2_Standard.R_TRIG;
+	
+	CMD_Burd,CMD_Read_Version,CMD_Read_First_light,CMD_Read_Acc_working_time:BOOL;
+	
+	ton_case:Tc2_Standard.TON;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(****************MainTankLevel***************)
+COM1_MainTankLevel();
+
+(*********************************UV**************************************)
+(*********************clear buff******************				
+Dely1(IN:=NOT Dely1.Q , PT:=T#500MS , Q=> , ET=> );	
+IF Dely1.Q THEN 
+		clearbuf3(Buffer:=TXBUFFER2  );
+		clearbuf4(Buffer:=RXBUFFER2   );	
+END_IF
+*)
+(*****************timeout,自复位***************************)
+TON_Timeout[1](IN:= NOT StsReceiveData2.busy  , PT:=T#2S , Q=> , ET=> );
+TON_Timeout[2](IN:=StsReceiveData2.busy  , PT:=T#2S , Q=> , ET=> );
+IF TON_Timeout[1].Q OR TON_Timeout[2].Q THEN 
+	GVL.UV_timeout:=TRUE;
+ELSE
+	GVL.UV_timeout:=FALSE;
+END_IF
+
+
+(*********************UV_pro*******************)
+COM2_UVLed_Set_Power();
+
+IF Axis[1].Ref.Status.NotMoving THEN 
+	CASE Main_step_UV OF
+	0:
+		IF CMD_Burd THEN 
+			Main_step_UV:=10;
+		ELSIF CMD_Read_Version THEN 
+			Main_step_UV:=20;
+		ELSIF CMD_Read_First_light THEN 
+			Main_step_UV:=30;
+		ELSIF CMD_Read_Acc_working_time THEN 
+			Main_step_UV:=40;
+		ELSE 
+			Main_step_UV:=50;
+		END_IF
+	10://COM2_UVLedburd 
+		CMD_Burd:=FALSE;
+		_10_COM2_UVLed_burd();
+		ton_case(IN:=TRUE , PT:=T#1S , Q=> , ET=> );
+		Receive_data_F_trig(CLK:=StsReceiveData2.busy , Q=> );
+		IF ton_case.Q OR Receive_data_F_trig.Q  THEN 
+			ton_case(IN:=FALSE);
+			step_burd:=0;
+			Main_step_UV:=0;
+		END_IF
+	20://CMD_Read_Version
+		CMD_Read_Version:=FALSE;
+		_20_COM2_UVLed_Version();
+		ton_case(IN:=TRUE , PT:=T#1S , Q=> , ET=> );
+		Receive_data_F_trig(CLK:=StsReceiveData2.busy , Q=> );
+		IF ton_case.Q OR Receive_data_F_trig.Q THEN 
+			ton_case(IN:=FALSE);
+			step_read_version:=0;
+			Main_step_UV:=0;
+		END_IF
+		
+	30://CMD_Read_First_light
+		CMD_Read_First_light:=FALSE;
+		_30_COM2_UVLed_First_light();
+		ton_case(IN:=TRUE , PT:=T#1S , Q=> , ET=> );
+		Receive_data_F_trig(CLK:=StsReceiveData2.busy , Q=> );
+		IF ton_case.Q THEN 
+			ton_case(IN:=FALSE);
+			step_first_light:=0;		
+			Main_step_UV:=0;
+		END_IF
+	40://CMD_Read_Acc_working_time
+		CMD_Read_Acc_working_time:=FALSE;
+		_40_COM2_UVLed_Acc_working_time();
+		ton_case(IN:=TRUE , PT:=T#1S , Q=> , ET=> );
+		Receive_data_F_trig(CLK:=StsReceiveData2.busy , Q=> );
+		IF ton_case.Q THEN 
+			ton_case(IN:=FALSE);
+			step_acc_working_time:=0;
+			Main_step_UV:=0;
+		END_IF
+	50:		
+		_50_COM2_UVLed_Read_State();
+		IF CMD_Burd OR CMD_Read_Version OR CMD_Read_First_light OR CMD_Read_Acc_working_time THEN
+			Main_step_UV:=0;
+		END_IF 
+	END_CASE
+
+END_IF
+
+		
+			
+]]></ST>
+    </Implementation>
+    <Folder Name="UVLed" Id="{492247cd-23f1-474b-af2c-c1418680db11}" />
+    <Action Name="_10_COM2_UVLed_burd" Id="{e172e322-f4dc-4176-8722-a5be4a863cf0}" FolderPath="UVLed\">
+      <Implementation>
+        <ST><![CDATA[IF HMI_Buad=1 THEN  //9600
+		DataSend_Buad_set[8]:=16#00;
+		DataSend_Buad_set[9]:=16#00;
+		DataSend_Buad_set[10]:=16#25;
+		DataSend_Buad_set[11]:=16#80;
+	ELSIF HMI_Buad=2 THEN //57600
+		DataSend_Buad_set[8]:=16#00;
+		DataSend_Buad_set[9]:=16#00;
+		DataSend_Buad_set[10]:=16#E1;
+		DataSend_Buad_set[11]:=16#00;
+	ELSIF HMI_Buad=3 THEN //115200
+		DataSend_Buad_set[8]:=16#00;
+		DataSend_Buad_set[9]:=16#01;
+		DataSend_Buad_set[10]:=16#C2;
+		DataSend_Buad_set[11]:=16#00;
+	END_IF
+	DataSend_Buad_set[1]:=16#01; DataSend_Buad_set[2]:=16#10;DataSend_Buad_set[3]:=16#01;
+	DataSend_Buad_set[4]:=16#20; DataSend_Buad_set[5]:=16#00;DataSend_Buad_set[6]:=16#05;
+	DataSend_Buad_set[7]:=16#0A; 
+	DataSend_Buad_set[12]:=16#00; DataSend_Buad_set[13]:=16#00;//校验位
+	DataSend_Buad_set[14]:=16#00;DataSend_Buad_set[15]:=16#08;//停止位
+	DataSend_Buad_set[16]:=16#00;DataSend_Buad_set[17]:=16#01;//奇偶校验
+
+	MEMCPY(destAddr:=ADR(DataSend_Buad) , srcAddr:=ADR(DataSend_Buad_set) , n:=SIZEOF(DataSend_Buad_set) );
+	
+	CRC16_Send_Buad:=MEM.CRC16_Modbus(pMemoryBlock:= ADR(DataSend_Buad_set) , uiLength:=SIZEOF(DataSend_Buad_set) );	
+	DataSend_Buad[19]:=WORD_TO_BYTE(CRC16_Send_Buad/255);  // crc h
+	DataSend_Buad[18]:=WORD_TO_BYTE(CRC16_Send_Buad);			//CRCL
+CASE step_burd OF
+0://
+10://波特率设置	
+	IF NOT  StsReceiveData2.busy THEN 
+		CmdSendData2(
+			pSendData:= ADR(DataSend_Buad), 
+			Length:= 19, 
+			Busy=> , 
+			Error=> , 
+			TXbuffer:= TXBUFFER2);
+		step_burd:=20;
+	END_IF
+20://	接收，比较  波特率
+		StsReceiveData2(
+			pPrefix:= , 
+			LenPrefix:=, 
+			pSuffix:= , 
+			LenSuffix:= , 
+			pReceiveData:= ADR(DataRecive_Buad), 
+			SizeReceiveData:= SIZEOF(DataRecive_Buad), 
+			Timeout:=T#500MS , 
+			Reset:= , 
+			DataReceived=> , 
+			busy=> , 
+			Error=> , 
+			RxTimeout=> , 
+			LenReceiveData=> , 
+			RXbuffer:= RXBUFFER2);
+			
+			EN_Buad:=MEMCMP(pBuf1:=ADR(DataRecive_Buad) , pBuf2:=ADR(DataRecive_Buad_correct) , n:=SIZEOF(DataRecive_Buad_correct) );
+			
+			//step_burd:=0;
+
+			
+END_CASE
+(*
+40://  接收，比较  模式
+ 	StsReceiveData2(
+		pPrefix:= , 
+		LenPrefix:=, 
+		pSuffix:= , 
+		LenSuffix:= , 
+		pReceiveData:= ADR(DataRecive_uv_mode), 
+		SizeReceiveData:= SIZEOF(DataRecive_uv_mode), 
+		Timeout:=T#500MS , 
+		Reset:= , 
+		DataReceived=> , 
+		busy=> , 
+		Error=> , 
+		RxTimeout=> , 
+		LenReceiveData=> , 
+		RXbuffer:= RXBUFFER2);
+	
+ 	EN_mode:=MEMCMP(pBuf1:=ADR(DataRecive_uv_mode) , pBuf2:=ADR(DataRecive_uv_mode_correct) , n:=SIZEOF(DataRecive_uv_mode_correct) );
+	step_UV:=0;
+	(*IF EN_mode=0 THEN 
+		step_UV:=0;
+	ELSE 
+		step_UV:=200;
+	END_IF
+	*)
+*)]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_20_COM2_UVLed_Version" Id="{055befc3-05a7-4aa9-b3db-7f5701be3b05}" FolderPath="UVLed\">
+      <Implementation>
+        <ST><![CDATA[CASE step_read_version OF 		
+0:
+	CmdSendData2(
+				pSendData:= ADR(DataSend_Version), 
+				Length:= 8, 
+				Busy=> , 
+				Error=> , 
+				TXbuffer:= TXBUFFER2);
+		step_read_version:=10;
+10:		
+		StsReceiveData2(
+				pPrefix:=ADR(Prefix_DataRecive_Version) , 
+				LenPrefix:=3, 
+				pSuffix:= , 
+				LenSuffix:= , 
+				pReceiveData:= ADR(DataRecive_Version), 
+				SizeReceiveData:= SIZEOF(DataRecive_Version), 
+				Timeout:=T#500MS , 
+				Reset:= , 
+				DataReceived=> , 
+				busy=> , 
+				Error=> , 
+				RxTimeout=> , 
+				LenReceiveData=> , 
+				RXbuffer:= RXBUFFER2);
+		
+		
+20:
+		;
+END_CASE]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_30_COM2_UVLed_First_light" Id="{886ee547-336f-4f31-9fcc-10d2692c7f98}" FolderPath="UVLed\">
+      <Implementation>
+        <ST><![CDATA[CASE step_first_light OF 		
+0:
+	CmdSendData2(
+				pSendData:= ADR(DataSend_First_light), 
+				Length:= 8, 
+				Busy=> , 
+				Error=> , 
+				TXbuffer:= TXBUFFER2);
+		step_read_version:=10;
+10:		
+		StsReceiveData2(
+				pPrefix:=ADR(Prefix_DataRecive_First_light) , 
+				LenPrefix:=3, 
+				pSuffix:= , 
+				LenSuffix:= , 
+				pReceiveData:= ADR(DataRecive_First_light), 
+				SizeReceiveData:= SIZEOF(DataRecive_First_light), 
+				Timeout:=T#500MS , 
+				Reset:= , 
+				DataReceived=> , 
+				busy=> , 
+				Error=> , 
+				RxTimeout=> , 
+				LenReceiveData=> , 
+				RXbuffer:= RXBUFFER2);
+		
+20:
+		;
+END_CASE]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_40_COM2_UVLed_Acc_working_time" Id="{68fde1e1-017b-44d1-96ce-92e0024644a2}" FolderPath="UVLed\">
+      <Implementation>
+        <ST><![CDATA[CASE step_acc_working_time OF 		
+0:
+	CmdSendData2(
+				pSendData:= ADR(DataSend_Acc_working_time), 
+				Length:= 8, 
+				Busy=> , 
+				Error=> , 
+				TXbuffer:= TXBUFFER2);
+		step_read_version:=10;
+10:		
+		StsReceiveData2(
+				pPrefix:=ADR(Prefix_DataRecive_Acc_working_time) , 
+				LenPrefix:=3, 
+				pSuffix:= , 
+				LenSuffix:= , 
+				pReceiveData:= ADR(DataRecive_Acc_working_time), 
+				SizeReceiveData:= SIZEOF(DataRecive_Acc_working_time), 
+				Timeout:=T#500MS , 
+				Reset:= , 
+				DataReceived=> , 
+				busy=> , 
+				Error=> , 
+				RxTimeout=> , 
+				LenReceiveData=> , 
+				RXbuffer:= RXBUFFER2);
+		
+20:
+		;
+END_CASE]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="_50_COM2_UVLed_Read_State" Id="{2411a0f5-31dc-48cd-9b38-089cb94d10dc}" FolderPath="UVLed\">
+      <Implementation>
+        <ST><![CDATA[(**************读取灯的能量和温度**************************************************)
+GVL.HMI_TEMP_L:=BYTE_TO_INT(DataRecive_State[7]);
+GVL.HMI_TEMP_R:=BYTE_TO_INT(DataRecive_State[11]);
+GVL.HMI_power_L:=BYTE_TO_INT(DataRecive_State[5]);
+GVL.HMI_power_R:=BYTE_TO_INT(DataRecive_State[9]);
+
+(******************************************main*****************************************
+		StsReceiveData2(
+				pPrefix:=ADR(Prefix_DataRecive_State) , 
+				LenPrefix:=3, 
+				pSuffix:= , 
+				LenSuffix:= , 
+				pReceiveData:= ADR(DataRecive_State), 
+				SizeReceiveData:= SIZEOF(DataRecive_State), 
+				Timeout:=T#500MS , 
+				Reset:= , 
+				DataReceived=> , 
+				busy=> , 
+				Error=> , 
+				RxTimeout=> , 
+				LenReceiveData=> , 
+				RXbuffer:= RXBUFFER2);
+		*)
+CASE step_read_state  OF
+	
+0://读状态，发送
+	Dely2(IN:=NOT Dely2.Q  , PT:=T#1000MS , Q=> , ET=> );	
+	IF Dely2.Q  THEN 
+		
+		CmdSendData2(
+				pSendData:= ADR(DataSend_State), 
+				Length:= 8, 
+				Busy=> , 
+				Error=> , 
+				TXbuffer:= TXBUFFER2);
+		step_read_state:=10;    
+	END_IF     
+10://接收
+	Dely2(IN:=false);
+	StsReceiveData2(
+				pPrefix:=ADR(Prefix_DataRecive_State) , 
+				LenPrefix:=3, 
+				pSuffix:= , 
+				LenSuffix:= , 
+				pReceiveData:= ADR(DataRecive_State), 
+				SizeReceiveData:= SIZEOF(DataRecive_State), 
+				Timeout:=T#500MS , 
+				Reset:= , 
+				DataReceived=> , 
+				busy=> , 
+				Error=> , 
+				RxTimeout=> , 
+				LenReceiveData=> , 
+				RXbuffer:= RXBUFFER2);
+		step_read_state:=20;  
+20://处理数据	 	
+		IF DataRecive_State[7]=16#FF THEN //温度异常
+				GVL.UV_error_L:=TRUE;
+				step_read_state:=100;
+		ELSIF  DataRecive_State[11]=16#FF THEN //温度异常
+				GVL.UV_error_R:=TRUE;
+				step_read_state:=100;	
+		ELSIF	DataRecive_State[13]<>16#11	THEN 	//不是232控制
+				step_read_state:=30;
+		ELSIF  	DataRecive_State[13]=16#11 AND DataRecive_State[7]<>16#FF AND 
+			DataRecive_State[11]<>16#FF AND NOT  GVL.UV_error_L  AND NOT GVL.UV_error_R THEN 
+				step_read_state:=0;		
+		END_IF
+		//step_read_state:=0;
+30://设定模式RS232		
+	   CmdSendData2(
+			pSendData:= ADR(DataSend_uv_mode), 
+			Length:= 11, 
+			Busy=> , 
+			Error=> , 
+			TXbuffer:= TXBUFFER2);	
+   		step_read_state:=0;
+					
+100://error
+			IF GVL_API.stUVLed[1].SetOff OR  GVL_API.stUVLed[2].SetOff THEN 
+				GVL.UV_error_L:=FALSE;
+				GVL.UV_error_R:=FALSE;
+				step_read_state:=0;
+			END_IF				
+END_CASE
+(**************remote***********************)
+ton_Remote(IN:=DataRecive_State[13]<>16#11 , PT:=T#5S , Q=> , ET=> );
+IF DataRecive_State[13]=16#11 THEN 
+	GVL.UVisRemote:=TRUE;
+ELSIF ton_Remote.Q THEN 
+	GVL.UVisRemote:=FALSE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="COM1_MainTankLevel" Id="{bfca26df-6ea5-48a2-bc58-74e495ba7c51}">
+      <Implementation>
+        <ST><![CDATA[(************************通讯参数设置*******************)
+//Dely1(IN:=TRUE , PT:=T#100MS , Q=> , ET=> );
+
+StsReceiveData1(
+	pPrefix:=ADR(Prefix1) , 
+	LenPrefix:=5 , 
+	pSuffix:= , 
+	LenSuffix:= , 
+	pReceiveData:= ADR(DataRecive1), 
+	SizeReceiveData:= SIZEOF(DataRecive1), 
+	Timeout:=T#500MS , 
+	Reset:= , 
+	DataReceived=> , 
+	busy=> , 
+	Error=> , 
+	RxTimeout=> , 
+	LenReceiveData=> , 
+	RXbuffer:= RXBUFFER1);
+
+(****************计算********************)
+FOR i:=6 TO 15 DO 
+	IF DataRecive1[i]<>255 AND DataRecive1[i]<=10 THEN 
+		level[i-5]:=BYTE_TO_LREAL(DataRecive1[i]);
+	ELSE
+		level[i-5]:=0;
+	END_IF
+END_FOR
+GVL.MainTankLevel[1]:=level[5];//LC
+GVL.MainTankLevel[2]:=level[6];//LM
+GVL.MainTankLevel[3]:=level[4];//Y
+GVL.MainTankLevel[4]:=level[3];//M
+GVL.MainTankLevel[5]:=level[2];//C
+GVL.MainTankLevel[6]:=level[1];//K
+GVL.MainTankLevel[7]:=level[7];//W
+GVL.MainTankLevel[8]:=level[8];//P
+GVL.MainTankLevel[9]:=level[9];//FU
+GVL.MainTankLevel[10]:=level[10];//WAST
+
+(*****************timeout,自复位***************************)
+TON_Timeout[3](IN:= NOT StsReceiveData1.busy  , PT:=T#2S , Q=> , ET=> );
+TON_Timeout[4](IN:=StsReceiveData1.busy  , PT:=T#2S , Q=> , ET=> );
+IF TON_Timeout[3].Q OR TON_Timeout[4].Q THEN 
+	gvl.MainTankLevel_timeout:=TRUE;
+ELSE
+	gvl.MainTankLevel_timeout:=FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="COM2_UVLed_1" Id="{9b1fcd20-6c3c-4ef1-8b71-2254d0da99a9}" FolderPath="UVLed\">
+      <Implementation>
+        <ST><![CDATA[GVL.HMI_TEMP_L:=BYTE_TO_INT(DataRecive_State[7]);
+GVL.HMI_TEMP_R:=BYTE_TO_INT(DataRecive_State[11]);
+GVL.HMI_power_L:=BYTE_TO_INT(DataRecive_State[5]);
+GVL.HMI_power_R:=BYTE_TO_INT(DataRecive_State[9]);
+(******************************************UV******************************************)
+Dely2(IN:=NOT Dely2.Q  , PT:=T#100MS , Q=> , ET=> );	
+IF Dely2.Q AND NOT UV_Power_r_trig.Q THEN 
+		CmdSendData2(
+				pSendData:= ADR(DataSend_State), 
+				Length:= 8, 
+				Busy=> , 
+				Error=> , 
+				TXbuffer:= TXBUFFER2);	
+		
+END_IF
+		StsReceiveData2(
+				pPrefix:=ADR(Prefix_DataRecive_State) , 
+				LenPrefix:=3, 
+				pSuffix:= , 
+				LenSuffix:= , 
+				pReceiveData:= ADR(DataRecive_State), 
+				SizeReceiveData:= SIZEOF(DataRecive_State), 
+				Timeout:=T#500MS , 
+				Reset:= , 
+				DataReceived=> , 
+				busy=> , 
+				Error=> , 
+				RxTimeout=> , 
+				LenReceiveData=> , 
+				RXbuffer:= RXBUFFER2);
+				
+(******************************************clear buff******************************************)				
+Dely1(IN:=NOT Dely1.Q , PT:=T#500MS , Q=> , ET=> );	
+IF Dely1.Q THEN 
+		clearbuf3(Buffer:=TXBUFFER2  );
+		clearbuf4(Buffer:=RXBUFFER2   );	
+END_IF
+
+(******************************************main******************************************)
+CASE step_read_state  OF		
+0://处理数据
+		IF DataRecive_State[7]=16#FF THEN //温度异常
+				GVL.UV_error_L:=TRUE;
+				step_read_state:=50;
+		ELSIF  DataRecive_State[11]=16#FF THEN //温度异常
+				GVL.UV_error_R:=TRUE;
+				step_read_state:=50;	
+		ELSIF	DataRecive_State[13]<>16#11	THEN 	//不是232控制
+				step_read_state:=30;
+		ELSIF  	DataRecive_State[13]=16#11 AND DataRecive_State[7]<>16#FF AND 
+			DataRecive_State[11]<>16#FF AND NOT  GVL.UV_error_L  AND NOT GVL.UV_error_R THEN 
+				step_read_state:=50;		//状态正常，设置能量
+		END_IF
+
+30://设定模式RS232		
+	   CmdSendData2(
+			pSendData:= ADR(DataSend_uv_mode), 
+			Length:= 11, 
+			Busy=> , 
+			Error=> , 
+			TXbuffer:= TXBUFFER2);	
+   		step_read_state:=0;
+
+
+50:	//	设置能量
+		IF NOT GVL.UV_error_L AND NOT  GVL.UV_error_R THEN 
+			DataSend_Power_set[8]:=16#00;DataSend_Power_set[9]:=16#11;	//命令
+		ELSE
+			DataSend_Power_set[8]:=16#00;DataSend_Power_set[9]:=16#00;	//命令	停机
+		END_IF
+		
+		DataSend_Power_set[1]:=16#01;DataSend_Power_set[2]:=16#10;
+		DataSend_Power_set[3]:=16#01;DataSend_Power_set[4]:=16#A0;
+		DataSend_Power_set[5]:=16#00;DataSend_Power_set[6]:=16#11;
+		DataSend_Power_set[7]:=16#22;
+		
+		
+		DataSend_Power_set[10]:=16#00;
+		DataSend_Power_set[11]:=DINT_TO_BYTE(GVL.set_uv_power_left);//灯0能量100
+		///DataSend_Power_set[11]:=DINT_TO_BYTE(uv_power_left_t);//灯0能量100
+		DataSend_Power_set[12]:=16#00;DataSend_Power_set[13]:=GVL.set_uv_parts_left;//灯0段数最大6
+		
+		DataSend_Power_set[14]:=16#00;
+		DataSend_Power_set[15]:=DINT_TO_BYTE(GVL.set_uv_power_right);//灯1能量100
+		//DataSend_Power_set[15]:=DINT_TO_BYTE(uv_power_right_t);//灯1能量100
+		DataSend_Power_set[16]:=16#00;DataSend_Power_set[17]:=GVL.set_uv_parts_right;//灯1段数最大6
+		FOR j:=18 TO 41 DO 
+			DataSend_Power_set[J]:=16#00;
+		END_FOR
+		
+		MEMCPY(destAddr:=ADR(DataSend_Power) , srcAddr:=ADR(DataSend_Power_set) , n:=SIZEOF(DataSend_Power_set) );
+		CRC16_Send_Power:=MEM.CRC16_Modbus(pMemoryBlock:= ADR(DataSend_Power_set) , uiLength:=SIZEOF(DataSend_Power_set) );
+		DataSend_Power[43]:=WORD_TO_BYTE(CRC16_Send_Power/256);  // crc h
+		DataSend_Power[42]:=WORD_TO_BYTE(CRC16_Send_Power);			//CRCL
+		//bHibyte:=MEM.HighByte(wValue:=CRC16_Send_Power );
+		//bLobyte:=MEM.LowByte(wValue:=CRC16_Send_Power );
+		
+	(*****************检测能量设置变化****************************)	
+	UV_Power_r_trig(CLK:=UV_power_old_L<>GVL.set_uv_power_left OR UV_power_old_R<> GVL.set_uv_power_right , Q=> );
+		//IF GVL.UV_error_L OR   GVL.UV_error_R OR UV_Power_r_trig.Q THEN 
+			UV_power_old_L:=GVL.set_uv_power_left;
+			UV_power_old_R:=GVL.set_uv_power_right;
+			
+			
+	
+		//END_IF
+		
+		IF NOT GVL.UV_error_L AND NOT  GVL.UV_error_R THEN 
+			step_read_state:=0;
+		ELSE
+			step_read_state:=100;	//命令	停机
+		END_IF
+							
+100://error
+			IF GVL_API.stUVLed[1].SetOff OR  GVL_API.stUVLed[2].SetOff THEN 
+				GVL.UV_error_L:=FALSE;
+				GVL.UV_error_R:=FALSE;
+				step_read_state:=0;
+			END_IF			
+END_CASE
+
+			CmdSendData3(
+					pSendData:= ADR(DataSend_Power), 
+					Length:= SIZEOF(DataSend_Power), 
+					Busy=> , 
+					Error=> , 
+					TXbuffer:= TXBUFFER2);	
+
+
+	 
+	 
+(*****************timeout,自复位***************************)
+TON_Timeout[1](IN:= NOT StsReceiveData2.busy  , PT:=T#2S , Q=> , ET=> );
+TON_Timeout[2](IN:=StsReceiveData2.busy  , PT:=T#2S , Q=> , ET=> );
+IF TON_Timeout[1].Q OR TON_Timeout[2].Q THEN 
+	GVL.UV_timeout:=TRUE;
+ELSE
+	GVL.UV_timeout:=FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="COM2_UVLed_Set_Power" Id="{0b6c8da6-c762-47e7-91d5-ecd679a4d1b9}" FolderPath="UVLed\">
+      <Implementation>
+        <ST><![CDATA[//设置能量
+		IF NOT GVL.UV_error_L AND NOT  GVL.UV_error_R THEN 
+			DataSend_Power_set[8]:=16#00;DataSend_Power_set[9]:=16#11;	//命令
+		ELSE
+			DataSend_Power_set[8]:=16#00;DataSend_Power_set[9]:=16#00;	//命令	停机
+		END_IF
+		
+		DataSend_Power_set[1]:=16#01;DataSend_Power_set[2]:=16#10;
+		DataSend_Power_set[3]:=16#01;DataSend_Power_set[4]:=16#A0;
+		DataSend_Power_set[5]:=16#00;DataSend_Power_set[6]:=16#11;
+		DataSend_Power_set[7]:=16#22;
+		
+		
+		DataSend_Power_set[10]:=16#00;
+		
+		DataSend_Power_set[11]:=DINT_TO_BYTE(GVL.set_uv_power_left);//灯0能量100
+		//DataSend_Power_set[11]:=DINT_TO_BYTE(uv_power_left_t);//灯0能量100
+		
+		DataSend_Power_set[12]:=16#00;DataSend_Power_set[13]:=GVL.set_uv_parts_left;//灯0段数最大6
+		
+		DataSend_Power_set[14]:=16#00;
+		
+		DataSend_Power_set[15]:=DINT_TO_BYTE(GVL.set_uv_power_right);//灯1能量100
+		//DataSend_Power_set[15]:=DINT_TO_BYTE(uv_power_right_t);//灯1能量100
+		
+		DataSend_Power_set[16]:=16#00;DataSend_Power_set[17]:=GVL.set_uv_parts_right;//灯1段数最大6
+		FOR j:=18 TO 41 DO 
+			DataSend_Power_set[J]:=16#00;
+		END_FOR
+		
+		MEMCPY(destAddr:=ADR(DataSend_Power) , srcAddr:=ADR(DataSend_Power_set) , n:=SIZEOF(DataSend_Power_set) );
+		CRC16_Send_Power:=MEM.CRC16_Modbus(pMemoryBlock:= ADR(DataSend_Power_set) , uiLength:=SIZEOF(DataSend_Power_set) );
+		//DataSend_Power[43]:=WORD_TO_BYTE(CRC16_Send_Power/256);  // crc h
+		//DataSend_Power[42]:=WORD_TO_BYTE(CRC16_Send_Power);			//CRCL
+		DataSend_Power[43]:=MEM.HighByte(wValue:=CRC16_Send_Power);
+		DataSend_Power[42]:=MEM.LowByte(wValue:=CRC16_Send_Power);
+
+CmdSendData3(
+			pSendData:= ADR(DataSend_Power), 
+			Length:= SIZEOF(DataSend_Power), 
+			Busy=> , 
+			Error=> , 
+			TXbuffer:= TXBUFFER2);
+	UV_Power_send_f_trig(CLK:=CmdSendData3.Busy , Q=> );
+(*
+CASE step_set_power OF
+0:
+(*****************检测能量设置变化****************************)
+UV_Power_r_trig(CLK:=UV_power_old_L<>GVL.set_uv_power_left OR UV_power_old_R<> GVL.set_uv_power_right , Q=> );
+	IF UV_Power_r_trig.Q THEN 
+			UV_power_old_L:=GVL.set_uv_power_left;
+			UV_power_old_R:=GVL.set_uv_power_right;
+		step_set_power:=10;
+	END_IF
+10:
+	CmdSendData3(
+			pSendData:= ADR(DataSend_Power), 
+			Length:= SIZEOF(DataSend_Power), 
+			Busy=> , 
+			Error=> , 
+			TXbuffer:= TXBUFFER2);
+	UV_Power_send_f_trig(CLK:=CmdSendData3.Busy , Q=> );
+	//IF UV_Power_send_f_trig.Q AND CmdSendData3.Error=0 THEN 
+			step_set_power:=0;
+	//END_IF
+END_CASE
+*)]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="PRG_SerialComm">
+      <LineId Id="1658" Count="0" />
+      <LineId Id="1655" Count="0" />
+      <LineId Id="1659" Count="0" />
+      <LineId Id="1657" Count="0" />
+      <LineId Id="1648" Count="4" />
+      <LineId Id="1606" Count="0" />
+      <LineId Id="1786" Count="0" />
+      <LineId Id="1789" Count="7" />
+      <LineId Id="1787" Count="0" />
+      <LineId Id="1653" Count="0" />
+      <LineId Id="1607" Count="0" />
+      <LineId Id="1912" Count="0" />
+      <LineId Id="1911" Count="0" />
+      <LineId Id="1887" Count="0" />
+      <LineId Id="1614" Count="15" />
+      <LineId Id="1660" Count="0" />
+      <LineId Id="1768" Count="0" />
+      <LineId Id="1630" Count="0" />
+      <LineId Id="1663" Count="0" />
+      <LineId Id="1769" Count="0" />
+      <LineId Id="1665" Count="0" />
+      <LineId Id="1664" Count="0" />
+      <LineId Id="1631" Count="2" />
+      <LineId Id="1770" Count="1" />
+      <LineId Id="1666" Count="1" />
+      <LineId Id="1689" Count="0" />
+      <LineId Id="1668" Count="0" />
+      <LineId Id="1634" Count="4" />
+      <LineId Id="1773" Count="1" />
+      <LineId Id="1670" Count="1" />
+      <LineId Id="1783" Count="0" />
+      <LineId Id="1672" Count="0" />
+      <LineId Id="1669" Count="0" />
+      <LineId Id="1639" Count="2" />
+      <LineId Id="1772" Count="0" />
+      <LineId Id="1784" Count="0" />
+      <LineId Id="1674" Count="1" />
+      <LineId Id="1785" Count="0" />
+      <LineId Id="1676" Count="0" />
+      <LineId Id="1673" Count="0" />
+      <LineId Id="1642" Count="1" />
+      <LineId Id="1679" Count="2" />
+      <LineId Id="1644" Count="2" />
+      <LineId Id="1898" Count="0" />
+      <LineId Id="1647" Count="0" />
+      <LineId Id="1894" Count="0" />
+      <LineId Id="378" Count="0" />
+    </LineIds>
+    <LineIds Name="PRG_SerialComm._10_COM2_UVLed_burd">
+      <LineId Id="65" Count="26" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="30" Count="8" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="40" Count="19" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="95" Count="23" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="93" Count="0" />
+    </LineIds>
+    <LineIds Name="PRG_SerialComm._20_COM2_UVLed_Version">
+      <LineId Id="25" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="26" Count="4" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="10" Count="13" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="36" Count="3" />
+    </LineIds>
+    <LineIds Name="PRG_SerialComm._30_COM2_UVLed_First_light">
+      <LineId Id="2" Count="27" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="PRG_SerialComm._40_COM2_UVLed_Acc_working_time">
+      <LineId Id="2" Count="27" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="PRG_SerialComm._50_COM2_UVLed_Read_State">
+      <LineId Id="1012" Count="0" />
+      <LineId Id="649" Count="0" />
+      <LineId Id="647" Count="0" />
+      <LineId Id="650" Count="0" />
+      <LineId Id="648" Count="0" />
+      <LineId Id="838" Count="0" />
+      <LineId Id="852" Count="0" />
+      <LineId Id="1019" Count="13" />
+      <LineId Id="1018" Count="0" />
+      <LineId Id="1097" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="1088" Count="0" />
+      <LineId Id="467" Count="0" />
+      <LineId Id="939" Count="1" />
+      <LineId Id="1104" Count="0" />
+      <LineId Id="1099" Count="4" />
+      <LineId Id="929" Count="0" />
+      <LineId Id="948" Count="0" />
+      <LineId Id="950" Count="0" />
+      <LineId Id="931" Count="0" />
+      <LineId Id="1136" Count="0" />
+      <LineId Id="1121" Count="13" />
+      <LineId Id="1106" Count="0" />
+      <LineId Id="1135" Count="0" />
+      <LineId Id="932" Count="0" />
+      <LineId Id="495" Count="1" />
+      <LineId Id="498" Count="3" />
+      <LineId Id="482" Count="2" />
+      <LineId Id="528" Count="0" />
+      <LineId Id="527" Count="0" />
+      <LineId Id="480" Count="0" />
+      <LineId Id="466" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="485" Count="5" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="712" Count="0" />
+      <LineId Id="365" Count="0" />
+      <LineId Id="400" Count="0" />
+      <LineId Id="502" Count="0" />
+      <LineId Id="504" Count="1" />
+      <LineId Id="503" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="1138" Count="0" />
+      <LineId Id="1141" Count="0" />
+      <LineId Id="1137" Count="0" />
+      <LineId Id="1139" Count="0" />
+      <LineId Id="1142" Count="1" />
+      <LineId Id="1140" Count="0" />
+      <LineId Id="1105" Count="0" />
+    </LineIds>
+    <LineIds Name="PRG_SerialComm.COM1_MainTankLevel">
+      <LineId Id="47" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="62" Count="14" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="30" Count="7" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="78" Count="8" />
+      <LineId Id="93" Count="7" />
+      <LineId Id="89" Count="0" />
+    </LineIds>
+    <LineIds Name="PRG_SerialComm.COM2_UVLed_1">
+      <LineId Id="649" Count="0" />
+      <LineId Id="647" Count="0" />
+      <LineId Id="650" Count="0" />
+      <LineId Id="648" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="731" Count="1" />
+      <LineId Id="796" Count="4" />
+      <LineId Id="733" Count="0" />
+      <LineId Id="838" Count="0" />
+      <LineId Id="734" Count="0" />
+      <LineId Id="823" Count="13" />
+      <LineId Id="795" Count="0" />
+      <LineId Id="855" Count="0" />
+      <LineId Id="854" Count="0" />
+      <LineId Id="847" Count="1" />
+      <LineId Id="716" Count="0" />
+      <LineId Id="846" Count="0" />
+      <LineId Id="849" Count="0" />
+      <LineId Id="863" Count="0" />
+      <LineId Id="852" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="467" Count="0" />
+      <LineId Id="495" Count="1" />
+      <LineId Id="498" Count="3" />
+      <LineId Id="482" Count="2" />
+      <LineId Id="528" Count="0" />
+      <LineId Id="527" Count="0" />
+      <LineId Id="480" Count="0" />
+      <LineId Id="466" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="485" Count="5" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="440" Count="0" />
+      <LineId Id="289" Count="0" />
+      <LineId Id="402" Count="0" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="403" Count="2" />
+      <LineId Id="306" Count="0" />
+      <LineId Id="290" Count="3" />
+      <LineId Id="303" Count="0" />
+      <LineId Id="417" Count="0" />
+      <LineId Id="314" Count="0" />
+      <LineId Id="688" Count="0" />
+      <LineId Id="690" Count="0" />
+      <LineId Id="307" Count="0" />
+      <LineId Id="692" Count="0" />
+      <LineId Id="308" Count="0" />
+      <LineId Id="689" Count="0" />
+      <LineId Id="691" Count="0" />
+      <LineId Id="309" Count="0" />
+      <LineId Id="316" Count="0" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="317" Count="0" />
+      <LineId Id="313" Count="0" />
+      <LineId Id="319" Count="1" />
+      <LineId Id="318" Count="0" />
+      <LineId Id="321" Count="0" />
+      <LineId Id="651" Count="1" />
+      <LineId Id="918" Count="0" />
+      <LineId Id="857" Count="0" />
+      <LineId Id="905" Count="4" />
+      <LineId Id="915" Count="0" />
+      <LineId Id="920" Count="0" />
+      <LineId Id="904" Count="0" />
+      <LineId Id="917" Count="0" />
+      <LineId Id="842" Count="3" />
+      <LineId Id="712" Count="0" />
+      <LineId Id="841" Count="0" />
+      <LineId Id="365" Count="0" />
+      <LineId Id="400" Count="0" />
+      <LineId Id="502" Count="0" />
+      <LineId Id="504" Count="1" />
+      <LineId Id="503" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="883" Count="0" />
+      <LineId Id="921" Count="4" />
+      <LineId Id="895" Count="0" />
+      <LineId Id="873" Count="0" />
+      <LineId Id="654" Count="0" />
+      <LineId Id="888" Count="1" />
+      <LineId Id="653" Count="0" />
+      <LineId Id="655" Count="0" />
+      <LineId Id="679" Count="0" />
+      <LineId Id="656" Count="1" />
+      <LineId Id="686" Count="1" />
+      <LineId Id="658" Count="0" />
+      <LineId Id="681" Count="0" />
+      <LineId Id="610" Count="0" />
+    </LineIds>
+    <LineIds Name="PRG_SerialComm.COM2_UVLed_Set_Power">
+      <LineId Id="2" Count="13" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="18" Count="2" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="23" Count="8" />
+      <LineId Id="109" Count="1" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="124" Count="5" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="57" Count="1" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="59" Count="5" />
+      <LineId Id="83" Count="4" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="88" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

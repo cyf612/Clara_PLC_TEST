@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="stRollToRoll" Id="{500fcb35-fad6-42a2-b844-ad42537e78cb}">
+    <Declaration><![CDATA[TYPE stRollToRoll :
+STRUCT
+//R//
+	error_code					:UDINT;	//	
+	state					    :INT;	//	
+	AxisErrorId					:UDINT;// 轴错误
+	initialized					:BOOL;
+	error							:BOOL;
+	tensioned					:BOOL;
+	untensioned				:BOOL;
+//W//	
+	acceleration				:LREAL:=4200;//	
+	deceleration				:LREAL:=4200;//	
+	rate						:DINT:=20;//Motor speed or torque.
+	untension_rate				:DINT;//Duty cycle for the motor speed during untensioning
+	tension_mode				:BOOL;//Indicates the printside: outside	0	The media is loaded outside (cf. following pictures)
+	//inside	1	The media is loaded inside (cf. following pictures)
+	
+	tension_timeout				:LREAL:=2000;//Maximum allowed time for balancer to come in position during ‘tensioning’ state.
+	untension_timeout			:LREAL:=2000;//Maximum allowed time to stabilize the system when untensioning the RollToRoll
+	brake_timeout				:LREAL:=2000;//the time the brake is allowed to be active. If this is exceeded then an error is set
+	Initialize					:BOOL;//
+	SetActivate					:BOOL;//
+	SetReady					:BOOL;//
+	EnableBrake					:BOOL;//
+	DisableBrake				:BOOL;//
+	StartTension				:BOOL;//
+	StopTension					:BOOL;//
+	Unlock						:BOOL;//
+	Lock						:BOOL;//
+	SetOff						:BOOL;//
+	is_printing					:BOOL;
+	usable			  			:BOOL;
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

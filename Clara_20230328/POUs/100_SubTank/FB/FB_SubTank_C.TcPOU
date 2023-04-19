@@ -1,0 +1,156 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_SubTank_C" Id="{1561efcd-af97-4b95-ba98-4d60b540e3ed}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SubTank_C
+VAR_INPUT	
+	sublevel					:BOOL;
+	protectLevel				:BOOL;	
+	filterTime_ON				:TIME;	//接通滤波时间
+	filterTime_OFF				:TIME;	//接断开滤波间
+	inkFillTimeOutSet			:TIME;   //供墨超时时间设定 s	
+END_VAR
+VAR_OUTPUT	
+	PumpWorking 				:BOOL;	//输出
+	state								:INT;
+	error_code					:INT;
+	Error						:BOOL;
+END_VAR
+VAR	
+	step						:INT;
+	ON_filterTon			:TON;						//滤波
+	OFF_filterTon			:TON;
+	ON_filterTon_P			:TON;						//保护气瓶滤波
+	OFF_filterTon_P			:TON;
+	filterLevel			    :BOOL;
+	filterLevel_P			:BOOL;
+	inkFillTimeOutTon		:TON;	
+END_VAR
+VAR_IN_OUT
+	setoff					:BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_filter_level();
+
+CASE step OF
+0://ready
+	state:=SubTankStateEnum.ready;
+	(************Pumping*****************)
+	IF NOT filterLevel AND NOT filterLevel_P  THEN 		
+		PumpWorking :=TRUE;
+	END_IF	
+	IF 	 filterLevel OR  filterLevel_P  THEN
+		PumpWorking :=FALSE;
+	END_IF
+	
+	(************inkFillTimeOut*****************)
+	inkFillTimeOutTon(IN:=PumpWorking   , PT:=inkFillTimeOutSet , Q=> , ET=> );
+		IF inkFillTimeOutTon.Q THEN 
+			error_code:=SubTankErrorEnum.pump_timeout;
+			step:=100;	
+		END_IF	
+	
+90://setoff
+	error:=FALSE;	
+	error_code:=ISSErrorEnum.no_error;
+		
+	inkFillTimeOutTon(IN:=FALSE);
+	PumpWorking  :=FALSE;		
+	step:=0;		
+	
+100://error
+	state:=SubTankStateEnum.error;
+	inkFillTimeOutTon(IN:=FALSE);
+	PumpWorking  :=FALSE;	
+	error:=TRUE;
+END_CASE
+
+IF setoff OR GVL.Reset THEN 
+	setoff:=FALSE;
+	step:=90;
+END_IF
+(*****************************************************)
+	IF GVL.Emstop_Button  THEN 
+		error_code:=ISSErrorEnum.emergency_error;
+		step:=100;
+	ELSIF filterLevel_P THEN 
+		error_code:=ISSErrorEnum.back_to_air_tank;
+		step:=100;
+	END_IF
+
+]]></ST>
+    </Implementation>
+    <Action Name="ACT_filter_level" Id="{a97605e3-77fc-4768-99bb-9983eb69e9c1}">
+      <Implementation>
+        <ST><![CDATA[(************LEVEL*****************)
+ON_filterTon(IN:=sublevel , PT:=filterTime_ON , Q=> , ET=> );
+OFF_filterTon(IN:=NOT sublevel , PT:=filterTime_OFF , Q=> , ET=> );
+
+IF ON_filterTon .Q  THEN 
+	filterLevel:=TRUE;
+ELSIF OFF_filterTon .Q THEN 
+	filterLevel:=FALSE;
+END_IF
+
+(*************LEVEL_P****************)
+ON_filterTon_P(IN:=protectLevel , PT:=filterTime_ON , Q=> , ET=> );
+OFF_filterTon_P(IN:=NOT protectLevel , PT:=filterTime_OFF , Q=> , ET=> );
+
+IF ON_filterTon_P .Q  THEN 
+	filterLevel_P:=TRUE;
+ELSIF OFF_filterTon_P .Q THEN 
+	filterLevel_P:=FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_SubTank_C">
+      <LineId Id="341" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="529" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="315" Count="0" />
+      <LineId Id="310" Count="4" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="344" Count="0" />
+      <LineId Id="322" Count="0" />
+      <LineId Id="324" Count="1" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="326" Count="0" />
+      <LineId Id="323" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="261" Count="0" />
+      <LineId Id="549" Count="0" />
+      <LineId Id="558" Count="1" />
+      <LineId Id="553" Count="0" />
+      <LineId Id="555" Count="0" />
+      <LineId Id="550" Count="0" />
+      <LineId Id="546" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="538" Count="0" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="679" Count="0" />
+      <LineId Id="676" Count="2" />
+      <LineId Id="488" Count="0" />
+      <LineId Id="451" Count="0" />
+      <LineId Id="489" Count="0" />
+      <LineId Id="452" Count="0" />
+      <LineId Id="454" Count="0" />
+      <LineId Id="490" Count="3" />
+      <LineId Id="453" Count="0" />
+      <LineId Id="338" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SubTank_C.ACT_filter_level">
+      <LineId Id="2" Count="2" />
+      <LineId Id="7" Count="5" />
+      <LineId Id="17" Count="9" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_MediaTransport" Id="{ad0cf7d2-b7a2-42a0-ae27-07d98017670b}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_MediaTransport
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[P_TableVacuum();
+P_UpDownSlot();]]></ST>
+    </Implementation>
+    <LineIds Name="P_MediaTransport">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

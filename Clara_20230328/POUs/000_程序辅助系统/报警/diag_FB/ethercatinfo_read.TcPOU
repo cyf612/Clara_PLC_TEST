@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="ethercatinfo_read" Id="{4760431c-ce1c-47b8-acf2-ae7d122e595c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK ethercatinfo_read
+VAR_INPUT
+	netID AT %I*:Tc2_System.T_AmsNetIdArr;							//硬件网络的AMSnetID
+	nEcMasterDeviceId AT %I*:UINT;											//主站的deviceID
+END_VAR
+VAR_OUTPUT
+	slaveAddresses    : ARRAY[0..255] OF UINT;						//读取的从站地址（以数组保存）
+	devStates           : ARRAY[0..255] OF ST_EcSlaveState;		//读取的从站状态机
+	slavenames			: ARRAY[0..255] OF T_MaxString;			//读取从站名字
+    color					: ARRAY[0..255] OF DWORD;					//显示图标的颜色
+	nSlaves           : UINT := 0;														//从站个数
+END_VAR
+VAR
+	i:INT;
+	i1:INT;
+	NAN:Tc2_System.T_MaxString;											//复位变量
+	ton1:Tc2_Standard.TON;														//读取时钟触发器
+	bExecute          :  BOOL;															//触发位
+	fb_getalladdr:Tc2_EtherCAT.FB_EcGetAllSlaveAddr;		//读取从站地址的功能块 https://infosys.beckhoff.com/content/1033/tcplclib_tc2_ethercat/9007199311752331.html?id=8671424095593379685
+	fb_getallstate:Tc2_EtherCAT.FB_EcGetAllSlaveStates;		//读取从站状态机的功能块 https://infosys.beckhoff.com/content/1033/tcplclib_tc2_ethercat/9007199311770635.html?id=2217456128990928132
+	fb_getallname: IOF_GetBoxNameByAddr;							//读取从站名称 https://infosys.beckhoff.com/content/1033/tcplclib_tc2_iofunctions/9007199313832971.html?id=4102389766817989774
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ton1(IN:= NOT ton1.Q, PT:= T#0.5S, Q=> bExecute, ET=> );
+
+fb_getalladdr(//读取从站地址
+	sNetId:= F_CreateAmsNetId(netID), //网络netID
+	pAddrBuf:= ADR(slaveAddresses), //寄存器地址
+	cbBufLen:= SIZEOF(slaveAddresses), 
+	bExecute:= bExecute, 
+	nSlaves=> nSlaves);//从站个数
+	
+fb_getallstate(//读取从站状态机
+	sNetId:= F_CreateAmsNetId(netID), //网络地址
+	pStateBuf:= ADR(devStates), //寄存器地址
+	cbBufLen:= SIZEOF(devStates), 
+	bExecute:= bExecute, 
+	nSlaves=> );
+
+fb_getallname(//读取从站名称
+	NETID:= , 
+	DEVICEID:=nEcMasterDeviceId, //device number
+	BOXADDR:=  slaveAddresses[i], //从站号
+	BOXNAME=> slavenames[i]);//返回从站名
+
+IF slaveAddresses[i]>0 AND NOT fb_getallname .start THEN//反复触发功能块
+	fb_getallname.START:=TRUE;
+ELSIF slaveAddresses[i+1]>0 AND NOT fb_getallname.BUSY THEN
+		i:=i+1;
+		fb_getallname.START:=FALSE;
+END_IF
+
+FOR i1:=0 TO  nSlaves BY 1 DO//颜色变量触发逻辑
+CASE devStates [i1].deviceState OF
+	1: color[i1]:=16#FFFF0000;
+	2: color[i1]:=16#FFFFFF00;
+	4: color[i1]:=16#FF88FF00;
+	8: color[i1]:=16#FF00FF00;
+	ELSE
+	color[i1]:=16#FFFFFFFF;
+END_CASE
+END_FOR]]></ST>
+    </Implementation>
+    <LineIds Name="ethercatinfo_read">
+      <LineId Id="32" Count="37" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

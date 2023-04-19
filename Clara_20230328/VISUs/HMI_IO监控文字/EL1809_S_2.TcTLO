@@ -1,0 +1,200 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <TextList Name="EL1809_S_2" Id="{f249efbc-130d-46f8-bb7f-21243d9958b8}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="TextListObject">
+          <v n="UniqueIdGenerator">"0"</v>
+          <l n="TextList" t="ArrayList" cet="TextListRow">
+            <o>
+              <v n="TextID">"1"</v>
+              <v n="TextDefault">"SubInkTankLevel P2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>二级墨盒液位图层2</v>
+                <v></v>
+                <v>二级墨盒液位图层2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"2"</v>
+              <v n="TextDefault">"SubInkTankLevel W1"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>二级墨盒液位W1</v>
+                <v></v>
+                <v>二级墨盒液位W1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"3"</v>
+              <v n="TextDefault">"SubInkTankLevel W2"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>二级墨盒液位W2</v>
+                <v></v>
+                <v>二级墨盒液位W2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"4"</v>
+              <v n="TextDefault">"SubInkTankLevel W3"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>二级墨盒液位W3</v>
+                <v></v>
+                <v>二级墨盒液位W3</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"5"</v>
+              <v n="TextDefault">"SubInkTankLevel W4"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>二级墨盒液位W4</v>
+                <v></v>
+                <v>二级墨盒液位W4</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"6"</v>
+              <v n="TextDefault">"ProtectTankLevel_C"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>真空保护瓶液位1</v>
+                <v></v>
+                <v>真空保护瓶液位1</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"7"</v>
+              <v n="TextDefault">"ProtectTankLevel_W"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>真空保护瓶液位2</v>
+                <v></v>
+                <v>真空保护瓶液位2</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"8"</v>
+              <v n="TextDefault">"Purge button"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>正压按钮</v>
+                <v></v>
+                <v>正压按钮</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"9"</v>
+              <v n="TextDefault">"Color vac button"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>彩色正负压切换按钮</v>
+                <v></v>
+                <v>彩色正负压切换按钮</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"10"</v>
+              <v n="TextDefault">"White vac button"</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v>白色正负压切换按钮</v>
+                <v></v>
+                <v>白色正负压切换按钮</v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"11"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"12"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"13"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"14"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"15"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">"16"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+            <o>
+              <v n="TextID">""</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" cet="String">
+                <v></v>
+                <v></v>
+                <v></v>
+                <v></v>
+              </l>
+            </o>
+          </l>
+          <l n="Languages" t="ArrayList" cet="String">
+            <v>chinese</v>
+            <v>english</v>
+            <v>Chinese</v>
+            <v>English</v>
+          </l>
+          <v n="GuidInit">{44fdc245-9bed-4a7a-a0f2-0b920092794f}</v>
+          <v n="GuidReInit">{8d937933-5823-4c9c-bcd1-dae5102ec799}</v>
+          <v n="GuidExitX">{173715aa-1d87-4929-b508-285aba0a075a}</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="String">System.String</Type>
+        <Type n="TextListObject">{2bef0454-1bd3-412a-ac2c-af0f31dbc40f}</Type>
+        <Type n="TextListRow">{53da1be7-ad25-47c3-b0e8-e26286dad2e0}</Type>
+      </TypeList>
+    </XmlArchive>
+  </TextList>
+</TcPlcObject>

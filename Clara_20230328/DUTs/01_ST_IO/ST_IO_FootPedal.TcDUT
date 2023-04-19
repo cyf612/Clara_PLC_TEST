@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_IO_FootPedal" Id="{78ec9c8e-c229-415a-bc31-442131eeb59f}">
+    <Declaration><![CDATA[TYPE ST_IO_FootPedal :
+STRUCT
+	PedalPressed1			:BOOL;	//LEFT
+	PedalPressed2			:BOOL;	//MID
+	PedalPressed3			:BOOL;	//RIGHT
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

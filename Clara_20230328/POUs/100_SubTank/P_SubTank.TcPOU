@@ -1,0 +1,258 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="P_SubTank" Id="{17e24e3e-c062-435d-929d-decb60b83f31}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM P_SubTank
+VAR
+	FB_SubTankFill_C   :ARRAY[1..12] OF FB_SubTank_C;
+	FB_SubTankFill_P   :ARRAY[1..2] OF FB_SubTank_C;
+	FB_SubTankFill_W   :ARRAY[1..2] OF FB_SubTank_W;
+	FB_SubTankFill_F   :ARRAY[1..2] OF FB_SubTank_W;
+	
+	PumpWorking1_W,PumpWorking2_W:BOOL;
+	PumpWorking1_F,PumpWorking2_F:BOOL;
+	
+	bqFillPumpWorking_W_r_trig:Tc2_Standard.R_TRIG;//白墨泵启动
+	bqFillPumpWorking_F_r_trig:Tc2_Standard.R_TRIG;	//	清洗液泵启动
+	
+	i:INT;
+(****************白墨循坏*******************************)
+	FB_Circulation:FB_Circulation;
+	
+	enable_W_rtrig:Tc2_Standard.R_TRIG;
+	enable_F_rtrig:Tc2_Standard.R_TRIG;
+END_VAR
+
+VAR PERSISTENT
+	SubTankFill_en:ARRAY[1..4] OF BOOL:=[1,1,0,0];//w1,w2,f1,f2  白，清洗液供墨使能
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[ACT_Color();
+ACT_W_F();
+ACT_Circulation();
+(****white pump**************************************)
+stOutput.bqFillPumpWorking[13]:=(PumpWorking1_W ) 
+						AND NOT stOutput.bqFillPumpWorking[19] ;
+stOutput.bqFillPumpWorking[15]:=(PumpWorking2_W ) 
+						AND NOT stOutput.bqFillPumpWorking[20];
+(****flush pump**************************************)
+stOutput.bqFillPumpWorking[19]:=(PumpWorking1_F ) 
+						AND NOT stOutput.bqFillPumpWorking[13] ;
+stOutput.bqFillPumpWorking[20]:=(PumpWorking2_F ) 
+						AND NOT stOutput.bqFillPumpWorking[15] ;
+													
+(**********************墨盒里 
+		0” circuit not filled (default setting)
+	“1” circuit filled with “white ink”
+	“2” circuit filled with “storage fluid”
+******************************************************)
+bqFillPumpWorking_W_r_trig(CLK:=stOutput.bqFillPumpWorking[13] OR stOutput.bqFillPumpWorking[15] , Q=> );
+bqFillPumpWorking_F_r_trig(CLK:=stOutput.bqFillPumpWorking[19] OR stOutput.bqFillPumpWorking[20] , Q=> );
+IF bqFillPumpWorking_W_r_trig.Q THEN
+	SubTankInk_type:=1; 
+ELSIF bqFillPumpWorking_F_r_trig.Q THEN 
+	SubTankInk_type:=2;
+END_IF
+
+
+(***************切换墨水**************************)
+enable_F_rtrig(CLK:= GVL_API.stMU.state=MUStateEnum.swapping AND GVL_API.stMU.cycle=0 , Q=> );
+enable_W_rtrig(CLK:=GVL_API.stMU.state=MUStateEnum.swapping AND GVL_API.stMU.cycle=1 , Q=> );
+IF enable_W_rtrig.Q THEN  //WHITE
+	SubTankFill_en[1]:=TRUE;
+	SubTankFill_en[2]:=TRUE;
+	SubTankFill_en[3]:=FALSE;
+	SubTankFill_en[4]:=FALSE;
+ELSIF enable_F_rtrig.Q THEN //FLUSH
+	SubTankFill_en[1]:=FALSE;
+	SubTankFill_en[2]:=FALSE;
+	SubTankFill_en[3]:=TRUE;
+	SubTankFill_en[4]:=TRUE;
+END_IF]]></ST>
+    </Implementation>
+    <Action Name="ACT_Circulation" Id="{2d905547-dc99-4b9d-93f6-8f70f900ba41}">
+      <Implementation>
+        <ST><![CDATA[FB_Circulation(
+	BottomLevel1:=GVL.inklevel_W_L_BOT , 
+	BottomLevel2:=GVL.inklevel_W_R_BOT , 
+	MUstate:=GVL_API.stMU.state , 
+	setoff:= GVL_API.stMU.SetOff OR GVL.Reset, 
+	set_pump_voltage1:=HMI_CircPump1_V , 
+	set_pump_voltage2:=HMI_CircPump2_V , 
+	CircPumpWorking1=>stOutput.bqSubCircPumpWorking[1]  , 
+	CircPumpWorking2=> stOutput.bqSubCircPumpWorking[2] , 
+	error_code=> ,
+	out_pump_voltage1=>EL4002_S[1] , 
+	out_pump_voltage2=>EL4002_S[2] );
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_Color" Id="{286ba5bd-4429-4f89-b2be-034d2dbe56b2}">
+      <Implementation>
+        <ST><![CDATA[(*******************COLOR***************************)
+(*
+1	:	LC1		2	:	LC2
+3	:	LM1		4	:	LM2
+5	:	Y1		6	:	Y2
+7	:	M1		8	:	M2
+9	:	C1		10	:	C2
+11	:	K1		12	:	K2
+13		P1		14		P2
+15		W_L		16		W_R
+
+*)
+FOR i:=1 TO 12 DO 
+	FB_SubTankFill_C[i](
+		sublevel:= stInput.biSubInkTankLevel[i], 
+		protectLevel:= stInput.biProtectAirTankLevel_C, 
+		filterTime_ON:= T#0S, 
+		filterTime_OFF:= T#3S, 
+		inkFillTimeOutSet:= inkFillTimeOutSet, 
+		PumpWorking=> stOutput.bqFillPumpWorking[i], 
+		state=> GVL_API.stSubTank[i].state, 
+		error_code=> GVL_API.stSubTank[i].error_code, 
+		Error=> GVL_API.stSubTank[i].Error, 
+		setoff:=GVL_API.stSubTank[i].Setoff );
+END_FOR
+
+(*******************Primer***************************)
+	FB_SubTankFill_P[1](
+		sublevel:= stInput.biSubInkTankLevel[17], 
+		protectLevel:= stInput.biProtectAirTankLevel_W, 
+		filterTime_ON:= T#0S, 
+		filterTime_OFF:= T#3S, 
+		inkFillTimeOutSet:= inkFillTimeOutSet, 
+		PumpWorking=> stOutput.bqFillPumpWorking[17], 
+		state=> GVL_API.stSubTank[13].state, 
+		error_code=> GVL_API.stSubTank[13].error_code, 
+		Error=> GVL_API.stSubTank[13].Error, 
+		setoff:=GVL_API.stSubTank[13].Setoff );
+	FB_SubTankFill_P[2](
+		sublevel:= stInput.biSubInkTankLevel[18], 
+		protectLevel:= stInput.biProtectAirTankLevel_W, 
+		filterTime_ON:= T#0S, 
+		filterTime_OFF:= T#3S, 
+		inkFillTimeOutSet:= inkFillTimeOutSet, 
+		PumpWorking=> stOutput.bqFillPumpWorking[18], 
+		state=> GVL_API.stSubTank[14].state, 
+		error_code=> GVL_API.stSubTank[14].error_code, 
+		Error=> GVL_API.stSubTank[14].Error, 
+		setoff:=GVL_API.stSubTank[14].Setoff );]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ACT_W_F" Id="{3502632b-e2a1-42fe-9eef-e29fd11f96b5}">
+      <Implementation>
+        <ST><![CDATA[(*******************WHITE/FLUSH***************************)	
+GVL.inklevel_W_L_BOT:=stInput.biSubInkTankLevel[13] ;	//W_L_BOT
+GVL.inklevel_W_L_TOP:=stInput.biSubInkTankLevel[14] ;	//W_L_TOP
+GVL.inklevel_W_R_TOP:=stInput.biSubInkTankLevel[15] ;	//W_R_TOP
+GVL.inklevel_W_R_BOT:=stInput.biSubInkTankLevel[16] ;	//W_R_BOT
+
+
+(*******************white***************************)
+	FB_SubTankFill_W[1](
+		enable:=SubTankFill_en[1],
+		fill_in_swap_enable:=GVL.fill_W_in_swap_enable , 
+		ISswappingState:=GVL_API.stMU.state  , 
+		alternate_fill:= P_MaintenanceUnit.FB_Auto_Cycles_Swap.alternate_Pumping, 
+		Toplevel:= GVL.inklevel_W_L_TOP, 
+		protectLevel:= stInput.biProtectAirTankLevel_W, 
+		filterTime_ON:= T#0S, 
+		filterTime_OFF:= T#3S, 
+		inkFillTimeOutSet:= inkFillTimeOutSet, 
+		CircPumpWorking:= stOutput.bqSubCircPumpWorking[1], 
+		PumpWorking=> PumpWorking1_W, 
+		state=> GVL_API.stSubTank[15].state, 
+		error_code=> GVL_API.stSubTank[15].error_code, 
+		Error=> GVL_API.stSubTank[15].Error, 
+		setoff:= GVL_API.stSubTank[15].Setoff);
+	FB_SubTankFill_W[2](
+		enable:=SubTankFill_en[2],
+		fill_in_swap_enable:=GVL.fill_W_in_swap_enable , 
+		ISswappingState:=GVL_API.stMU.state  , 
+		alternate_fill:= P_MaintenanceUnit.FB_Auto_Cycles_Swap.alternate_Pumping, 
+		Toplevel:= GVL.inkLevel_W_R_TOP, 
+		protectLevel:= stInput.biProtectAirTankLevel_W, 
+		filterTime_ON:= T#0S, 
+		filterTime_OFF:= T#3S, 
+		inkFillTimeOutSet:= inkFillTimeOutSet, 
+		CircPumpWorking:= stOutput.bqSubCircPumpWorking[2], 
+		PumpWorking=> PumpWorking2_W, 
+		state=> GVL_API.stSubTank[16].state, 
+		error_code=> GVL_API.stSubTank[16].error_code, 
+		Error=> GVL_API.stSubTank[16].Error, 
+		setoff:= GVL_API.stSubTank[16].Setoff);	
+		
+(*******************FLUSH***************************)
+	FB_SubTankFill_F[1](
+		enable:=SubTankFill_en[3],
+		fill_in_swap_enable:=GVL.fill_F_in_swap_enable , 
+		ISswappingState:=GVL_API.stMU.state  , 
+		alternate_fill:= P_MaintenanceUnit.FB_Auto_Cycles_Swap.alternate_Pumping, 
+		Toplevel:= GVL.inklevel_W_L_TOP, 
+		protectLevel:= stInput.biProtectAirTankLevel_W, 
+		filterTime_ON:= T#0S, 
+		filterTime_OFF:= T#3S, 
+		inkFillTimeOutSet:= inkFillTimeOutSet, 
+		CircPumpWorking:= stOutput.bqSubCircPumpWorking[1], 
+		PumpWorking=> PumpWorking1_F, 
+		state=> GVL_API.stSubTank[15].state, 
+		error_code=> GVL_API.stSubTank[15].error_code, 
+		Error=> GVL_API.stSubTank[15].Error, 
+		setoff:= GVL_API.stSubTank[15].Setoff);
+	FB_SubTankFill_F[2](
+		enable:=SubTankFill_en[4],
+		fill_in_swap_enable:=GVL.fill_F_in_swap_enable , 
+		ISswappingState:=GVL_API.stMU.state  , 
+		alternate_fill:= P_MaintenanceUnit.FB_Auto_Cycles_Swap.alternate_Pumping, 
+		Toplevel:= GVL.inkLevel_W_R_TOP, 
+		protectLevel:= stInput.biProtectAirTankLevel_W, 
+		filterTime_ON:= T#0S, 
+		filterTime_OFF:= T#3S, 
+		inkFillTimeOutSet:= inkFillTimeOutSet, 
+		CircPumpWorking:= stOutput.bqSubCircPumpWorking[2], 
+		PumpWorking=> PumpWorking2_F, 
+		state=> GVL_API.stSubTank[16].state, 
+		error_code=> GVL_API.stSubTank[16].error_code, 
+		Error=> GVL_API.stSubTank[16].Error, 
+		setoff:= GVL_API.stSubTank[16].Setoff);				
+		]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="P_SubTank">
+      <LineId Id="236" Count="1" />
+      <LineId Id="254" Count="0" />
+      <LineId Id="211" Count="22" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="276" Count="1" />
+      <LineId Id="238" Count="1" />
+      <LineId Id="241" Count="3" />
+      <LineId Id="246" Count="2" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="240" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SubTank.ACT_Circulation">
+      <LineId Id="2" Count="11" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SubTank.ACT_Color">
+      <LineId Id="2" Count="47" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="P_SubTank.ACT_W_F">
+      <LineId Id="2" Count="4" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="7" Count="2" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="10" Count="14" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="25" Count="16" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="42" Count="14" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="57" Count="13" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
