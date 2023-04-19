@@ -9,6 +9,7 @@ STRUCT
 		Error				:BOOL;
 	//W//
 		Setoff				:BOOL;	//  
+		timeout             :LREAL;//S
 END_STRUCT
 END_TYPE
 ]]></Declaration>
